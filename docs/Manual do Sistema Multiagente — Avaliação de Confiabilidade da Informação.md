@@ -34,7 +34,7 @@ O Ingestor limpa e segmenta o texto; três agentes trabalham sobre ele em parale
 
 ### 1.4 Entregável final (Semana 6)
 
-Um protótipo funcional com interface web, rodando localmente nos MacBooks do grupo, avaliado contra um conjunto de teste curado, e acompanhado de um relatório de avaliação que compara a versão multiagente com uma versão de chamada única (baseline).
+Um protótipo funcional com interface web, rodando localmente em um MacBook, avaliado contra um conjunto de teste curado, e acompanhado de um relatório de avaliação que compara a versão multiagente com uma versão de chamada única (baseline).
 
 ## 2. Evolução da arquitetura
 
@@ -224,7 +224,7 @@ Cada agente é um módulo Python isolado, testável sem o grafo, que recebe uma 
 
 ## 5. Infraestrutura e stack
 
-A inferência roda localmente, distribuída entre os 5 MacBook Air M4 de 24GB, com uma única chamada de API paga opcional no Sintetizador. Cada máquina serve um papel fixo na demo integrada, o que evita que vários modelos disputem a mesma memória unificada.
+Cada integrante desenvolve e testa o próprio agente no próprio MacBook Air M4 de 24GB. A demo integrada roda em **uma única máquina**, com um modelo local compartilhado pelos agentes que usam LLM e o Sintetizador preferencialmente via API. Não há serving distribuído entre máquinas.
 
 ### 5.1 O que cabe em um M4 base de 24GB
 
@@ -239,19 +239,21 @@ Por padrão, a GPU enxerga cerca de 16–18GB dos 24GB; o planejamento seguro é
 
 Fonte das medições: [pickuma, 2026](https://dev.to/pickuma/running-local-llms-on-m4-mac-with-24gb-ram-what-actually-fits-7jf). Um prompt de 4.000 tokens num 14B leva \~12 s só para ser processado, então contexto longo custa caro: o RAG deve enviar só os trechos reranqueados, nunca documentos inteiros.
 
-**Estimativa de latência do pipeline:** 3 chamadas de LLM por entrada — Texto e Socrático em paralelo, depois o Sintetizador. Com modelos de 7–9B nos ramos paralelos, a investigação deve levar de \~30 segundos (Sintetizador via API) a \~2 minutos (tudo local, Sintetizador 14B). A meta do MVP continua abaixo de 3 minutos, agora com folga.
+**Estimativa de latência do pipeline:** 3 chamadas de LLM por entrada. Texto e Socrático continuam paralelos no grafo, mas numa máquina só disputam a mesma banda de memória, então o ganho real de paralelismo é pequeno. A investigação deve levar de 1 a 2 minutos com o Sintetizador via API. A meta do MVP continua abaixo de 3 minutos.
 
-### 5.2 Topologia de serving (demo integrada)
+### 5.2 Execução em máquina única
 
-| Máquina | Papel | Serviços |
+Na demo, tudo precisa caber nos \~16–18GB que a GPU do M4 enxerga por padrão.
+
+| Componente | Memória aproximada | Observação |
 | --- | --- | --- |
-| Mac 1 | Orquestração | Aplicação LangGraph, Ingestor, interface Streamlit, ChromaDB, tracing |
-| Mac 2 | Agente de Texto | Ollama com modelo 7–9B |
-| Mac 3 | Agente de Evidências | FastAPI com embeddings e NLI via PyTorch/MPS |
-| Mac 4 | Agente Socrático | Ollama com modelo 7–9B (pode ser o mesmo do Mac 2) |
-| Mac 5 | Sintetizador e avaliação | Ollama com 14B como fallback local da API; execução do gold set e do baseline |
+| Modelo 8B (Texto e Socrático) | \~5 GB + KV cache | Um único modelo carregado pelo Ollama atende os dois agentes |
+| Embeddings + NLI (Evidências) | < 2 GB | Modelos encoder pequenos via PyTorch/MPS |
+| ChromaDB, LangGraph, Streamlit | < 1 GB | Rodam na CPU |
+| Sintetizador via API | 0 GB local | Opção recomendada |
+| Sintetizador 14B local (fallback) | \~9 GB + KV cache | Cabe junto do 8B, mas no limite: o Ollama pode trocar modelos entre chamadas, o que custa segundos a cada troca |
 
-Durante o desenvolvimento, cada integrante roda tudo localmente com modelos pequenos. A topologia distribuída é montada no Sprint 3, para integração e demo. Os serviços expõem endpoints na rede local (Ollama com `OLLAMA_HOST=0.0.0.0`). **Risco:** redes universitárias frequentemente bloqueiam tráfego entre máquinas; teste isso no Sprint 1 e tenha um plano B (roteador próprio, hotspot ou VPN mesh como Tailscale).
+Se o orçamento de API acabar, a alternativa mais estável ao 14B é usar o próprio modelo de 8B no Sintetizador, com perda de qualidade na escrita, em vez de disputar memória com dois modelos carregados.
 
 ### 5.3 Escolha de modelos
 
@@ -259,9 +261,8 @@ A escolha final é feita no Sprint 1 por um mini-benchmark com 20 exemplos do go
 
 | Papel | Tamanho-alvo | Requisito principal | Candidatos a testar |
 | --- | --- | --- | --- |
-| Agente de Texto | 7–9B | JSON confiável, português | Família Llama 3.x 8B; Qwen \~8B |
-| Agente Socrático | 7–9B | Seguir restrições do system prompt | Mesmo modelo do Agente de Texto |
-| Sintetizador | API ou 14B local | Qualidade de escrita e fidelidade às citações | API paga de baixo custo; fallback local 14B |
+| Agentes de Texto e Socrático | 7–9B, um único modelo compartilhado | JSON confiável, português, seguir restrições do system prompt | Família Llama 3.x 8B; Qwen \~8B |
+| Sintetizador | API; fallback no mesmo 8B local | Qualidade de escrita e fidelidade às citações | API paga de baixo custo |
 | Embeddings | <1B | Multilíngue, bom em português | BGE-M3; multilingual-e5-large |
 | NLI (stance) | <1B | XNLI com português | mDeBERTa-v3 XNLI multilíngue |
 
@@ -273,39 +274,48 @@ Os nomes da tabela são candidatos, não decisões. Verifique a versão mais rec
 | --- | --- | --- |
 | Orquestração | LangGraph | Grafo de estados explícito, ramos paralelos no mesmo superstep, fácil de instrumentar |
 | Contratos | Pydantic | Schemas do State e saídas estruturadas validadas |
-| Serving de LLM | Ollama (API compatível com OpenAI); `mlx-lm` se precisar de mais velocidade | Setup em minutos; `mlx-lm` é mais rápido no Apple Silicon |
-| Modelos auxiliares | sentence-transformers + FastAPI, backend MPS | Embeddings e NLI rodam na GPU do Mac |
+| Serving de LLM | Ollama em `localhost` (API compatível com OpenAI) | Setup em minutos; um modelo carregado atende vários agentes |
+| Configuração | Módulo único `services/llm.py` + arquivo `.env` | Nome do modelo e endpoint num só lugar; nenhum agente fixa isso no código |
+| Modelos auxiliares | sentence-transformers, backend MPS | Embeddings e NLI rodam na GPU do Mac |
 | Banco vetorial | ChromaDB | Embutido, sem servidor, suficiente para alguns milhares de checagens |
 | Extração de HTML | trafilatura, BeautifulSoup como fallback | Conteúdo principal de páginas de notícia |
 | Segmentação | Segmentador de sentenças para português (ex.: spaCy) | Frases numeradas compartilhadas entre os ramos |
+| Repositório | GitHub, uma branch por agente, `main` protegida | Merge só por Pull Request aprovado |
+| Integração contínua | GitHub Actions rodando pytest e testes de contrato | Garante que cada agente encaixa no grafo antes do merge |
 | Observabilidade | Arize Phoenix (local) ou LangSmith (cota gratuita) | Trace por nó: entrada, saída, latência, tokens |
 | Interface | Streamlit | Protótipo rápido com streaming de progresso |
-| Testes | pytest | Testes unitários por agente com fixtures fixas |
 
 ### 5.5 Estrutura do repositório
 
 ```text
 projeto/
+├── .github/
+│   └── workflows/ci.yml      # pytest + testes de contrato em todo PR
 ├── src/
 │   ├── state.py              # schemas Pydantic (contrato do grupo)
-│   ├── graph.py              # montagem do grafo LangGraph
-│   ├── agents/
+│   ├── graph.py              # montagem do grafo LangGraph (orquestrador)
+│   ├── agents/               # cada agente expõe run(state) -> dict
 │   │   ├── ingestor.py
 │   │   ├── evidence.py
 │   │   ├── text_analysis.py
 │   │   ├── socratic.py
 │   │   └── synthesizer.py
+│   ├── stubs/                # saídas fixas e válidas de cada agente
 │   ├── guardrails/           # filtro de veredito e checagem de citações
 │   ├── retrieval/            # índice ChromaDB e busca vetorial
-│   ├── services/             # clientes para Ollama e FastAPI auxiliar
+│   ├── services/
+│   │   └── llm.py            # único ponto de acesso ao Ollama e à API
 │   └── prompts/              # prompts versionados em arquivo, nunca inline
 ├── data/
 │   ├── corpus/               # checagens coletadas (não versionar dados brutos grandes)
 │   └── gold/                 # gold set de avaliação
-├── eval/                     # scripts de avaliação e relatórios
+├── eval/                     # harness de avaliação e relatórios
 ├── app/                      # interface Streamlit
 ├── tests/
-└── docs/
+│   ├── contract/             # um teste de contrato por agente
+│   └── unit/
+├── docs/agents/              # card de cada agente
+└── .env.example              # modelo, endpoint e chave de API
 ```
 
 Regra do repositório: prompts ficam em arquivos versionados. Mudança de prompt é mudança de comportamento e passa por Pull Request como qualquer código.
@@ -510,7 +520,7 @@ Cada integrante é **dono de um agente, de ponta a ponta**: escolhe a técnica, 
 
 | Papel | Agente próprio | Responsabilidade transversal | Revisor cruzado |
 | --- | --- | --- | --- |
-| R1 | Ingestor | **Orquestração:** grafo, State, integração, topologia dos 5 Macs, tracing | R5 |
+| R1 | Ingestor | **Orquestração:** grafo, State, integração dos agentes, CI no GitHub, tracing | R5 |
 | R2 | Evidências | Corpus de checagens; conformal prediction (stretch) | R1 |
 | R3 | Texto | Harness de avaliação comum; experimento de chamada única | R2 |
 | R4 | Socrático | Interface Streamlit; teste com usuários | R3 |
@@ -539,7 +549,7 @@ Todo dono entrega, para o seu agente:
 
 - **Objetivo:** transformar qualquer URL ou texto em frases limpas e numeradas, e manter o grafo inteiro rodando desde o primeiro dia.
 - **Entregáveis do agente:** extração com trafilatura; título, data e truncamento; segmentação em frases com `segment_id`.
-- **Entregáveis de orquestração:** `state.py` e `graph.py`; stubs de todos os nós; integração de cada agente real assim que ficar pronto; topologia distribuída; tracing; latência medida.
+- **Entregáveis de orquestração:** `state.py` e `graph.py`; stubs de todos os nós; services/llm.py com a configuração centralizada; CI com testes de contrato; integração de cada agente real por Pull Request; tracing; latência medida na máquina da demo.
 - **Metas:** extração sem erro em todas as páginas do gold set; grafo executando ponta a ponta no fim de cada sprint; latência p50 < 3 min.
 - **Estudar primeiro:** Camadas 0 e 5.
 
@@ -573,7 +583,14 @@ Todo dono entrega, para o seu agente:
 
 ### 9.4 Como a orquestração funciona na prática
 
-Orquestrar não é juntar tudo no fim. R1 monta o esqueleto com stubs na Sprint 1, e cada dono troca o seu stub pelo agente real assim que ele passa nos testes. A regra de integração é simples: **um agente só entra no grafo principal por Pull Request aprovado pelo revisor cruzado e por R1**, com a saída validando no schema do State. Se um agente real quebrar o grafo, R1 volta o stub e o dono corrige fora do caminho principal.
+Cada integrante desenvolve seu agente numa branch própria do repositório no GitHub, e o orquestrador (R1) junta tudo na `main`. Para que "juntar depois" não vire retrabalho na última semana, a integração segue quatro regras:
+
+1. **Contrato de função fixo.** Todo agente expõe `run(state: PipelineState) -> dict` e devolve só os campos que lhe pertencem. Os agentes não importam LangGraph: são funções Python puras, e o orquestrador as registra como nós em `graph.py`.
+2. **Stub desde o dia 1.** Cada dono entrega em `src/stubs/` uma versão que devolve uma saída fixa e válida. O grafo roda ponta a ponta com stubs desde a Sprint 1.
+3. **Teste de contrato no CI.** Todo Pull Request roda, no GitHub Actions, o teste de contrato do agente: um State de exemplo fixo entra, e a saída precisa validar no schema Pydantic. Se o teste passa, o agente encaixa no grafo.
+4. **Integração parcial na Sprint 2.** No fim da Sprint 2, o orquestrador pluga na `main` todos os agentes reais que já passam no CI. A integração completa da Sprint 3 vira então só a troca dos stubs restantes.
+
+A `main` é protegida: merge só por Pull Request aprovado pelo revisor cruzado e pelo orquestrador. Se um agente real quebrar o grafo, o orquestrador volta o stub e o dono corrige na própria branch.
 
 ### 9.5 Papéis de Scrum
 
@@ -589,9 +606,9 @@ O escopo de cada sprint é decidido em conjunto, com opinião de todos, na Sprin
 
 Os papéis trabalham em paralelo porque se comunicam por contratos, não por conversa. Três contratos são fechados no primeiro dia do Sprint 1:
 
-1. **Schema do State** (`state.py`): quem escreve cada campo e em que formato. Dono: R1, aprovado por todos.
+1. **Schema do State** (`state.py`) e **assinatura dos agentes** (`run(state) -> dict`): quem escreve cada campo e em que formato. Dono: R1, aprovado por todos.
 2. **Formato do gold set**: campos e exemplos. Dono: R3, aprovado por todos.
-3. **Interface dos serviços de modelo**: endpoints de LLM, embeddings e NLI. Dono: R1.
+3. **Configuração dos modelos** (`services/llm.py` e `.env`): qual modelo cada agente usa e por qual função chamá-lo. Dono: R1.
 
 Enquanto um módulo real não existe, quem depende dele usa um **stub** que devolve uma saída fixa e válida no schema. Assim ninguém fica bloqueado esperando outro papel.
 
@@ -603,7 +620,7 @@ O projeto tem 4 sprints de 1 semana, alinhadas às semanas 3 a 6 do cronograma d
 | --- | --- | --- | --- |
 | 1 | Investigate (Semana 3) | Contratos fechados e grafo rodando ponta a ponta com stubs | Sep 25, 2026 |
 | 2 | Act (Semana 4) | Todos os agentes reais; primeira execução sem stubs | Oct 2, 2026 |
-| 3 | Act (Semana 5) | Verificação, robustez, topologia distribuída e baseline | Oct 9, 2026 |
+| 3 | Act (Semana 5) | Integração completa, guardrails e baseline | Oct 9, 2026 |
 | 4 | Showcase (Semana 6) | Avaliação final, teste com usuários e apresentação | Oct 16, 2026 |
 
 **Cerimônias:** Sprint Planning no primeiro dia de cada sprint; check-in assíncrono 2 a 3 vezes por semana (o que fiz, o que farei, bloqueios); Sprint Review e Retrospectiva no último dia.
@@ -614,10 +631,10 @@ O projeto tem 4 sprints de 1 semana, alinhadas às semanas 3 a 6 do cronograma d
 
 | Papel | Backlog |
 | --- | --- |
-| Todos | Rodar a dinâmica de levantamento de requisitos (story mapping) logo no início do dia 1, antes de fechar os contratos; estudar a própria trilha P (Seção 8.4); fechar os 3 contratos da Seção 9.6 à luz do que sair da dinâmica; cada um entrega o stub do próprio agente e anota 6 entradas do gold set |
-| R1 | Repositório e estrutura de pastas; `state.py`; `graph.py` com os stubs de todos; Ingestor com limpeza e segmentação; Ollama instalado; teste de rede entre os Macs; tracing ativo |
+| Todos | Rodar a dinâmica de levantamento de requisitos (story mapping) logo no início do dia 1, antes de fechar os contratos; estudar a própria trilha P (Seção 8.4); fechar os 3 contratos da Seção 9.6 à luz do que sair da dinâmica; cada um cria a branch do próprio agente, entrega o stub e anota 6 entradas do gold set |
+| R1 | Estrutura do repositório e proteção da `main`; `state.py`; `graph.py` com os stubs de todos; `services/llm.py` e `.env.example`; CI no GitHub Actions com testes de contrato; Ingestor com limpeza e segmentação; tracing ativo |
 | R2 | Coleta via Fact Check Tools API das 3 agências; extração de texto; primeiro índice no ChromaDB |
-| R3 | Schema e prompt do Agente de Texto, primeira versão real no grafo; formato do gold set e esqueleto do harness; mini-benchmark de modelos (Seção 5.3) |
+| R3 | Schema e prompt do Agente de Texto, primeira versão real passando no CI; formato do gold set e esqueleto do harness; mini-benchmark de modelos (Seção 5.3) |
 | R4 | Taxonomia de perguntas e primeira versão do system prompt socrático; wireframe e Streamlit exibindo a saída dos stubs |
 | R5 | Formato do dossiê; primeira versão do prompt do Sintetizador; lista inicial de termos do filtro de veredito |
 
@@ -629,22 +646,22 @@ O projeto tem 4 sprints de 1 semana, alinhadas às semanas 3 a 6 do cronograma d
 
 | Papel | Backlog |
 | --- | --- |
-| Todos | Anotar mais 6 entradas do gold set cada (fecha as 60); revisão cruzada do agente atribuído |
-| R1 | Ingestor robusto (paywall, JavaScript, truncamento); integrar cada agente real que passar nos testes; ramos paralelos, timeouts e `warnings` |
+| Todos | Anotar mais 6 entradas do gold set cada (fecha as 60); revisão cruzada do agente atribuído; PR do agente real aberto até o penúltimo dia |
+| R1 | Ingestor robusto (paywall, JavaScript, truncamento); **integração parcial**: merge na `main` de todo agente real que passar no CI; timeouts e `warnings` |
 | R2 | NLI de stance; Agente de Evidências completo com citação obrigatória; medir Recall@5 e stance |
 | R3 | Detector de falácias e separação fato/valor validados; harness automatizado rodando para todos os agentes |
-| R4 | Agente Socrático real no grafo; interface mostrando cada ramo |
+| R4 | Agente Socrático real passando no CI; interface mostrando cada ramo |
 | R5 | Sintetizador com cruzamento fato/valor e citações; filtro de veredito e checagem de citações v1 |
 
 **Marco de integração:** execução completa sem stubs em uma máquina; primeiro relatório de métricas da Seção 7.1.
 
 ### 10.3 Sprint 3 — Verificação e robustez
 
-**Objetivo:** o sistema roda na topologia da demo, com guardrails completos, e o experimento de baseline está feito. Última sprint com features novas.
+**Objetivo:** o sistema roda integrado na máquina da demo, com guardrails completos, e o experimento de baseline está feito. Última sprint com features novas.
 
 | Papel | Backlog |
 | --- | --- |
-| R1 | Topologia distribuída nos 5 Macs; degradação graciosa; latência p50/p95 |
+| R1 | Integração completa na máquina da demo, trocando os stubs restantes; degradação graciosa; latência p50/p95 |
 | R2 | Ajustar chunking e limiar; ampliar o corpus; tratar o erro "fato parecido mas diferente"; iniciar conformal se a stance estiver estável |
 | R3 | Ironia e sátira; robustez do JSON; experimento de chamada única (Seção 7.3); validar juiz contra humanos |
 | R4 | Streaming de progresso; protocolo do teste com usuários; ataque adversarial aos guardrails do Sintetizador |
@@ -659,7 +676,7 @@ O projeto tem 4 sprints de 1 semana, alinhadas às semanas 3 a 6 do cronograma d
 | Papel | Backlog |
 | --- | --- |
 | Todos | Apenas correção de bugs; card do próprio agente finalizado; análise de erros do próprio agente; slides; relatório final; retrospectiva |
-| R1 | Ensaio da demo na rede do local da apresentação; plano B com vídeo gravado da execução |
+| R1 | Ensaio da demo na máquina e no local da apresentação; plano B com vídeo gravado da execução |
 | R2 | Métricas finais de Evidências; conformal, se implementado |
 | R3 | Avaliação final completa contra as metas, consolidando as métricas de todos; resultado do baseline |
 | R4 | Teste com 6 a 10 colegas; ajustes finais de interface |
@@ -680,7 +697,7 @@ Um item só está pronto quando cumpre todos os critérios:
 
 ### 10.6 Regra de corte de escopo
 
-Se uma sprint atrasar, o corte segue esta ordem, do primeiro a sair para o último: conformal prediction → detector de falácias do Agente de Texto (mantém a separação fato/valor e o scanner de emoção) → topologia distribuída (a demo roda em uma máquina, com modelos menores) → Sintetizador via API (fica só o local). O núcleo que nunca é cortado: Ingestor, Agente de Evidências, separação fato/valor, Agente Socrático, Sintetizador com guardrails e interface.
+Se uma sprint atrasar, o corte segue esta ordem, do primeiro a sair para o último: conformal prediction → detector de falácias do Agente de Texto (mantém a separação fato/valor e o scanner de emoção) → Sintetizador via API (usa o mesmo 8B local). O núcleo que nunca é cortado: Ingestor, Agente de Evidências, separação fato/valor, Agente Socrático, Sintetizador com guardrails e interface.
 
 ## 11. Stretch goal: calibração por conformal prediction
 
@@ -731,14 +748,14 @@ O maior risco técnico da versão enxuta é o Agente de Evidências citar uma ch
 
 | Risco | Impacto | Mitigação | Dono |
 | --- | --- | --- | --- |
+| Integração tardia: incompatibilidades descobertas só no fim | Última semana vira retrabalho | Contrato `run(state) -> dict`; stubs desde a Sprint 1; teste de contrato no CI; integração parcial na Sprint 2 | R1 |
 | Checagem sobre fato parecido, mas diferente | Dossiê cita checagem que não se aplica | Limiar de similaridade conservador; stance `insuficiente` na dúvida; casos no gold set; análise de erros a cada sprint | R2 |
 | NLI sobre frases longas ou compostas | Stance errada | Segmentação fina no Ingestor; medir macro-F1 de stance por tamanho de frase | R1, R2 |
 | Filtro de veredito não pega paráfrases | Veredito implícito no dossiê | Lista de termos ampliada; casos de paráfrase no gold set; ataque adversarial de R4 | R5 |
 | Socrático pergunta algo que o dossiê já responde | Perguntas redundantes | Sintetizador reordena as perguntas; rubrica humana mede o problema | R4, R5 |
-| Latência acima de 3 min | Demo inviável | Ramos paralelos em Macs diferentes; Sintetizador via API | R1 |
-| Rede da residência bloqueia tráfego entre Macs | Topologia distribuída não funciona | Testar na Sprint 1; plano B com roteador próprio ou VPN mesh | R1 |
+| Memória insuficiente na máquina da demo | Troca de modelos e latência alta | Um único modelo 8B compartilhado; Sintetizador via API | R1 |
+| Configuração de modelo espalhada pelo código | Integração exige caçar endpoints em cinco arquivos | Todo acesso a modelo passa por `services/llm.py` | R1 |
 | JSON inválido de modelos pequenos | Falhas em cascata | Structured output com schema; 1 retry; `warnings` em vez de derrubar o grafo | R3, R4 |
-| Agente real quebra o grafo principal | Integração travada | Entrada no grafo só por PR aprovado; volta ao stub em caso de falha | R1 |
 | Prompt injection via conteúdo da notícia | Agente segue instruções do texto analisado | Conteúdo sempre delimitado como dado; nenhum agente executa ações externas | R1 |
 
 ### 12.2 Governança

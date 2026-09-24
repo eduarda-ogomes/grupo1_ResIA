@@ -2,6 +2,10 @@ from typing import Literal, Annotated, List, Optional
 from pydantic import BaseModel, Field
 import operator
 
+class Segment(BaseModel):
+    id: str
+    text: str
+
 class Evidence(BaseModel):
     stance: Literal["apoia", "contradiz", "insuficiente"]
     excerpt: str 
@@ -27,6 +31,8 @@ class PipelineState(BaseModel):
     clean_text: Optional[str] = None
     title: Optional[str] = None
     date: Optional[str] = None
+    truncated: bool = False
+    segments: List[Segment] = Field(default_factory=list)
     evidence: Annotated[List[Evidence], operator.add] = Field(default_factory=list)
     framing: Optional[FramingReport] = None
     socratic_questions: List[str] = Field(default_factory=list)

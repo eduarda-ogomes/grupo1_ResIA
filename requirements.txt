@@ -9,3 +9,4 @@ transformers
 torch
 sentence-transformers
 langchain-openai
+spacy>=3.8.0

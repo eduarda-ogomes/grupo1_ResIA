@@ -1,0 +1,11 @@
+langgraph>=0.0.20
+pydantic>=2.0
+langchain-ollama
+langchain-core
+streamlit
+trafilatura
+chromadb
+transformers
+torch
+sentence-transformers
+langchain-openai

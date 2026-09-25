@@ -29,7 +29,7 @@ def ingestor_node(state: PipelineState) -> dict:
     raw_input = state.raw_input.strip()
     clean_text = ""
     title = "Texto Inserido Manualmente"
-    date = None
+    published_at = None
     truncated = False
     
     # 1. Extração
@@ -44,7 +44,7 @@ def ingestor_node(state: PipelineState) -> dict:
                 data = json.loads(extracted_json)
                 clean_text = data.get('text', '')
                 title = data.get('title', 'Sem Título')
-                date = data.get('date', None)
+                published_at = data.get('date', None)
             else:
                 clean_text = "Erro: Não foi possível extrair o conteúdo legível desta página."
                 title = "Falha no Parse HTML"
@@ -72,7 +72,7 @@ def ingestor_node(state: PipelineState) -> dict:
     return {
         "clean_text": clean_text, 
         "title": title, 
-        "date": date, 
+        "published_at": published_at, 
         "truncated": truncated,
         "segments": segments
     }

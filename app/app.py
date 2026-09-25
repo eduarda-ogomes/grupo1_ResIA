@@ -43,8 +43,8 @@ if st.button("Analisar", type="primary"):
 
         if final_state:
             title = final_state.get('title', 'Sem Título')
-            date = final_state.get('date')
-            date_str = f" - Publicado em: {date}" if date else ""
+            published_at = final_state.get('published_at')
+            date_str = f" - Publicado em: {published_at}" if published_at else ""
             
             st.header(f"{title}")
             st.markdown(f"**Fonte/Ingestão**: {date_str}")
@@ -55,8 +55,7 @@ if st.button("Analisar", type="primary"):
                 st.subheader("Dossiê Sintetizado")
                 dossier = final_state.get('dossier')
                 if dossier:
-                    st.info(f"**Resumo dos Fatos:**\n\n{dossier.content_summary}")
-                    st.warning(f"**Enquadramento Geral:**\n\n{dossier.framing_summary}")
+                    st.write(dossier)
                 
                 st.subheader("Perguntas Socráticas")
                 perguntas = final_state.get('socratic_questions', [])
@@ -67,17 +66,15 @@ if st.button("Analisar", type="primary"):
                 st.subheader("Evidências Analisadas")
                 evidencias = final_state.get('evidence', [])
                 for ev in evidencias:
+                    # 'ev' is a Pydantic object
                     cor = "green" if ev.stance == "apoia" else "red" if ev.stance == "contradiz" else "orange"
                     st.markdown(f"- **<span style='color:{cor}'>{ev.stance.upper()}</span>**: *\"{ev.excerpt}\"*", unsafe_allow_html=True)
                     
-                st.subheader("Marcadores de Enquadramento")
-                framing = final_state.get('framing')
-                if framing and framing.markers:
-                    for m in framing.markers:
-                        st.markdown(f"**{m.type}**: *{m.exact_excerpt}*  \n_{m.short_explanation}_")
-                    
-                    st.write("**Tom Emocional Detectado:**")
-                    st.json(framing.emotional_tone)
+                st.subheader("Marcadores de Texto (Viés/Falácia)")
+                text_report = final_state.get('text_report')
+                if text_report and text_report.markers:
+                    for m in text_report.markers:
+                        st.markdown(f"**{m.type}**: *{m.excerpt}*  \n_{m.explanation}_")
                 else:
                     st.write("Nenhum marcador específico extraído.")
     else:

@@ -1,45 +1,75 @@
-import chromadb
-import os
+"""Índice mínimo para teste rápido, sem a coleta de checagens e sem chave de API.
 
-def seed_database():
-    print("Atualizando o banco de dados ChromaDB com temas políticos...")
-    client = chromadb.PersistentClient(path="./chroma_data")
-    
-    # Reseta a coleção anterior para não misturar os temas
-    try:
-        client.delete_collection("fact_checks")
-    except Exception:
-        pass
+Indexa apenas os dois trechos do exemplo de ponta a ponta da Seção 4.6 do
+manual (caso do chá de folha de mamão e dengue), com as URLs e vereditos
+citados lá. Serve para ver o agente rodando antes de o corpus real existir.
 
-    collection = client.create_collection(name="fact_checks")
-    
-    # Documentos sobre fatos políticos da Constituição e sistema eleitoral
-    documents = [
-        "O voto no Brasil é obrigatório para cidadãos alfabetizados maiores de 18 anos e menores de 70 anos.",
-        "As urnas eletrônicas brasileiras são auditáveis, não possuem conexão com a internet, e são consideradas seguras.",
-        "O Supremo Tribunal Federal (STF) é a mais alta instância do poder judiciário brasileiro, composto por 11 ministros.",
-        "O mandato do Presidente da República do Brasil tem a duração de quatro anos, sendo permitida a reeleição para um único período subsequente.",
-        "O Congresso Nacional do Brasil é bicameral, composto pela Câmara dos Deputados e pelo Senado Federal."
-    ]
-    
-    metadatas = [
-        {"source_name": "Tribunal Superior Eleitoral (TSE)", "source_url": "https://tse.jus.br"},
-        {"source_name": "Tribunal Superior Eleitoral (TSE)", "source_url": "https://tse.jus.br/urnas"},
-        {"source_name": "Supremo Tribunal Federal (STF)", "source_url": "https://stf.jus.br"},
-        {"source_name": "Constituição Federal", "source_url": "https://planalto.gov.br"},
-        {"source_name": "Congresso Nacional", "source_url": "https://congressonacional.leg.br"}
-    ]
-    
-    ids = [f"politica_{i}" for i in range(len(documents))]
-    
-    print(f"Inserindo {len(documents)} fatos políticos na coleção 'fact_checks'...")
+ATENÇÃO: usa a mesma coleção do corpus real e a recria do zero (--reset
+implícito). Depois de rodar este script, rode build_index.py de novo para
+voltar ao corpus completo.
+
+Uso, a partir da raiz do repositório:
+    python data/corpus/seed_db.py
+"""
+
+from __future__ import annotations
+
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+
+from src.retrieval import config  # noqa: E402
+
+SEED = [
+    {
+        "id": "seed-mamao-lupa-000",
+        "text": "Não existe um tratamento específico para a dengue e as formas graves da doença.",
+        "metadata": {
+            "source_url": "https://www.agencialupa.org/jornalismo/2024/02/06/e-falso-que-cha-de-folha-de-mamao-cura-a-dengue-em-tres-dias/",
+            "source_name": "Agência Lupa",
+            "agency_verdict": "Falso",
+            "review_date": "2024-02-06",
+            "claim_reviewed": "",
+            "chunk_index": 0,
+            "describes_rumor": False,
+        },
+    },
+    {
+        "id": "seed-mamao-aosfatos-000",
+        "text": "não comprovam que o tratamento seja eficaz em humanos",
+        "metadata": {
+            "source_url": "https://www.aosfatos.org/noticias/falso-cha-folha-mamao-dengue/",
+            "source_name": "Aos Fatos",
+            "agency_verdict": "Falso",
+            "review_date": "2024-02-16",
+            "claim_reviewed": "",
+            "chunk_index": 0,
+            "describes_rumor": False,
+        },
+    },
+]
+
+
+def seed_database() -> None:
+    from src.retrieval.chroma_client import reset_collection
+    from src.retrieval.embeddings import embed_passages
+
+    collection = reset_collection()
     collection.add(
-        documents=documents,
-        metadatas=metadatas,
-        ids=ids
+        ids=[r["id"] for r in SEED],
+        documents=[r["text"] for r in SEED],
+        metadatas=[r["metadata"] for r in SEED],
+        embeddings=embed_passages([r["text"] for r in SEED]),
     )
-    
-    print("✅ Banco de dados político populado com sucesso em './chroma_data'!")
+    print(
+        f"Coleção '{config.collection_name()}' recriada com {collection.count()} trechos "
+        f"em {config.CHROMA_PATH}."
+    )
+
 
 if __name__ == "__main__":
+    import argparse
+
+    argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter).parse_args()
     seed_database()

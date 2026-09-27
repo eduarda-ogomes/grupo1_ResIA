@@ -1,18 +1,50 @@
-import chromadb
-from transformers import pipeline
+"""Acesso ao índice de checagens no ChromaDB.
 
-nli_pipeline = None
-chroma_client = None
+- Caminho relativo à raiz do repositório (não depende da pasta de onde se roda).
+- Distância de cosseno: similaridade = 1 - distância.
+- Uma coleção por modelo de embedding (config.collection_name).
+- Os embeddings são sempre passados explicitamente (src/retrieval/embeddings.py).
+"""
 
-def get_nli_pipeline():
-    global nli_pipeline
-    if nli_pipeline is None:
-        print("Carregando modelo NLI (mDeBERTa-v3)...")
-        nli_pipeline = pipeline("text-classification", model="MoritzLaurer/mDeBERTa-v3-base-mnli-xnli")
-    return nli_pipeline
+from __future__ import annotations
 
-def get_chroma_collection():
-    global chroma_client
-    if chroma_client is None:
-        chroma_client = chromadb.PersistentClient(path="./chroma_data")
-    return chroma_client.get_collection(name="fact_checks")
+from src.retrieval import config
+
+_client = None
+
+
+def get_client():
+    global _client
+    if _client is None:
+        import chromadb
+
+        config.CHROMA_PATH.mkdir(parents=True, exist_ok=True)
+        _client = chromadb.PersistentClient(path=str(config.CHROMA_PATH))
+    return _client
+
+
+def get_collection(name: str | None = None, *, create: bool = False):
+    """Devolve a coleção do modelo de embedding atual.
+
+    Com create=False, levanta erro se a coleção não existir: índice ausente é
+    uma falha do agente, e não "nenhuma checagem encontrada".
+    """
+    client = get_client()
+    name = name or config.collection_name()
+    if create:
+        return client.get_or_create_collection(
+            name=name,
+            metadata={"hnsw:space": "cosine", "embedding_model": config.EMBEDDING_MODEL},
+            embedding_function=None,
+        )
+    return client.get_collection(name=name, embedding_function=None)
+
+
+def reset_collection(name: str | None = None):
+    client = get_client()
+    name = name or config.collection_name()
+    try:
+        client.delete_collection(name)
+    except Exception:
+        pass
+    return get_collection(name, create=True)

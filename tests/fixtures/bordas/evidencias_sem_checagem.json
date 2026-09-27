@@ -1,0 +1,27 @@
+{
+  "_caso": "Nenhuma checagem acima do limiar -> nenhum objeto Evidence para a frase (Seção 4.7)",
+  "segments": [
+    {
+      "id": "s01",
+      "text": "A prefeitura inaugurou três novas creches no bairro na semana passada."
+    }
+  ],
+  "hits": {
+    "s01": [
+      {
+        "chunk_id": "x-000",
+        "text": "Trecho de uma checagem sobre outro assunto.",
+        "similarity": 0.41,
+        "metadata": {
+          "source_url": "https://exemplo.org/checagem/outro-assunto",
+          "source_name": "Agência Exemplo",
+          "agency_verdict": "Falso"
+        }
+      }
+    ]
+  },
+  "nli": [],
+  "esperado": {
+    "evidence": []
+  }
+}

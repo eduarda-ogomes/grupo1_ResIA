@@ -4,6 +4,12 @@ Indexa apenas os dois trechos do exemplo de ponta a ponta da Seção 4.6 do
 manual (caso do chá de folha de mamão e dengue), com as URLs e vereditos
 citados lá. Serve para ver o agente rodando antes de o corpus real existir.
 
+O claim_reviewed de cada checagem foi reconstruído a partir do endereço (slug)
+da URL, porque a API não foi consultada para estas duas checagens. Com ele, o
+modo "alegacao" (padrão) também pode ser testado aqui. Resultado provável: a
+frase s02 casa com a checagem da Lupa; a s03 (plaquetas) provavelmente não casa
+com nenhuma alegação e fica sem evidência, o comportamento conservador do modo.
+
 ATENÇÃO: usa a mesma coleção do corpus real e a recria do zero (--reset
 implícito). Depois de rodar este script, rode build_index.py de novo para
 voltar ao corpus completo.
@@ -30,7 +36,7 @@ SEED = [
             "source_name": "Agência Lupa",
             "agency_verdict": "Falso",
             "review_date": "2024-02-06",
-            "claim_reviewed": "",
+            "claim_reviewed": "Chá de folha de mamão cura a dengue em três dias",
             "chunk_index": 0,
             "describes_rumor": False,
         },
@@ -43,7 +49,7 @@ SEED = [
             "source_name": "Aos Fatos",
             "agency_verdict": "Falso",
             "review_date": "2024-02-16",
-            "claim_reviewed": "",
+            "claim_reviewed": "Chá de folha de mamão cura a dengue",
             "chunk_index": 0,
             "describes_rumor": False,
         },

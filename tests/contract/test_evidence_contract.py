@@ -11,8 +11,9 @@ import pytest
 
 from src.agents import evidence as agent
 from src.agents.evidence_schema import Evidence
+from src.retrieval import config
 from src.stubs import evidence_stub
-from tests.evidence_fakes import EVIDENCE_FIELDS, mamao_fakes
+from tests.evidence_fakes import EVIDENCE_FIELDS, claim_mode_fakes, mamao_fakes
 
 
 def _state_evidence_class():
@@ -24,10 +25,21 @@ def _state_evidence_class():
     return StateEvidence if "segment_id" in StateEvidence.model_fields else None
 
 
-def _real_agent_output(monkeypatch):
+def _real_agent_trecho(monkeypatch):
+    monkeypatch.setattr(config, "STANCE_MODE", "trecho")
     state, search, classify, _ = mamao_fakes()
     monkeypatch.setattr(agent, "search", search)
     monkeypatch.setattr(agent, "classify", classify)
+    return state, agent.run(state)
+
+
+def _real_agent_alegacao(monkeypatch):
+    monkeypatch.setattr(config, "STANCE_MODE", "alegacao")
+    state, search, classify, leads = claim_mode_fakes()
+    monkeypatch.setattr(agent, "search", search)
+    monkeypatch.setattr(agent, "classify", classify)
+    monkeypatch.setattr(agent, "get_lead_text", lambda url: leads.get(url))
+    monkeypatch.setattr(agent, "get_checagem_texts", lambda url: [leads.get(url, "")])
     return state, agent.run(state)
 
 
@@ -36,7 +48,11 @@ def _stub_output(monkeypatch):
     return state, evidence_stub.run(state)
 
 
-@pytest.mark.parametrize("produce", [_real_agent_output, _stub_output], ids=["agente_real", "stub"])
+@pytest.mark.parametrize(
+    "produce",
+    [_real_agent_alegacao, _real_agent_trecho, _stub_output],
+    ids=["agente_real_alegacao", "agente_real_trecho", "stub"],
+)
 def test_saida_respeita_o_contrato(produce, monkeypatch):
     state, output = produce(monkeypatch)
     segment_ids = {s["id"] for s in state.segments}
@@ -44,7 +60,7 @@ def test_saida_respeita_o_contrato(produce, monkeypatch):
     assert isinstance(output, dict)
     assert set(output) <= {"evidence", "warnings"}, "o agente só escreve os próprios campos"
     assert isinstance(output["evidence"], list)
-    assert output["evidence"], "o caso do mamão deve produzir evidências"
+    assert output["evidence"], "o caso de teste deve produzir evidências"
 
     state_evidence = _state_evidence_class()
     for item in output["evidence"]:

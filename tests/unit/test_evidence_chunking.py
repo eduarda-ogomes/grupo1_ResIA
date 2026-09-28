@@ -36,6 +36,23 @@ def test_nao_descreve_boato(paragraph):
     assert not describes_rumor(paragraph)
 
 
+@pytest.mark.parametrize(
+    "paragraph",
+    [
+        # Conclusões reais do corpus que a versão de 26/09 marcava como boato.
+        "É falso que um vídeo mostra tropas americanas em solo brasileiro para capturar o presidente Lula.",
+        "São enganosas as publicações que afirmam que o ministro Gilmar Mendes teve um encontro secreto.",
+        "Não é verdade que a cantora Ivete Sangalo tenha elogiado o presidente. O registro que circula nas redes é antigo.",
+        "Foi gerado por IA o vídeo que supostamente mostra uma equipe do Bope filmando a sede do Comando Vermelho.",
+        "Um vídeo que circula nas redes engana ao orientar os vacinados a realizar exames de coagulação.",
+        "Vídeo que circula nas redes sociais como se fosse atual foi gravado em maio de 2022.",
+        "A imagem circula nas redes sociais como se fosse um registro verdadeiro.",
+    ],
+)
+def test_conclusao_que_menciona_o_post_nao_e_boato(paragraph):
+    assert not describes_rumor(paragraph)
+
+
 def test_split_paragraphs_descarta_curtos_e_normaliza_espacos():
     text = "Título\n\nPrimeiro   parágrafo com texto suficiente para entrar no índice.\n\nOk.\n"
     assert split_paragraphs(text, min_chars=20) == ["Primeiro parágrafo com texto suficiente para entrar no índice."]

@@ -2,6 +2,8 @@
 
 Dono: R2 (Túlio Celeri) · Branch: `AgenteEvidencias` · Última atualização: 28/09/2026
 
+> **Simplificação de 28/09 (etapa 1).** O código passou a ter um único modo (o `alegacao`): o modo `trecho`, a heurística e a proteção contra o boato citado, o `seed_db.py` e as chaves `EVIDENCE_STANCE_MODE`, `EVIDENCE_KEY_TERM_CHECK`, `EVIDENCE_CLAIM_NORMALIZE`, `EVIDENCE_FILTER_RUMOR`, `EVIDENCE_NLI_MIN_PROB`, `EVIDENCE_TOP_K` e as de chunking/precisão foram removidos (termos-chave e normalização ficam sempre ligados). Checagens sem `claim_reviewed` passam a ser ignoradas. O comportamento do modo padrão não mudou. As seções abaixo que falam desses itens descrevem o histórico; este documento será reescrito como card do agente + ADR na etapa 2.
+
 Este documento registra as decisões tomadas na implementação do Agente de Evidências, por que foram tomadas e o que fica em aberto. Complementa a Seção 4.2 do manual. **Onde há divergência do manual, ela está marcada com ⚠️ e justificada.** O histórico datado das decisões está na Seção 15.
 
 ## 1. Resumo

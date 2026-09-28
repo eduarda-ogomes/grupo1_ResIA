@@ -1,6 +1,0 @@
-{
-  "_caso": "Parágrafo da checagem que reproduz o boato não pode virar 'apoia'. Texto do parágrafo é sintético (não é citação da checagem real). Testado com o modelo NLI real em tests/integration.",
-  "premissa": "Circula nas redes sociais um vídeo em que um homem afirma que o chá da folha de mamão cura a dengue em apenas três dias.",
-  "hipotese": "O chá da folha de mamão cura a dengue em apenas três dias.",
-  "stance_proibida": "apoia"
-}

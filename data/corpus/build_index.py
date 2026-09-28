@@ -11,8 +11,8 @@ recusa o download) entram no índice, e o modo "alegacao" usa o título como
 excerpt.
 
 Metadados de cada trecho: source_url, source_name, agency_verdict,
-review_date, claim_reviewed, review_title, chunk_index, chunk_kind,
-describes_rumor. IDs determinísticos: rodar de novo atualiza em vez de duplicar.
+review_date, claim_reviewed, review_title, chunk_index, chunk_kind.
+IDs determinísticos: rodar de novo atualiza em vez de duplicar.
 
 Uso, a partir da raiz do repositório:
     python data/corpus/build_index.py
@@ -74,13 +74,13 @@ def build_records(claims: list[dict], articles: list[dict]) -> list[dict]:
             records.append({
                 "id": chunk_id(url, "tit"),
                 "text": title,
-                "metadata": {**base, "chunk_index": -1, "chunk_kind": "titulo", "describes_rumor": False},
+                "metadata": {**base, "chunk_index": -1, "chunk_kind": "titulo"},
             })
         for i, chunk in enumerate(build_chunks(text_by_url.get(url, ""))):
             records.append({
                 "id": chunk_id(url, i),
-                "text": chunk.text,
-                "metadata": {**base, "chunk_index": i, "chunk_kind": "texto", "describes_rumor": chunk.describes_rumor},
+                "text": chunk,
+                "metadata": {**base, "chunk_index": i, "chunk_kind": "texto"},
             })
     return records
 
@@ -117,13 +117,11 @@ def main() -> None:
     records = build_records(claims, articles)
     urls = {r["metadata"]["source_url"] for r in records}
     with_text = {r["metadata"]["source_url"] for r in records if r["metadata"]["chunk_kind"] == "texto"}
-    rumor = sum(r["metadata"]["describes_rumor"] for r in records)
     no_verdict = len({r["metadata"]["source_url"] for r in records if not r["metadata"]["agency_verdict"]})
     by_agency = Counter(r["metadata"]["source_name"] for r in records if r["metadata"]["chunk_kind"] == "titulo")
     print(
         f"{len(urls)} checagens ({len(with_text)} com texto, {len(urls) - len(with_text)} só com título) "
-        f"-> {len(records)} trechos ({rumor} marcados como 'descreve o boato'; "
-        f"{no_verdict} checagens sem veredito da agência)."
+        f"-> {len(records)} trechos ({no_verdict} checagens sem veredito da agência)."
     )
     print("Checagens por agência:", dict(by_agency.most_common()))
     print(f"Modelo: {config.EMBEDDING_MODEL} | coleção: {config.collection_name()} | caminho: {config.CHROMA_PATH}")

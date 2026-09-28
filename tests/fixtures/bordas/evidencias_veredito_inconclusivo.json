@@ -1,0 +1,37 @@
+{
+  "_caso": "Checagem sobre a mesma alegação, mas com veredito que não é 'falso' nem 'verdadeiro' -> Evidence com stance insuficiente e URL (equivalente, no fluxo atual, ao 'NLI neutro' da Seção 4.7). Dados sintéticos.",
+  "segments": [
+    {
+      "id": "s01",
+      "text": "O governo vai obrigar todas as crianças a tomar a vacina contra a gripe."
+    }
+  ],
+  "hits": {
+    "s01": [
+      {
+        "chunk_id": "y-000",
+        "text": "A vacinação contra a gripe é recomendada, mas não obrigatória.",
+        "similarity": 0.82,
+        "metadata": {
+          "source_url": "https://exemplo.org/checagem/vacina-gripe-obrigatoria",
+          "source_name": "Agência Exemplo",
+          "agency_verdict": "Enganoso",
+          "claim_reviewed": "Governo vai obrigar crianças a tomar vacina contra a gripe",
+          "review_title": "Vacina contra a gripe é recomendada, mas não obrigatória para crianças"
+        }
+      }
+    ]
+  },
+  "esperado": {
+    "evidence": [
+      {
+        "segment_id": "s01",
+        "stance": "insuficiente",
+        "excerpt": "Vacina contra a gripe é recomendada, mas não obrigatória para crianças",
+        "source_url": "https://exemplo.org/checagem/vacina-gripe-obrigatoria",
+        "source_name": "Agência Exemplo",
+        "agency_verdict": "Enganoso"
+      }
+    ]
+  }
+}

@@ -1,6 +1,0 @@
-{
-  "_caso": "Checagem sobre fato parecido ('cura a chikungunya' recuperando checagem de dengue) -> não emitir 'contradiz'; no máximo 'insuficiente' (Seção 4.7). Caso obrigatório no gold set. Testado com o modelo NLI real em tests/integration.",
-  "premissa": "Não existe um tratamento específico para a dengue e as formas graves da doença.",
-  "hipotese": "O chá da folha de mamão cura a chikungunya em apenas três dias.",
-  "stance_proibida": "contradiz"
-}

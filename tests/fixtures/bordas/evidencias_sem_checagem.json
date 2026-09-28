@@ -15,12 +15,12 @@
         "metadata": {
           "source_url": "https://exemplo.org/checagem/outro-assunto",
           "source_name": "Agência Exemplo",
-          "agency_verdict": "Falso"
+          "agency_verdict": "Falso",
+          "claim_reviewed": "Prefeitura fechou todas as creches do bairro"
         }
       }
     ]
   },
-  "nli": [],
   "esperado": {
     "evidence": []
   }

@@ -11,9 +11,8 @@ import pytest
 
 from src.agents import evidence as agent
 from src.agents.evidence_schema import Evidence
-from src.retrieval import config
 from src.stubs import evidence_stub
-from tests.evidence_fakes import EVIDENCE_FIELDS, claim_mode_fakes, mamao_fakes
+from tests.evidence_fakes import EVIDENCE_FIELDS, fachin_fakes, mamao_fakes, patch_agent
 
 
 def _state_evidence_class():
@@ -25,42 +24,30 @@ def _state_evidence_class():
     return StateEvidence if "segment_id" in StateEvidence.model_fields else None
 
 
-def _real_agent_trecho(monkeypatch):
-    monkeypatch.setattr(config, "STANCE_MODE", "trecho")
+def _agente_fachin(monkeypatch):
+    state, search, classify, leads, texts = fachin_fakes()
+    patch_agent(monkeypatch, agent, search, classify, leads, texts)
+    return state, agent.run(state)
+
+
+def _agente_mamao(monkeypatch):
     state, search, classify, _ = mamao_fakes()
-    monkeypatch.setattr(agent, "search", search)
-    monkeypatch.setattr(agent, "classify", classify)
+    patch_agent(monkeypatch, agent, search, classify)
     return state, agent.run(state)
 
 
-def _real_agent_alegacao(monkeypatch):
-    monkeypatch.setattr(config, "STANCE_MODE", "alegacao")
-    state, search, classify, leads = claim_mode_fakes()
-    monkeypatch.setattr(agent, "search", search)
-    monkeypatch.setattr(agent, "classify", classify)
-    monkeypatch.setattr(agent, "get_lead_text", lambda url: leads.get(url))
-    monkeypatch.setattr(agent, "get_checagem_texts", lambda url: [leads.get(url, "")])
-    return state, agent.run(state)
-
-
-def _stub_output(monkeypatch):
+def _stub(monkeypatch):
     state, *_ = mamao_fakes()
     return state, evidence_stub.run(state)
 
 
-@pytest.mark.parametrize(
-    "produce",
-    [_real_agent_alegacao, _real_agent_trecho, _stub_output],
-    ids=["agente_real_alegacao", "agente_real_trecho", "stub"],
-)
+@pytest.mark.parametrize("produce", [_agente_fachin, _agente_mamao, _stub], ids=["agente_fachin", "agente_mamao", "stub"])
 def test_saida_respeita_o_contrato(produce, monkeypatch):
     state, output = produce(monkeypatch)
     segment_ids = {s["id"] for s in state.segments}
 
-    assert isinstance(output, dict)
     assert set(output) <= {"evidence", "warnings"}, "o agente só escreve os próprios campos"
-    assert isinstance(output["evidence"], list)
-    assert output["evidence"], "o caso de teste deve produzir evidências"
+    assert isinstance(output["evidence"], list) and output["evidence"]
 
     state_evidence = _state_evidence_class()
     for item in output["evidence"]:
@@ -75,7 +62,8 @@ def test_saida_respeita_o_contrato(produce, monkeypatch):
 
 
 def test_falha_devolve_none_e_aviso(monkeypatch):
-    state, *_ = mamao_fakes()
+    state, search, classify, _ = mamao_fakes()
+    patch_agent(monkeypatch, agent, search, classify)
 
     def broken_search(texts, k=None):
         raise RuntimeError("índice ausente")
@@ -83,5 +71,4 @@ def test_falha_devolve_none_e_aviso(monkeypatch):
     monkeypatch.setattr(agent, "search", broken_search)
     output = agent.run(state)
     assert output["evidence"] is None
-    assert output["warnings"] and all(isinstance(w, str) for w in output["warnings"])
-    assert set(output) == {"evidence", "warnings"}
+    assert set(output) == {"evidence", "warnings"} and all(isinstance(w, str) for w in output["warnings"])

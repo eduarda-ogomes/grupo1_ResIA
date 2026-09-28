@@ -12,6 +12,10 @@ FIXTURES = Path(__file__).resolve().parent / "fixtures"
 
 EVIDENCE_FIELDS = {"segment_id", "stance", "excerpt", "source_url", "source_name", "agency_verdict"}
 
+NEUTRAL = {"entailment": 0.1, "neutral": 0.8, "contradiction": 0.1}
+ENTAILMENT = {"entailment": 0.9, "neutral": 0.08, "contradiction": 0.02}
+CONTRADICTION = {"entailment": 0.03, "neutral": 0.12, "contradiction": 0.85}
+
 
 def load_fixture(relative: str) -> dict:
     with (FIXTURES / relative).open(encoding="utf-8") as f:
@@ -24,13 +28,9 @@ def make_state(segments: list[dict]) -> SimpleNamespace:
 
 
 def hit(text: str, similarity: float, url: str, name: str = "Agência Exemplo",
-        verdict: str = "Falso", chunk_id: str | None = None, **extra) -> Hit:
-    return Hit(
-        chunk_id=chunk_id or f"{abs(hash((url, text))) % 10**8:08d}-000",
-        text=text,
-        similarity=similarity,
-        metadata={"source_url": url, "source_name": name, "agency_verdict": verdict, **extra},
-    )
+        verdict: str = "Falso", **metadata) -> Hit:
+    return Hit(chunk_id=f"{abs(hash((url, text))) % 10**8:08d}", text=text, similarity=similarity,
+               metadata={"source_url": url, "source_name": name, "agency_verdict": verdict, **metadata})
 
 
 class FakeSearch:
@@ -42,20 +42,11 @@ class FakeSearch:
 
     def __call__(self, texts, k=None):
         self.calls.append(list(texts))
-        return [list(self.hits_by_text.get(t, []))[: k or 5] for t in texts]
-
-
-NEUTRAL = {"entailment": 0.1, "neutral": 0.8, "contradiction": 0.1}
-ENTAILMENT = {"entailment": 0.9, "neutral": 0.08, "contradiction": 0.02}
-CONTRADICTION = {"entailment": 0.03, "neutral": 0.12, "contradiction": 0.85}
+        return [list(self.hits_by_text.get(t, [])) for t in texts]
 
 
 class FakeClassify:
-    """Devolve probabilidades pré-definidas.
-
-    As chaves podem ser o par (premissa, hipótese) ou só a premissa; o par tem
-    prioridade. Sem correspondência, devolve `default` (neutro).
-    """
+    """Probabilidades pré-definidas por par (premissa, hipótese); sem par conhecido, `default`."""
 
     def __init__(self, probs: dict, default=None):
         self.probs = probs
@@ -64,78 +55,84 @@ class FakeClassify:
 
     def __call__(self, pairs):
         self.calls.append(list(pairs))
-        return [dict(self.probs.get((p, h), self.probs.get(p, self.default))) for p, h in pairs]
+        return [dict(self.probs.get(pair, self.default)) for pair in pairs]
 
 
-def mamao_fakes() -> tuple[SimpleNamespace, FakeSearch, FakeClassify, dict]:
-    """Caso da Seção 4.6 com busca e NLI simulados."""
+def patch_agent(monkeypatch, agent, search, classify, leads=None, texts=None):
+    """Troca busca, NLI e consultas ao índice do agente pelos dublês."""
+    leads, texts = leads or {}, texts or {}
+    monkeypatch.setattr(agent, "search", search)
+    monkeypatch.setattr(agent, "classify", classify)
+    monkeypatch.setattr(agent, "get_lead_text", lambda url: leads.get(url))
+    monkeypatch.setattr(agent, "get_checagem_texts", lambda url: texts.get(url, []))
+
+
+# --- Caso da Seção 4.6 (chá de mamão) --------------------------------------------
+
+MAMAO_CLAIM_LUPA = "Chá de folha de mamão cura a dengue em três dias"
+MAMAO_CLAIM_AOSFATOS = "Chá de folha de mamão aumenta as plaquetas e evita a dengue hemorrágica"
+
+
+def mamao_fakes():
+    """Frases e saída esperada da Seção 4.6; alegações checadas sintéticas para o teste."""
     segments = load_fixture("caso_mamao_dengue/segments.json")["segments"]
     expected = load_fixture("caso_mamao_dengue/evidence.json")
     lupa, aosfatos = expected["evidence"]
     text = {s["id"]: s["text"] for s in segments}
-
     search = FakeSearch(
         {
-            # s01: só um trecho abaixo do limiar -> nenhum objeto (Seção 4.6).
+            # s01: só um trecho abaixo do limiar -> nenhum objeto.
             text["s01"]: [hit("Trecho sobre outro assunto.", 0.40, "https://exemplo.org/outra")],
-            # s02: dois trechos da mesma URL (deduplicação) e um sem URL (descartado).
+            # s02: dois trechos da mesma checagem e um sem link (descartado).
             text["s02"]: [
-                hit(lupa["excerpt"], 0.86, lupa["source_url"], lupa["source_name"], "Falso"),
-                hit("Outro parágrafo da mesma checagem.", 0.79, lupa["source_url"], lupa["source_name"], "Falso"),
-                hit("Trecho sem link de origem.", 0.90, ""),
+                hit(lupa["excerpt"], 0.86, lupa["source_url"], lupa["source_name"], claim_reviewed=MAMAO_CLAIM_LUPA),
+                hit("Outro parágrafo da mesma checagem.", 0.79, lupa["source_url"], lupa["source_name"],
+                    claim_reviewed=MAMAO_CLAIM_LUPA),
+                hit("Trecho sem link de origem.", 0.90, "", claim_reviewed="x"),
             ],
-            text["s03"]: [hit(aosfatos["excerpt"], 0.81, aosfatos["source_url"], aosfatos["source_name"], "Falso")],
+            text["s03"]: [hit(aosfatos["excerpt"], 0.81, aosfatos["source_url"], aosfatos["source_name"],
+                              claim_reviewed=MAMAO_CLAIM_AOSFATOS)],
         }
     )
-    classify = FakeClassify({lupa["excerpt"]: CONTRADICTION, aosfatos["excerpt"]: CONTRADICTION})
+    classify = FakeClassify({(MAMAO_CLAIM_LUPA, text["s02"]): ENTAILMENT,
+                             (MAMAO_CLAIM_AOSFATOS, text["s03"]): ENTAILMENT})
     return make_state(segments), search, classify, expected
 
 
-# --- Modo "alegacao" ---------------------------------------------------------
+# --- Caso Fachin: a mesma alegação x outro fato do mesmo ministro ----------------
 
 FACHIN_URL = "https://exemplo.org/checagem/foto-fachin-moraes-ia"
 FACHIN_CLAIM = "Foto mostra Edson Fachin apontando o dedo para Alexandre de Moraes em discussão"
-FACHIN_LEAD = (
-    "Foi gerada por IA a foto que mostra uma discussão entre dois ministros do STF. "
-    "A imagem circula nas redes como se fosse real."
-)
 FACHIN_CLAIM_NORMALIZADA = "Edson Fachin apontando o dedo para Alexandre de Moraes em discussão"
+FACHIN_LEAD = ("Foi gerada por IA a foto que mostra uma discussão entre dois ministros do STF. "
+               "A imagem circula nas redes como se fosse real.")
 OUTRA_URL = "https://exemplo.org/checagem/outro-fato-fachin"
 OUTRA_CLAIM = "Fachin levou para a Presidência do STF as investigações sobre o INSS"
 
 
-def claim_mode_fakes():
-    """Uma frase, duas checagens candidatas: só a primeira é a mesma alegação.
-
-    Dados sintéticos (agência e URLs fictícias).
-    """
+def fachin_fakes():
+    """Uma frase, duas checagens candidatas: só a primeira é a mesma alegação (dados sintéticos)."""
     segment = {"id": "s01", "text": "Fachin apontou o dedo para Moraes durante uma discussão no STF."}
     search = FakeSearch(
         {
             segment["text"]: [
-                # O parágrafo que repete o boato é o mais parecido com a frase.
                 hit("O clima esquentou, enfiou o dedo na cara dele.", 0.60, FACHIN_URL, verdict="falso",
-                    claim_reviewed=FACHIN_CLAIM, describes_rumor=True),
+                    claim_reviewed=FACHIN_CLAIM),
                 hit("Trecho do meio da checagem sobre a foto.", 0.59, FACHIN_URL, verdict="falso",
-                    claim_reviewed=FACHIN_CLAIM, describes_rumor=False),
+                    claim_reviewed=FACHIN_CLAIM),
                 hit("No mesmo dia, Fachin levou para a Presidência...", 0.57, OUTRA_URL, verdict="Enganoso",
-                    claim_reviewed=OUTRA_CLAIM, describes_rumor=False),
+                    claim_reviewed=OUTRA_CLAIM),
                 hit("Trecho de outro assunto.", 0.45, "https://exemplo.org/terceira", claim_reviewed="Outra coisa"),
             ]
         }
     )
     classify = FakeClassify(
         {
-            # Mesma alegação: entailment só na direção alegação -> frase
-            # (com e sem o "Foto mostra", porque a normalização é ligada por padrão).
-            (FACHIN_CLAIM, segment["text"]): ENTAILMENT,
-            (segment["text"], FACHIN_CLAIM): NEUTRAL,
+            # Mesma alegação: entailment só na direção alegação -> frase.
             (FACHIN_CLAIM_NORMALIZADA, segment["text"]): ENTAILMENT,
             (segment["text"], FACHIN_CLAIM_NORMALIZADA): NEUTRAL,
-            # Outra alegação sobre o mesmo ministro: sem entailment.
             (OUTRA_CLAIM, segment["text"]): NEUTRAL,
             (segment["text"], OUTRA_CLAIM): CONTRADICTION,
         }
     )
-    leads = {FACHIN_URL: FACHIN_LEAD}
-    return make_state([segment]), search, classify, leads
+    return make_state([segment]), search, classify, {FACHIN_URL: FACHIN_LEAD}, {FACHIN_URL: [FACHIN_LEAD]}

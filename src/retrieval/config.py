@@ -45,16 +45,42 @@ BATCH_SIZE = _env_int("EVIDENCE_BATCH_SIZE", 16)
 CHROMA_PATH = Path(os.getenv("EVIDENCE_CHROMA_PATH", str(REPO_ROOT / "chroma_data")))
 COLLECTION_PREFIX = "checagens"
 
+# --- Modo de stance --------------------------------------------------------
+# "alegacao" (padrão desde 27/09): a checagem só é usada se o NLI indicar que a
+#   frase é a mesma alegação do claim_reviewed; a stance vem do veredito da
+#   agência. Diverge da Seção 4.2 do manual; ver docs/agents/evidencias_decisoes.md.
+# "trecho": o método da Seção 4.2 (NLI entre o trecho da checagem e a frase).
+STANCE_MODE = os.getenv("EVIDENCE_STANCE_MODE", "alegacao").strip().lower()
+STANCE_MODES = ("alegacao", "trecho")
+
 # --- Busca e stance (valores provisórios, a calibrar com o gold set) -------
-TOP_K = _env_int("EVIDENCE_TOP_K", 5)
-SIM_THRESHOLD = _env_float("EVIDENCE_SIM_THRESHOLD", 0.75)
+TOP_K = _env_int("EVIDENCE_TOP_K", 5)             # k do Recall@k na avaliação
+SEARCH_K = _env_int("EVIDENCE_SEARCH_K", 10)      # trechos buscados por frase pelo agente
+SIM_THRESHOLD = _env_float("EVIDENCE_SIM_THRESHOLD", 0.55)
 NLI_MIN_PROB = _env_float("EVIDENCE_NLI_MIN_PROB", 0.5)
+CLAIM_MATCH_MIN_PROB = _env_float("EVIDENCE_CLAIM_MATCH_MIN_PROB", 0.5)
+# Variantes da etapa "mesma alegação" (ver src/retrieval/claim_match.py e o
+# experimento data/corpus/experimento_etapa2.py):
+# - termos-chave: um nome próprio, número ou doença da frase ausente da checagem
+#   reprova quando a alegação tem um termo da mesma classe ausente da frase (troca).
+#   LIGADA: barra o erro "dengue x chikungunya" que o NLI deixa passar.
+# - normalização: tira "Foto/Vídeo/Imagem mostra" da alegação antes do NLI.
+#   LIGADA desde 28/09 (caso real UOL/Fachin: entailment 0,09 -> 0,99; nenhum
+#   casamento errado novo no experimento).
+KEY_TERM_CHECK = _env_bool("EVIDENCE_KEY_TERM_CHECK", True)
+CLAIM_NORMALIZE = _env_bool("EVIDENCE_CLAIM_NORMALIZE", True)
+# Checagens avaliadas na etapa 2 por frase; o resultado ainda é limitado a
+# MAX_EVIDENCE_PER_SEGMENT. Antes de 28/09 o limite de 3 vinha antes da etapa 2 e
+# cortava checagens certas (caso Fachin: o Aos Fatos ficou de fora).
+CLAIM_CANDIDATES = _env_int("EVIDENCE_CLAIM_CANDIDATES", 6)
 MAX_EVIDENCE_PER_SEGMENT = _env_int("EVIDENCE_MAX_PER_SEGMENT", 3)
 EXCERPT_MAX_CHARS = _env_int("EVIDENCE_EXCERPT_MAX_CHARS", 300)
 
 # --- Proteção contra o boato citado (opção 1; desligada por padrão) --------
 # Quando ligada, trechos marcados como "descreve o boato" na indexação não são
-# recuperados e, portanto, nunca viram premissa do NLI.
+# recuperados. Continua desligada: no modo "alegacao" o parágrafo do boato
+# ajuda a achar a checagem certa, e a heurística ainda marca algumas
+# conclusões por engano (ver documento de decisões, seção 7).
 FILTER_RUMOR_CHUNKS = _env_bool("EVIDENCE_FILTER_RUMOR", False)
 
 # --- Chunking --------------------------------------------------------------

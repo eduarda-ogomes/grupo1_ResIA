@@ -29,7 +29,7 @@ def search(texts: Sequence[str], k: int | None = None) -> list[list[Hit]]:
 
     if not texts:
         return []
-    k = k or config.TOP_K
+    k = k or config.SEARCH_K
     collection = get_collection()
     if collection.count() == 0:
         return [[] for _ in texts]
@@ -54,3 +54,27 @@ def search(texts: Sequence[str], k: int | None = None) -> list[list[Hit]]:
             ]
         )
     return hits
+
+
+def get_lead_text(source_url: str) -> str | None:
+    """Texto do primeiro trecho (chunk_index 0) de uma checagem.
+
+    Nas checagens do corpus, o parágrafo de abertura traz a conclusão da agência
+    (medido em 27/09: 78% com marcador explícito como "é falso" / "não é verdade").
+    """
+    from src.retrieval.chroma_client import get_collection
+
+    result = get_collection().get(
+        where={"$and": [{"source_url": {"$eq": source_url}}, {"chunk_index": {"$eq": 0}}]},
+        include=["documents"],
+    )
+    documents = result.get("documents") or []
+    return documents[0] if documents else None
+
+
+def get_checagem_texts(source_url: str) -> list[str]:
+    """Todos os trechos indexados de uma checagem (título e texto), para a checagem de termos-chave."""
+    from src.retrieval.chroma_client import get_collection
+
+    result = get_collection().get(where={"source_url": {"$eq": source_url}}, include=["documents"])
+    return [d for d in (result.get("documents") or []) if d]

@@ -34,10 +34,43 @@ _RUMOR_PATTERNS = [
 ]
 _RUMOR_RE = re.compile("|".join(_RUMOR_PATTERNS), re.IGNORECASE)
 
+# Marcadores de conclusão da agência. Um parágrafo com um destes marcadores é
+# conclusão, mesmo que também mencione o post ("É falso que um vídeo mostra...").
+# Adicionado em 27/09 depois de medir o corpus real: 230 dos 573 parágrafos
+# marcados pela versão anterior eram conclusões.
+_DEBUNK_PATTERNS = [
+    r"\b(?:é|são|foi|foram|está|estão)\s+(?:falso|falsa|falsos|falsas|enganos[oa]s?|mentiros[oa]s?"
+    r"|montage[mn]s?|editad[oa]s?|manipulad[oa]s?|adulterad[oa]s?|antig[oa]s?|descontextualizad[oa]s?"
+    r"|gerad[oa]s?\s+(?:por|com)\s+(?:ia\b|intelig))",
+    r"\bnão\s+(?:é|são)\s+(?:verdade|real|reais|verdadeir[oa]s?|autêntic[oa]s?)\b",
+    r"\bnão\s+procede\b",
+    r"\bnão\s+(?:é|são)\s+(?:atua(?:l|is)|recentes?)\b",
+    r"\bnão\s+(?:foi|foram)\s+(?:gravad[oa]s?|feit[oa]s?|registrad[oa]s?|dit[oa]s?|publicad[oa]s?)\b",
+    r"\bnão\s+há\s+(?:registro|registros|provas?|evidências?|indícios?)\b",
+    r"\b(?:mentem|mente|engana|enganam|distorce|distorcem|distorceu)\b",
+    r"\bna\s+(?:verdade|realidade)\b",
+    r"\bnão\s+tem\s+(?:qualquer\s+|nenhuma\s+)?relação\b",
+    r"\bcomo\s+se\s+(?:fosse|fossem|tratasse)\s+(?:de\s+)?(?:(?:um|uma|uns|umas)\s+)?(?:\w+\s+)?"
+    r"(?:atua(?:l|is)|recentes?|rea(?:l|is)|verdadeir[oa]s?|autêntic[oa]s?)\b",
+    r"\b(?:é|são|foi|foram)\s+(?:de|gravad[oa]s?\s+em|feit[oa]s?\s+em|registrad[oa]s?\s+em)\s+(?:\d{4}|\d{1,2}\s+de)\b",
+    r"\b(?:tirad[oa]s?|fora)\s+de\s+contexto\b",
+    r"\bdesinforma(?:ção|ções|m|tiv[oa]s?)?\b",
+]
+_DEBUNK_RE = re.compile("|".join(_DEBUNK_PATTERNS), re.IGNORECASE)
+
+
+def is_conclusion(paragraph: str) -> bool:
+    """True se o parágrafo traz um marcador de conclusão da agência."""
+    return bool(_DEBUNK_RE.search(paragraph))
+
 
 def describes_rumor(paragraph: str) -> bool:
-    """True se o parágrafo parece reproduzir o boato em vez de concluir a checagem."""
-    return bool(_RUMOR_RE.search(paragraph))
+    """True se o parágrafo parece reproduzir o boato em vez de concluir a checagem.
+
+    Limitação conhecida: o texto do post colado sem introdução (como o Aos Fatos
+    costuma fazer no 3º parágrafo) não tem marcador e não é detectado.
+    """
+    return bool(_RUMOR_RE.search(paragraph)) and not is_conclusion(paragraph)
 
 
 @dataclass

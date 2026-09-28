@@ -35,10 +35,10 @@ from typing import Any, Iterable
 # state.py da Seção 3.3 estiver na main (ver evidence_schema.py).
 from src.agents.evidence_schema import Evidence, Segment
 from src.retrieval import config
-from src.retrieval.claim_match import key_terms_present, normalize_claim, normalize_text
+from src.retrieval.etapa2 import (display_verdict, key_terms_present, normalize_claim, normalize_text,
+                                  stance_from_verdict)
+from src.retrieval.indice import Hit, get_checagem_texts, get_lead_text, search
 from src.retrieval.nli import classify
-from src.retrieval.search import Hit, get_checagem_texts, get_lead_text, search
-from src.retrieval.verdicts import display_verdict, stance_from_verdict
 
 logger = logging.getLogger(__name__)
 
@@ -65,18 +65,29 @@ def _meta(group: list[Hit], key: str) -> str:
     return next((str(h.metadata.get(key) or "").strip() for h in group if h.metadata.get(key)), "")
 
 
+# Sites que republicam checagens de outro (o BOL republica o UOL Confere).
+# Com o mesmo título nos dois, fica o link do site original.
+MIRROR_DOMAINS = ("bol.uol.com.br",)
+
+
+def _is_mirror(group: list[Hit]) -> bool:
+    return any(domain in _meta(group, "source_url") for domain in MIRROR_DOMAINS)
+
+
 def _candidates(hits: list[Hit]) -> list[list[Hit]]:
     """Checagens candidatas de uma frase, sem repetir o mesmo título e só com alegação checada."""
-    seen: set[str] = set()
+    position: dict[str, int] = {}  # título -> posição em result
     result = []
     for group in group_hits_by_url(hits):
         if not _meta(group, "claim_reviewed"):
             continue  # sem a alegação checada não há como saber se é a mesma alegação
         title = " ".join(normalize_text(_meta(group, "review_title")).split())
         key = title or _meta(group, "source_url")
-        if key not in seen:
-            seen.add(key)
+        if key not in position:
+            position[key] = len(result)
             result.append(group)
+        elif _is_mirror(result[position[key]]) and not _is_mirror(group):
+            result[position[key]] = group  # troca o espelho pelo original, na mesma posição
     return result
 
 

@@ -31,10 +31,9 @@ def _short(text: str, n: int) -> str:
 
 def diagnose(sentences: list[str]) -> None:
     from src.agents import evidence as agent
-    from src.retrieval.claim_match import key_terms, key_terms_present, normalize_claim
+    from src.retrieval.etapa2 import display_verdict, key_terms, key_terms_present, normalize_claim, stance_from_verdict
+    from src.retrieval.indice import get_checagem_texts, search
     from src.retrieval.nli import classify
-    from src.retrieval.search import get_checagem_texts, search
-    from src.retrieval.verdicts import display_verdict, stance_from_verdict
 
     print(f"limiar de similaridade={config.SIM_THRESHOLD} | mínimo da etapa 2={config.CLAIM_MATCH_MIN_PROB} "
           f"| candidatas={config.CLAIM_CANDIDATES} | evidências por frase={config.MAX_EVIDENCE_PER_SEGMENT}")
@@ -84,7 +83,7 @@ def diagnose(sentences: list[str]) -> None:
 
 
 def list_verdicts(path: Path) -> None:
-    from src.retrieval.verdicts import display_verdict, stance_from_verdict
+    from src.retrieval.etapa2 import display_verdict, stance_from_verdict
 
     rows = [json.loads(line) for line in path.open(encoding="utf-8") if line.strip()]
     counts = collections.Counter((display_verdict(r.get("agency_verdict")), stance_from_verdict(r.get("agency_verdict")))

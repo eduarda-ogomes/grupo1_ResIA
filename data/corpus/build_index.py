@@ -1,14 +1,14 @@
 """Constrói o índice de checagens no ChromaDB.
 
 Junta os metadados da API (factcheck_api.jsonl) com os textos completos
-(articles.jsonl), divide cada checagem em trechos, calcula os embeddings e
-grava na coleção do modelo de embedding atual (config.collection_name()).
+(articles.jsonl), divide cada checagem em trechos (parágrafos agrupados até
+800 caracteres, com sobreposição de 1 parágrafo), calcula os embeddings e grava
+na coleção do modelo de embedding atual (config.collection_name()).
 
 Cada checagem ganha também um trecho com o TÍTULO (chunk_kind "titulo",
 chunk_index -1), mesmo quando o texto não pôde ser baixado. O título é a
 conclusão da agência, escrita por ela; assim as checagens da AFP Checamos (que
-recusa o download) entram no índice, e o modo "alegacao" usa o título como
-excerpt.
+recusa o download) entram no índice, e o agente usa o título como excerpt.
 
 Metadados de cada trecho: source_url, source_name, agency_verdict,
 review_date, claim_reviewed, review_title, chunk_index, chunk_kind.
@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import re
 import json
 import sys
 from collections import Counter
@@ -31,7 +32,6 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from src.retrieval import config  # noqa: E402
-from src.retrieval.chunking import build_chunks  # noqa: E402
 
 
 def load_jsonl(path: Path) -> list[dict]:
@@ -39,6 +39,34 @@ def load_jsonl(path: Path) -> list[dict]:
         return []
     with path.open(encoding="utf-8") as f:
         return [json.loads(line) for line in f if line.strip()]
+
+
+# --- Divisão do texto em trechos --------------------------------------------------
+# Parágrafos consecutivos agrupados até CHUNK_MAX_CHARS, com sobreposição de
+# CHUNK_OVERLAP_PARAGRAPHS parágrafo; parágrafos curtos (menus, legendas) descartados.
+
+def split_paragraphs(text: str, min_chars: int | None = None) -> list[str]:
+    min_chars = config.MIN_PARAGRAPH_CHARS if min_chars is None else min_chars
+    paragraphs = [re.sub(r"\s+", " ", p).strip() for p in re.split(r"\n+", text or "")]
+    return [p for p in paragraphs if len(p) >= min_chars]
+
+
+def build_chunks(text: str, max_chars: int | None = None, overlap: int | None = None,
+                 min_chars: int | None = None) -> list[str]:
+    max_chars = config.CHUNK_MAX_CHARS if max_chars is None else max_chars
+    overlap = config.CHUNK_OVERLAP_PARAGRAPHS if overlap is None else overlap
+
+    chunks: list[str] = []
+    current: list[str] = []
+    for paragraph in split_paragraphs(text, min_chars):
+        if current and len("\n".join(current + [paragraph])) > max_chars:
+            chunks.append("\n".join(current))
+            carry = current[-overlap:] if overlap else []
+            current = carry if len("\n".join(carry + [paragraph])) <= max_chars else []
+        current.append(paragraph)
+    if current:
+        chunks.append("\n".join(current))
+    return chunks
 
 
 def chunk_id(url: str, index: int | str) -> str:
@@ -86,10 +114,9 @@ def build_records(claims: list[dict], articles: list[dict]) -> list[dict]:
 
 
 def index_records(records: list[dict], reset: bool = False, batch_size: int = 64) -> int:
-    from src.retrieval.chroma_client import get_collection, reset_collection
-    from src.retrieval.embeddings import embed_passages
+    from src.retrieval.indice import embed_passages, get_collection
 
-    collection = reset_collection() if reset else get_collection(create=True)
+    collection = get_collection(create=True, reset=reset)
     for start in range(0, len(records), batch_size):
         batch = records[start : start + batch_size]
         collection.upsert(

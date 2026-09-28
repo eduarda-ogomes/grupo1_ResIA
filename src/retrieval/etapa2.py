@@ -1,24 +1,20 @@
-"""Apoio à etapa "mesma alegação" do modo alegacao.
+"""Etapa 2 do Agente de Evidências: a checagem trata da MESMA alegação? E o que a agência concluiu?
 
-Duas variantes, medidas pelo experimento data/corpus/experimento_etapa2.py
-antes de virarem padrão:
+1. normalize_claim: tira "Foto/Vídeo/Imagem mostra" do início da alegação checada
+   antes do NLI. Para o NLI, "uma foto mostra X" não implica "X" (caso real
+   UOL/Fachin: entailment 0,09 -> 0,99 com a normalização).
 
-(b) normalize_claim: tira o enquadramento de mídia da alegação checada.
-    "Foto mostra Edson Fachin apontando o dedo..." -> "Edson Fachin apontando o dedo...".
-    Motivo (27/09): para o NLI, "uma foto mostra X" não implica "X", e a
-    paráfrase do caso Fachin teve entailment 0,000. ~8% das alegações do corpus
-    começam assim.
+2. key_terms_present: o NLI não percebe troca de nome entre frases quase
+   iguais ("cura a dengue" x "cura a chikungunya": entailment 0,98). Se um nome
+   próprio, número ou doença da frase não aparece na checagem E a alegação tem
+   um termo da mesma classe que a frase não tem, é uma troca: a checagem é
+   descartada. Um termo ausente sem par ("no STF") é só contexto e não reprova.
 
-(c) key_terms_present: checagem determinística de termos-chave. O NLI marcou
-    "cura a dengue" x "cura a chikungunya" como a mesma alegação (0,98); ele
-    percebe troca de número, mas não de nome. Um NOME PRÓPRIO, NÚMERO ou NOME DE
-    DOENÇA da frase ausente da checagem reprova a checagem quando a alegação
-    checada tem um termo da mesma classe ausente da frase (uma troca).
+3. stance_from_verdict / display_verdict: o veredito da agência vira a stance
+   (conservador: só "falso" e "verdadeiro" e equivalentes são conclusivos).
 
-    Calibrada em 28/09 nos 35 pares de data/corpus/pares_etapa2.json (sem o
-    NLI): aceitou as 16 paráfrases e rejeitou 6 das 8 trocas de nome. Uma
-    versão por palavras raras (IDF) foi testada e descartada: reprovava de 5 a
-    16 paráfrases, porque paráfrases trazem palavras novas.
+Números do experimento (37 pares, NLI real): NLI + termos-chave + normalização
+= 35/37, 0 casamentos errados; ver docs/agents/evidencias_decisoes.md.
 """
 
 from __future__ import annotations
@@ -27,7 +23,7 @@ import re
 import unicodedata
 from typing import Iterable, NamedTuple
 
-# --- (b) enquadramento de mídia ---------------------------------------------
+# --- 1. Normalização da alegação ------------------------------------------------
 
 _MEDIA_NOUN = (
     r"(?:v[íi]deos?|fotos?|fotografias?|imag(?:em|ens)|[áa]udios?|montage(?:m|ns)|prints?|reportage(?:m|ns)"
@@ -52,7 +48,7 @@ def normalize_claim(claim: str) -> str:
     return stripped[0].upper() + stripped[1:]
 
 
-# --- (c) termos-chave ----------------------------------------------------------
+# --- 2. Termos-chave -------------------------------------------------------------
 
 _STOPWORDS = set(
     """
@@ -200,3 +196,50 @@ def key_terms_present(sentence: str, checagem_texts: Iterable[str], claim: str |
     if missing["doencas"]:
         substitutes += [t for t in theirs["doencas"] if _stem(t) not in sentence_stems]
     return KeyTermResult(not substitutes, all_missing, substitutes)
+
+
+# --- 3. Veredito da agência ---------------------------------------------------------
+# Formatos no corpus: rótulo simples ("falso", "Enganoso", "não_é_bem_assim"),
+# rótulo + explicação do Comprova ("Falso: Na verdade...") e texto livre.
+# Para revisar o mapeamento: python data/corpus/diagnostico.py --vereditos
+
+CONTRADIZ = {"falso", "falsa", "fake", "montagem", "mentira", "mentiroso", "e falso", "inventado", "fabricado"}
+APOIA = {"verdadeiro", "verdadeira", "verdade", "e verdade", "comprovado", "correto"}
+
+# Rótulo = parte antes de ":" quando essa parte é curta (formato do Comprova).
+_MAX_LABEL_CHARS = 40
+
+
+def _label(raw: str | None) -> str:
+    """Rótulo como publicado: sem sublinhados e sem a explicação após ':'."""
+    text = re.sub(r"\s+", " ", (raw or "").replace("_", " ")).strip()
+    head, sep, _ = text.partition(":")
+    if sep and 0 < len(head.strip()) <= _MAX_LABEL_CHARS:
+        return head.strip()
+    return text
+
+
+def normalize_label(raw: str | None) -> str:
+    """Rótulo em minúsculas, sem acentos e sem pontuação final (para comparação)."""
+    return _strip_accents(_label(raw)).lower().strip(" .!;,")
+
+
+def stance_from_verdict(raw: str | None) -> str:
+    label = normalize_label(raw)
+    if label in CONTRADIZ:
+        return "contradiz"
+    if label in APOIA:
+        return "apoia"
+    return "insuficiente"
+
+
+def display_verdict(raw: str | None) -> str | None:
+    """Veredito para exibição com atribuição ("Aos Fatos: Falso").
+
+    Mantém o texto da agência, só troca sublinhados por espaços, tira a
+    explicação após ':' e põe a primeira letra em maiúscula.
+    """
+    label = _label(raw)
+    if not label:
+        return None
+    return label[0].upper() + label[1:]

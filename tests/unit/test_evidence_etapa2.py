@@ -1,11 +1,15 @@
-"""Testes da etapa "mesma alegação": normalização da alegação e termos-chave.
+"""Testes da etapa "mesma alegação" (src/retrieval/etapa2.py): normalização da
+alegação, termos-chave e vereditos (formatos encontrados no corpus real).
 
-    python -m pytest tests/unit/test_evidence_claim_match.py
+    python -m pytest tests/unit/test_evidence_etapa2.py
 """
 
 import pytest
 
-from src.retrieval.claim_match import key_terms, key_terms_present, name_groups, normalize_claim, normalize_text
+from src.retrieval.etapa2 import (display_verdict, key_terms, key_terms_present, name_groups, normalize_claim,
+                                  normalize_text, stance_from_verdict)
+
+# --- Normalização e termos-chave -------------------------------------------------
 
 
 @pytest.mark.parametrize(
@@ -92,3 +96,47 @@ def test_sem_alegacao_a_regra_e_estrita():
     """Sem a alegação, qualquer termo ausente reprova (contexto a mais também)."""
     result = key_terms_present("Fachin apontou o dedo para Moraes no STF.", ["Imagem de Fachin e Moraes é falsa"])
     assert result == (False, ["stf"], [])
+
+
+# --- Vereditos -------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "raw, stance",
+    [
+        ("falso", "contradiz"),
+        ("Falso", "contradiz"),
+        ("Falso: Na verdade, uma empresa subsidiária de uma estatal chinesa adquiriu uma mineradora.", "contradiz"),
+        ("Montagem", "contradiz"),
+        ("verdadeiro", "apoia"),
+        ("Comprovado", "apoia"),
+        ("Enganoso", "insuficiente"),
+        ("Enganoso: O conteúdo foi tirado de contexto para parecer atual.", "insuficiente"),
+        ("não_é_bem_assim", "insuficiente"),
+        ("Falta contexto", "insuficiente"),
+        ("Contextualizando: Lula recebe aposentadoria especial como anistiado desde 1993.", "insuficiente"),
+        ("Sátira", "insuficiente"),
+        ("verdadeiro, mas impreciso", "insuficiente"),
+        ("É mentirosa a afirmação de que Moraes ordenou a troca de 48 urnas.", "insuficiente"),  # texto livre: conservador
+        ("", "insuficiente"),
+        (None, "insuficiente"),
+    ],
+)
+def test_stance_from_verdict(raw, stance):
+    assert stance_from_verdict(raw) == stance
+
+
+@pytest.mark.parametrize(
+    "raw, shown",
+    [
+        ("falso", "Falso"),
+        ("não_é_bem_assim", "Não é bem assim"),
+        ("Falso: Na verdade, uma empresa adquiriu uma mineradora.", "Falso"),
+        ("Contextualizando: Lula recebe aposentadoria.", "Contextualizando"),
+        ("A prefeita não foi alvo de operação da PF: diz o site.", "A prefeita não foi alvo de operação da PF: diz o site."),
+        ("", None),
+        (None, None),
+    ],
+)
+def test_display_verdict(raw, shown):
+    assert display_verdict(raw) == shown

@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 from types import SimpleNamespace
 
-from src.retrieval.search import Hit
+from src.retrieval.indice import Hit
 
 FIXTURES = Path(__file__).resolve().parent / "fixtures"
 

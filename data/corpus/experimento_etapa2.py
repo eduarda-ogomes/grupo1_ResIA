@@ -1,9 +1,9 @@
-"""Experimento: qual variante da etapa "mesma alegação" usar no modo alegacao.
+"""Experimento: qual variante da etapa "mesma alegação" usar (o agente usa a D).
 
 Roda o NLI real nos pares de data/corpus/pares_etapa2.json (alegações reais do
 corpus + frases escritas para o teste) e compara:
 
-  A  NLI entre a frase e a alegação checada (como está hoje, sem termos-chave)
+  A  só NLI entre a frase e a alegação checada
   B  NLI com a alegação normalizada (sem "Foto/Vídeo mostra")
   C  A + termos-chave (troca de nome próprio, número ou doença entre frase e alegação)
   D  B + termos-chave
@@ -32,7 +32,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from src.retrieval import config  # noqa: E402
-from src.retrieval.claim_match import key_terms_present, normalize_claim  # noqa: E402
+from src.retrieval.etapa2 import key_terms_present, normalize_claim  # noqa: E402
 
 PAIRS_FILE = Path(__file__).resolve().parent / "pares_etapa2.json"
 VARIANTS = {

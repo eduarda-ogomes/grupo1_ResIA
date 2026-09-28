@@ -23,7 +23,7 @@ from tests.evidence_fakes import (
     mamao_fakes,
     patch_agent,
 )
-from src.retrieval.search import Hit
+from src.retrieval.indice import Hit
 
 
 @pytest.fixture
@@ -74,6 +74,18 @@ def test_mesma_checagem_em_dois_enderecos_conta_uma_vez(monkeypatch):
             for i, t in enumerate(titles)]
     output, _ = _run_one(monkeypatch, frase, hits)
     assert [e["source_url"] for e in output["evidence"]] == ["https://x.org/0", "https://x.org/2"]
+
+
+def test_espelho_bol_perde_para_o_original_uol(monkeypatch):
+    frase = "a frase da notícia."
+    title = "Imagem de Fachin é falsa"
+    bol = "https://www.bol.uol.com.br/noticias/x.htm"
+    uol = "https://noticias.uol.com.br/confere/x.htm"
+    hits = [hit("t", 0.62, bol, "BOL - UOL", claim_reviewed="a alegação", review_title=title),
+            hit("t", 0.62, uol, "UOL Notícias", claim_reviewed="a alegação", review_title=title),
+            hit("t", 0.60, "https://x.org/2", claim_reviewed="a alegação", review_title="Outro título")]
+    output, _ = _run_one(monkeypatch, frase, hits)
+    assert [e["source_url"] for e in output["evidence"]] == [uol, "https://x.org/2"]
 
 
 def test_checagem_sem_alegacao_checada_e_ignorada(monkeypatch):

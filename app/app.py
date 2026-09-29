@@ -6,7 +6,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import streamlit as st
 from src.graph import sistema_multiagente
-from src.state import PipelineState
+from src.state import PipelineState, initial_state
 
 st.set_page_config(page_title="Dossiê Multiagente", layout="wide")
 
@@ -24,20 +24,21 @@ text_input = st.text_area("Insira a URL ou o texto da notícia para análise:", 
 
 if st.button("Analisar", type="primary"):
     if text_input.strip():
-        final_state = {"raw_input": text_input}
+        estado_inicial = initial_state(text_input)
+        final_state = dict(estado_inicial)
         
         # Acompanhamento do pipeline em tempo real
         with st.status("Processando pipeline multiagente...", expanded=True) as status:
             try:
                 # O método stream() permite ver o grafo funcionando passo a passo
-                for event in sistema_multiagente.stream({"raw_input": text_input}):
+                for event in sistema_multiagente.stream(estado_inicial):
                     for node_name, node_update in event.items():
                         st.write(f"Nó processado: **{node_name}**")
                         
                         # Atualiza nosso estado local para exibir depois
                         for key, value in node_update.items():
-                            if key == "evidence":
-                                final_state.setdefault("evidence", []).extend(value)
+                            if key == "warnings":
+                                final_state["warnings"] = final_state["warnings"] + value
                             else:
                                 final_state[key] = value
                 
@@ -79,13 +80,13 @@ if st.button("Analisar", type="primary"):
                     st.write(dossier)
                 
                 st.subheader("Perguntas Socráticas")
-                perguntas = final_state.get('socratic_questions', [])
+                perguntas = final_state.get('socratic_questions') or []
                 for q in perguntas:
                     st.markdown(f"- {q}")
             
             with col2:
                 st.subheader("Evidências Analisadas")
-                evidencias = final_state.get('evidence', [])
+                evidencias = final_state.get('evidence') or []
                 for ev in evidencias:
                     # 'ev' is a Pydantic object
                     cor = "green" if ev.stance == "apoia" else "red" if ev.stance == "contradiz" else "orange"

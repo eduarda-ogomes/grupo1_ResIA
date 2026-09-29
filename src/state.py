@@ -41,3 +41,26 @@ class PipelineState(BaseModel):
     socratic_questions: list[str] | None
     dossier: str | None
     warnings: Annotated[list[str], operator.add]
+
+
+def initial_state(raw_input: str, **overrides) -> dict:
+    """Estado inicial válido no schema estrito: entrada do usuário e o resto vazio.
+
+    O LangGraph valida o estado de entrada, então todo campo precisa estar presente.
+    `evidence`, `text_report`, `socratic_questions` e `dossier` começam em None
+    (ainda não produzidos); os nós dos ramos os preenchem.
+    """
+    return {
+        "raw_input": raw_input,
+        "clean_text": "",
+        "title": None,
+        "published_at": None,
+        "truncated": False,
+        "segments": [],
+        "evidence": None,
+        "text_report": None,
+        "socratic_questions": None,
+        "dossier": None,
+        "warnings": [],
+        **overrides,
+    }

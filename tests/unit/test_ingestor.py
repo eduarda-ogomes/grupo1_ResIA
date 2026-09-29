@@ -8,7 +8,7 @@ from src.agents.ingestor import (
     segment_text,
     truncate_words,
 )
-from src.state import PipelineState
+from src.state import PipelineState, initial_state
 
 URL = "https://exemplo-jornal.com.br/materia"
 
@@ -29,7 +29,7 @@ ARTIGO_HTML = """
 
 
 def run_node(raw_input):
-    state = PipelineState(raw_input=raw_input)
+    state = PipelineState(**initial_state(raw_input))
     return ingestor_node(state)
 
 

@@ -19,7 +19,7 @@ class Statement(BaseModel):
     kind: Literal["factual", "valor"]
 
 class TextMarker(BaseModel):
-    type: str
+    type: strowner:femathrl0owner:femathrl0owner:femathrl0owner:femathrl0
     segment_id: str
     excerpt: str
     explanation: str

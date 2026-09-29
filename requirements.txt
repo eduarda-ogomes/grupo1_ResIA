@@ -10,3 +10,5 @@ torch
 sentence-transformers
 langchain-openai
 spacy>=3.8.0
+beautifulsoup4
+requests

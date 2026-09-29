@@ -74,13 +74,14 @@ Objetivo: ter o projeto rodando na sua máquina, entender o contrato e conseguir
 ```bash
 git clone https://github.com/eduarda-ogomes/grupo1_ResIA.git
 cd grupo1_ResIA
+git checkout develop
 python -m venv venv
 source venv/bin/activate          # Windows (PowerShell): venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 python -m spacy download pt_core_news_sm
 ```
 
-  Se você já tem o repositório: `git checkout main && git pull` e rode de novo o `pip install -r requirements.txt`.
+  Se você já tem o repositório: `git checkout develop && git pull` e rode de novo o `pip install -r requirements.txt`.
 
 - [ ] **Passo 3: Confirmar que tudo passa antes de mexer em algo.**
 
@@ -114,11 +115,11 @@ curl http://localhost:1234/v1/models
 - [ ] **Passo 6: Criar a sua branch.**
 
 ```bash
-git checkout main && git pull
+git checkout develop && git pull
 git checkout -b feat/agente-texto
 ```
 
-  Todo o trabalho deste plano acontece nessa branch. Não faça commit direto na `main`.
+  Todo o trabalho deste plano acontece nessa branch. Ela sai da `develop`, que é a branch de integração do grupo. Não faça commit direto na `develop` nem na `main`.
 
 ---
 
@@ -1168,7 +1169,7 @@ git commit -m "test(texto): Adiciona teste de integração com o LM Studio e aju
 
 ### Tarefa 6: Card do agente e Pull Request
 
-Objetivo: cumprir a Definition of Done (Manual §10.5) e levar o trabalho para a `main` por revisão.
+Objetivo: cumprir a Definition of Done (Manual §10.5) e levar o trabalho para a `develop` por revisão.
 
 **Arquivos:**
 - Criar: `docs/agents/texto.md`
@@ -1220,7 +1221,7 @@ git commit -m "docs(texto): Adiciona card do Agente de Texto"
 git push -u origin feat/agente-texto
 ```
 
-- [ ] **Passo 4: Abrir o Pull Request.** No GitHub, abra um PR de `feat/agente-texto` para `main`. Na descrição, inclua:
+- [ ] **Passo 4: Abrir o Pull Request.** No GitHub, abra um PR de `feat/agente-texto` para **`develop`** (não para a `main`). Na descrição, inclua:
   - O que o agente faz e o link para o spec.
   - Os números da Tarefa 5 e os testes que você rodou.
   - Se mudou `LOCAL_MODEL` em `src/services/llm.py`, avise, porque isso afeta os outros agentes.

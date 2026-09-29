@@ -52,9 +52,13 @@ frase ─► 1. busca: 10 trechos mais parecidos (similaridade ≥ 0,55), agrupa
 
 ## Como rodar
 
-A partir da raiz do repositório. No PowerShell; no macOS/Linux use `export NOME=valor`.
+Sempre a partir da raiz do repositório, com o ambiente virtual ativado. Os comandos `python` são iguais nos dois sistemas; muda só a ativação do ambiente e a forma de definir variáveis de ambiente.
+
+**Windows (PowerShell)**
 
 ```powershell
+venv\Scripts\Activate.ps1                                # ativa o ambiente virtual
+
 python -m pytest tests                                   # testes rápidos, sem modelos
 
 $env:FACTCHECK_API_KEY = "sua-chave"                     # corpus (retomável)
@@ -64,8 +68,31 @@ python data/corpus/build_index.py --reset
 
 python data/corpus/diagnostico.py --frases "Fachin apontou o dedo para Moraes no STF."
 python data/corpus/experimento_etapa2.py                 # etapa 2 nos 37 pares (NLI real)
-$env:EVIDENCE_INTEGRATION = "1"; python -m pytest tests/integration -v -s
+
+$env:EVIDENCE_INTEGRATION = "1"                          # testes com os modelos reais
+python -m pytest tests/integration -v -s
 ```
+
+**macOS (Terminal, zsh)**
+
+```bash
+source venv/bin/activate                                 # ativa o ambiente virtual
+
+python -m pytest tests                                   # testes rápidos, sem modelos
+
+export FACTCHECK_API_KEY="sua-chave"                     # corpus (retomável)
+python data/corpus/collect_factcheck_api.py
+python data/corpus/fetch_articles.py
+python data/corpus/build_index.py --reset
+
+python data/corpus/diagnostico.py --frases "Fachin apontou o dedo para Moraes no STF."
+python data/corpus/experimento_etapa2.py                 # etapa 2 nos 37 pares (NLI real)
+
+export EVIDENCE_INTEGRATION=1                            # testes com os modelos reais
+python -m pytest tests/integration -v -s
+```
+
+A variável vale só para a janela do terminal em que foi definida. Fora do ambiente virtual, no macOS, use `python3` no lugar de `python`. No Mac com Apple Silicon, o agente usa a GPU (`mps`) automaticamente.
 
 ## Configuração
 

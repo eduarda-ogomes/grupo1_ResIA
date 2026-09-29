@@ -1,5 +1,5 @@
 import json
-from src.state import PipelineState
+from src.state import PipelineState, initial_state
 from src.stubs.ingestor_stub import ingestor_node
 from src.stubs.evidence_stub import evidence_node
 from src.stubs.text_stub import text_node
@@ -11,7 +11,7 @@ def load_fixture(name):
         return json.load(f)
 
 def test_ingestor_contract():
-    state = PipelineState(raw_input="test")
+    state = PipelineState(**initial_state("test"))
     result = ingestor_node(state)
     
     # Valida usando o schema Pydantic
@@ -25,13 +25,13 @@ def test_ingestor_contract():
 
 def test_evidence_contract():
     base_data = load_fixture("01_ingestor_saida.json")
-    state = PipelineState(raw_input="test", **base_data)
+    state = PipelineState(**initial_state("test", **base_data))
     
     result = evidence_node(state)
     assert "evidence" in result
     
     dump = state.model_dump()
-    dump["evidence"] = dump.get("evidence", []) + result["evidence"]
+    dump["evidence"] = (dump["evidence"] or []) + result["evidence"]
     merged = PipelineState(**dump)
     
     assert len(merged.evidence) == 2
@@ -39,7 +39,7 @@ def test_evidence_contract():
 
 def test_text_contract():
     base_data = load_fixture("01_ingestor_saida.json")
-    state = PipelineState(raw_input="test", **base_data)
+    state = PipelineState(**initial_state("test", **base_data))
     
     result = text_node(state)
     assert "text_report" in result
@@ -54,7 +54,7 @@ def test_text_contract():
 
 def test_socratic_contract():
     base_data = load_fixture("01_ingestor_saida.json")
-    state = PipelineState(raw_input="test", **base_data)
+    state = PipelineState(**initial_state("test", **base_data))
     
     result = socratic_node(state)
     assert "socratic_questions" in result

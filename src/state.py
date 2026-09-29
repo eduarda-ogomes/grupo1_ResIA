@@ -3,40 +3,41 @@ from pydantic import BaseModel, Field
 import operator
 
 class Segment(BaseModel):
-    id: str
-    text: str
+    id: str                        # ex.: "s03"
+    text: str                      # uma frase da notícia
 
 class Evidence(BaseModel):
     segment_id: str
     stance: Literal["apoia", "contradiz", "insuficiente"]
-    excerpt: str 
-    source_url: str
-    source_name: str
-    agency_verdict: Optional[str] = None
+    excerpt: str                   # trecho literal da checagem
+    source_url: str                # obrigatório
+    source_name: str               # ex.: Aos Fatos, Lupa
+    agency_verdict: str | None     # veredito da agência, citado com atribuição
 
 class Statement(BaseModel):
     segment_id: str
     kind: Literal["factual", "valor"]
 
 class TextMarker(BaseModel):
-    type: strowner:femathrl0owner:femathrl0owner:femathrl0owner:femathrl0
+    type: Literal["adjetivacao_extrema", "urgencia_artificial",
+                  "apelo_autoridade", "falsa_dicotomia", "generalizacao"]
     segment_id: str
     excerpt: str
     explanation: str
 
 class TextReport(BaseModel):
-    statements: List[Statement]
-    markers: List[TextMarker]
+    statements: list[Statement]
+    markers: list[TextMarker]
 
 class PipelineState(BaseModel):
     raw_input: str
-    clean_text: Optional[str] = None
-    title: Optional[str] = None
-    published_at: Optional[str] = None
-    truncated: bool = False
-    segments: List[Segment] = Field(default_factory=list)
-    evidence: Annotated[List[Evidence], operator.add] = Field(default_factory=list)
-    text_report: Optional[TextReport] = None
-    socratic_questions: List[str] = Field(default_factory=list)
-    dossier: Optional[str] = None
-    warnings: List[str] = Field(default_factory=list)
+    clean_text: str
+    title: str | None
+    published_at: str | None
+    truncated: bool
+    segments: list[Segment]
+    evidence: list[Evidence] | None
+    text_report: TextReport | None
+    socratic_questions: list[str] | None
+    dossier: str | None
+    warnings: Annotated[list[str], operator.add]

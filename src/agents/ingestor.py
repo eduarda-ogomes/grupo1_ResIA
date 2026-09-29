@@ -68,7 +68,9 @@ def _extract_with_bs4(html: str) -> tuple[str, str | None]:
 
 def extract_text(html: str) -> tuple[str, str | None, str | None]:
     """Extrai (texto, título, data) do HTML: trafilatura primeiro, BeautifulSoup como fallback."""
-    extracted = trafilatura.extract(html, output_format="json")
+    extracted = trafilatura.extract(
+        html, output_format="json", with_metadata=True, include_tables=False
+    )
     if extracted:
         data = json.loads(extracted)
         text = data.get("text") or ""

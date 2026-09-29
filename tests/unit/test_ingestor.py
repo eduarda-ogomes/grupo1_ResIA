@@ -13,7 +13,9 @@ from src.state import PipelineState
 URL = "https://exemplo-jornal.com.br/materia"
 
 ARTIGO_HTML = """
-<html><head><title>Mamão cura dengue?</title></head>
+<html><head><title>Mamão cura dengue?</title>
+<meta property="article:published_time" content="2026-03-10">
+</head>
 <body>
 <nav>Menu Assine Já</nav>
 <article>
@@ -91,6 +93,26 @@ def test_extract_text_usa_trafilatura_no_html_bom():
     assert "suco de folha de mamão" in text
     assert "Menu Assine" not in text
     assert "Todos os direitos" not in text
+
+
+def test_extract_text_trafilatura_devolve_titulo_e_data():
+    text, title, date = extract_text(ARTIGO_HTML)
+
+    assert title == "Mamão cura dengue?"
+    assert date == "2026-03-10"
+
+
+def test_extract_text_nao_emite_sintaxe_de_tabela():
+    html = ARTIGO_HTML.replace(
+        "</article>",
+        "<table>"
+        + "".join(f"<tr><th>Campo{i}</th><td>infecciologia{i}</td></tr>" for i in range(8))
+        + "</table></article>",
+    )
+
+    text, title, date = extract_text(html)
+
+    assert "|" not in text
 
 
 def test_extract_text_fallback_bs4_quando_trafilatura_falha(monkeypatch):

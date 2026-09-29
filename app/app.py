@@ -1,3 +1,9 @@
+import sys
+from pathlib import Path
+
+# `streamlit run app/app.py` só coloca app/ no sys.path; adiciona a raiz para importar `src`
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
 import streamlit as st
 from src.graph import sistema_multiagente
 from src.state import PipelineState

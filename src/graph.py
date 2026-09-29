@@ -6,6 +6,10 @@ from src.stubs.text_stub import text_node as texto_node
 from src.stubs.socratic_stub import socratic_node as socratico_node
 from src.stubs.synthesizer_stub import synthesizer_node as sintetizador_node
 
+# ATENÇÃO: o PipelineState é estrito (sem valores padrão). Quem chamar o grafo
+# deve passar o estado completo criado por `initial_state(...)` (src/state.py):
+#     sistema_multiagente.invoke(initial_state("texto ou URL"))
+# Passar só {"raw_input": ...} levanta ValidationError. Ver o aviso no topo de src/state.py.
 builder = StateGraph(PipelineState)
 
 builder.add_node("ingestor", ingestor_node)

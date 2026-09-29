@@ -220,7 +220,149 @@ Cada agente é um módulo Python isolado, testável sem o grafo, que recebe uma 
   - **Filtro de veredito (guardrail):** trava que impede o texto final de usar termos como "falso", "verdadeiro" ou "fake news" (Seção 3.5).
   - **Checagem de citações:** toda URL no texto final precisa estar entre as evidências recebidas.
   - **Formatação de andaime:** apresenta os dados de forma neutra, com linguagem de evidência ("duas checagens contradizem esta frase"), para que o usuário tome a decisão final.
-- **Sobre o Qwen 32B:** não cabe com folga em um MacBook Air M4 de 24GB. Um 32B quantizado ocupa \~19GB só em pesos, acima do que a GPU enxerga por padrão, e gera 4–6 tokens/s. Use API ou 14B local.
+- **Sobre o Qwen 32B:** não cabe com folga em um MacBook Air M4 de 24GB. Um 32B quantizado ocupa \~19GB só em pesos, acima do que a GPU enxerga por padrão, e gera 4–6 tokens/s. Use a API ou, como fallback, o próprio 8B local (Seção 5.2).
+
+### 4.6 Exemplo de ponta a ponta com um caso real
+
+**Caso:** vídeos e correntes que circularam no início de 2024 afirmando que o chá de folha de mamão cura a dengue e aumenta as plaquetas. Foi checado pela [Agência Lupa](https://www.agencialupa.org/jornalismo/2024/02/06/e-falso-que-cha-de-folha-de-mamao-cura-a-dengue-em-tres-dias/) em 06/02/2024 e pelo [Aos Fatos](https://www.aosfatos.org/noticias/falso-cha-folha-mamao-dengue/) em 16/02/2024.
+
+O conteúdo original era vídeo. O texto de entrada abaixo é uma **reconstrução** das alegações descritas nas checagens, escrita para o exemplo, e não uma transcrição do post. Os campos `excerpt` são citações literais e curtas das checagens. Os JSON completos estão no pacote de fixtures, em `tests/fixtures/caso_mamao_dengue/`; aqui aparecem resumidos.
+
+**Entrada do grafo**
+
+```plain
+URGENTE: os médicos estão escondendo a cura natural da dengue! O chá da folha de mamão cura a dengue em apenas três dias. Ele estimula a medula óssea a produzir mais plaquetas e evita a dengue hemorrágica. Um especialista em plantas medicinais garante que a folha de mamão salva vidas. Não existe nada melhor do que a natureza para cuidar da nossa saúde. Compartilhe com todos antes que apaguem este vídeo!
+```
+
+**1. Ingestor.** Entrada: `raw_input`. Saída:
+
+```json
+{
+  "title": null,
+  "published_at": null,
+  "truncated": false,
+  "segments": [
+    {"id": "s01", "text": "URGENTE: os médicos estão escondendo a cura natural da dengue!"},
+    {"id": "s02", "text": "O chá da folha de mamão cura a dengue em apenas três dias."},
+    {"id": "s03", "text": "Ele estimula a medula óssea a produzir mais plaquetas e evita a dengue hemorrágica."},
+    {"id": "s04", "text": "Um especialista em plantas medicinais garante que a folha de mamão salva vidas."},
+    {"id": "s05", "text": "Não existe nada melhor do que a natureza para cuidar da nossa saúde."},
+    {"id": "s06", "text": "Compartilhe com todos antes que apaguem este vídeo!"}
+  ]
+}
+```
+
+**2. Agente de Evidências.** Entrada: `segments`. Saída (s01 e s04 não tiveram checagem acima do limiar, então não geram objeto):
+
+```json
+{
+  "evidence": [
+    {
+      "segment_id": "s02",
+      "stance": "contradiz",
+      "excerpt": "Não existe um tratamento específico para a dengue e as formas graves da doença.",
+      "source_url": "https://www.agencialupa.org/jornalismo/2024/02/06/e-falso-que-cha-de-folha-de-mamao-cura-a-dengue-em-tres-dias/",
+      "source_name": "Agência Lupa",
+      "agency_verdict": "Falso"
+    },
+    {
+      "segment_id": "s03",
+      "stance": "contradiz",
+      "excerpt": "não comprovam que o tratamento seja eficaz em humanos",
+      "source_url": "https://www.aosfatos.org/noticias/falso-cha-folha-mamao-dengue/",
+      "source_name": "Aos Fatos",
+      "agency_verdict": "Falso"
+    }
+  ]
+}
+```
+
+**3. Agente de Texto.** Entrada: `segments`. Saída (resumida; o arquivo completo tem 6 marcadores):
+
+```json
+{
+  "statements": [
+    {"segment_id": "s01", "kind": "factual"},
+    {"segment_id": "s02", "kind": "factual"},
+    {"segment_id": "s03", "kind": "factual"},
+    {"segment_id": "s04", "kind": "factual"},
+    {"segment_id": "s05", "kind": "valor"},
+    {"segment_id": "s06", "kind": "valor"}
+  ],
+  "markers": [
+    {"type": "urgencia_artificial", "segment_id": "s01", "excerpt": "URGENTE",
+     "explanation": "Marcador de urgência em caixa alta, sem relação com um prazo real."},
+    {"type": "apelo_autoridade", "segment_id": "s04", "excerpt": "Um especialista em plantas medicinais garante",
+     "explanation": "Cita uma autoridade sem nome, formação ou fonte verificável."},
+    {"type": "falsa_dicotomia", "segment_id": "s05", "excerpt": "nada melhor do que a natureza",
+     "explanation": "Opõe 'natural' a tratamento médico como se fossem as únicas alternativas."}
+  ]
+}
+```
+
+**4. Agente Socrático.** Entrada: `clean_text`. Saída:
+
+```json
+{
+  "socratic_questions": [
+    "Quais estudos o texto apresenta para sustentar que o chá cura a dengue em três dias, e onde eles foram publicados?",
+    "Quem é o especialista citado, e como você verificaria a formação e o histórico dele?",
+    "O que dizem as orientações oficiais de saúde sobre o tratamento da dengue, e elas coincidem com o que o texto afirma?"
+  ]
+}
+```
+
+**5. Sintetizador.** Entrada: o State completo com as saídas dos três ramos. Antes da chamada ao LLM, o pré-processamento determinístico registra que s01 e s04 são factuais sem evidência e que nenhuma stance precisou ser descartada. Saída (trecho do dossiê):
+
+```text
+## O que as checagens dizem
+- "O chá da folha de mamão cura a dengue em apenas três dias." — uma checagem contradiz esta frase.
+  A Agência Lupa registra: "Não existe um tratamento específico para a dengue e as formas graves da doença."
+- "Ele estimula a medula óssea a produzir mais plaquetas..." — uma checagem contradiz esta frase.
+  Segundo o Aos Fatos, os estudos "não comprovam que o tratamento seja eficaz em humanos".
+- Nenhuma checagem encontrada para "os médicos estão escondendo a cura" e para o especialista citado.
+  Isso não confirma nem descarta essas frases.
+
+## Como o texto argumenta
+- Urgência: "URGENTE" e "antes que apaguem este vídeo" pedem ação imediata.
+- Autoridade sem identificação: o especialista citado não tem nome nem fonte.
+- Juízo de valor: "não existe nada melhor do que a natureza" é uma opinião e não foi checada.
+
+## Perguntas para pensar antes de decidir
+1. O que dizem as orientações oficiais de saúde sobre o tratamento da dengue?
+...
+
+## Limites desta análise
+- O texto não tem link de origem nem data de publicação.
+```
+
+Guardrails: o filtro de veredito não encontrou termos proibidos, e as duas URLs do dossiê estão na lista de evidências. Os dois passam.
+
+### 4.7 Casos de borda e falha
+
+Cada linha tem um arquivo correspondente em `tests/fixtures/bordas/`.
+
+| Agente | Situação | Saída esperada |
+| --- | --- | --- |
+| Ingestor | URL atrás de paywall | `segments` vazio e aviso; o dossiê informa que a página não pôde ser analisada |
+| Ingestor | Texto acima do limite | `truncated: true`; o dossiê informa que só o início foi analisado |
+| Evidências | Nenhuma checagem acima do limiar | Nenhum objeto `Evidence` para a frase |
+| Evidências | Checagem recuperada, NLI neutro | `Evidence` com stance `insuficiente` e URL |
+| Evidências | Checagem sobre fato parecido ("cura a chikungunya" recuperando checagem de dengue) | Não emitir `contradiz`; no máximo `insuficiente`. Caso obrigatório no gold set |
+| Texto | JSON inválido após 1 retry | `text_report: null` e aviso; stance continua exibida |
+| Socrático | Pergunta indutiva ("Você não acha suspeito que…") | Rejeitada; conta como falha na rubrica |
+| Sintetizador | Rascunho com "falsa" | Filtro reprova; regenera uma vez |
+| Sintetizador | Paráfrase ("não procede") | Filtro aprova: falso negativo conhecido. Caso obrigatório no gold set |
+| Sintetizador | URL inexistente nas evidências | Checagem de citações reprova; regenera ou remove a frase |
+| Sistema | Timeout no Socrático | `socratic_questions: null`; o dossiê segue sem perguntas e avisa |
+
+### 4.8 Decisões de contrato que os exemplos revelaram
+
+Montar os exemplos expôs três pontos que o schema ainda não resolve. O grupo precisa decidir antes de fechar o `state.py`:
+
+1. **"Insuficiente" tem dois sentidos.** Ausência de checagem (nenhum objeto `Evidence`) é diferente de checagem encontrada mas neutra (`Evidence` com stance `insuficiente` e URL). Os exemplos seguem essa distinção; ela precisa estar documentada no `state.py`.
+2. **O filtro de veredito conflita com o veredito da agência.** O texto do Sintetizador não pode conter "falso", mas o veredito da Lupa e do Aos Fatos é exatamente "Falso". Recomendação: a interface exibe `agency_verdict` como um selo com atribuição ("Agência Lupa: Falso"), fora do texto gerado pelo LLM, e o filtro se aplica só ao texto livre.
+3. **Frases imperativas não são fato nem valor.** "Compartilhe com todos…" foi classificada como `valor` por falta de opção melhor. Alternativa: adicionar `outro` em `Statement.kind`.
 
 ## 5. Infraestrutura e stack
 

@@ -1,0 +1,124 @@
+{
+  "raw_input": "URGENTE: os médicos estão escondendo a cura natural da dengue! O chá da folha de mamão cura a dengue em apenas três dias. Ele estimula a medula óssea a produzir mais plaquetas e evita a dengue hemorrágica. Um especialista em plantas medicinais garante que a folha de mamão salva vidas. Não existe nada melhor do que a natureza para cuidar da nossa saúde. Compartilhe com todos antes que apaguem este vídeo!",
+  "clean_text": "URGENTE: os médicos estão escondendo a cura natural da dengue! O chá da folha de mamão cura a dengue em apenas três dias. Ele estimula a medula óssea a produzir mais plaquetas e evita a dengue hemorrágica. Um especialista em plantas medicinais garante que a folha de mamão salva vidas. Não existe nada melhor do que a natureza para cuidar da nossa saúde. Compartilhe com todos antes que apaguem este vídeo!",
+  "title": null,
+  "published_at": null,
+  "truncated": false,
+  "segments": [
+    {
+      "id": "s01",
+      "text": "URGENTE: os médicos estão escondendo a cura natural da dengue!"
+    },
+    {
+      "id": "s02",
+      "text": "O chá da folha de mamão cura a dengue em apenas três dias."
+    },
+    {
+      "id": "s03",
+      "text": "Ele estimula a medula óssea a produzir mais plaquetas e evita a dengue hemorrágica."
+    },
+    {
+      "id": "s04",
+      "text": "Um especialista em plantas medicinais garante que a folha de mamão salva vidas."
+    },
+    {
+      "id": "s05",
+      "text": "Não existe nada melhor do que a natureza para cuidar da nossa saúde."
+    },
+    {
+      "id": "s06",
+      "text": "Compartilhe com todos antes que apaguem este vídeo!"
+    }
+  ],
+  "evidence": [
+    {
+      "segment_id": "s02",
+      "stance": "contradiz",
+      "excerpt": "Não existe um tratamento específico para a dengue e as formas graves da doença.",
+      "source_url": "https://www.agencialupa.org/jornalismo/2024/02/06/e-falso-que-cha-de-folha-de-mamao-cura-a-dengue-em-tres-dias/",
+      "source_name": "Agência Lupa",
+      "agency_verdict": "Falso"
+    },
+    {
+      "segment_id": "s03",
+      "stance": "contradiz",
+      "excerpt": "não comprovam que o tratamento seja eficaz em humanos",
+      "source_url": "https://www.aosfatos.org/noticias/falso-cha-folha-mamao-dengue/",
+      "source_name": "Aos Fatos",
+      "agency_verdict": "Falso"
+    }
+  ],
+  "text_report": {
+    "statements": [
+      {
+        "segment_id": "s01",
+        "kind": "factual"
+      },
+      {
+        "segment_id": "s02",
+        "kind": "factual"
+      },
+      {
+        "segment_id": "s03",
+        "kind": "factual"
+      },
+      {
+        "segment_id": "s04",
+        "kind": "factual"
+      },
+      {
+        "segment_id": "s05",
+        "kind": "valor"
+      },
+      {
+        "segment_id": "s06",
+        "kind": "valor"
+      }
+    ],
+    "markers": [
+      {
+        "type": "urgencia_artificial",
+        "segment_id": "s01",
+        "excerpt": "URGENTE",
+        "explanation": "Marcador de urgência em caixa alta, sem relação com um prazo real."
+      },
+      {
+        "type": "generalizacao",
+        "segment_id": "s01",
+        "excerpt": "os médicos estão escondendo",
+        "explanation": "Atribui uma intenção a toda uma categoria profissional, sem apontar quem nem como."
+      },
+      {
+        "type": "adjetivacao_extrema",
+        "segment_id": "s02",
+        "excerpt": "em apenas três dias",
+        "explanation": "Promessa de resultado rápido e garantido, típica de apelo emocional."
+      },
+      {
+        "type": "apelo_autoridade",
+        "segment_id": "s04",
+        "excerpt": "Um especialista em plantas medicinais garante",
+        "explanation": "Cita uma autoridade sem nome, formação ou fonte verificável."
+      },
+      {
+        "type": "falsa_dicotomia",
+        "segment_id": "s05",
+        "excerpt": "nada melhor do que a natureza",
+        "explanation": "Opõe 'natural' a tratamento médico como se fossem as únicas alternativas."
+      },
+      {
+        "type": "urgencia_artificial",
+        "segment_id": "s06",
+        "excerpt": "antes que apaguem este vídeo",
+        "explanation": "Sugere censura iminente para estimular compartilhamento imediato."
+      }
+    ]
+  },
+  "socratic_questions": [
+    "Quais estudos o texto apresenta para sustentar que o chá cura a dengue em três dias, e onde eles foram publicados?",
+    "Quem é o especialista citado, e como você verificaria a formação e o histórico dele?",
+    "O que dizem as orientações oficiais de saúde sobre o tratamento da dengue, e elas coincidem com o que o texto afirma?"
+  ],
+  "dossier": null,
+  "warnings": []
+}

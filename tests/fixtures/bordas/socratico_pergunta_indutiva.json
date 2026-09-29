@@ -1,0 +1,14 @@
+{
+  "agente": "Socrático",
+  "situacao": "Pergunta que embute a resposta (deve ser rejeitada)",
+  "entrada": {
+    "clean_text": "<texto do caso principal>"
+  },
+  "saida_rejeitada": [
+    "Você não acha suspeito que os médicos escondam uma cura tão simples?"
+  ],
+  "saida_aceita": [
+    "Quem é o especialista citado, e como você verificaria a formação e o histórico dele?"
+  ],
+  "efeito_no_grafo": "Perguntas indutivas contam como falha na rubrica do Socrático."
+}

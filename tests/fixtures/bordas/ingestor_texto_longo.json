@@ -1,0 +1,15 @@
+{
+  "agente": "Ingestor",
+  "situacao": "Texto acima do limite de tokens",
+  "entrada": {
+    "raw_input": "<artigo com ~15.000 palavras>"
+  },
+  "saida_esperada": {
+    "truncated": true,
+    "segments": "<apenas as frases até o limite>",
+    "warnings": [
+      "ingestor: texto truncado no limite de tokens"
+    ]
+  },
+  "efeito_no_grafo": "O dossiê informa que só a parte inicial do texto foi analisada."
+}

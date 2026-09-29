@@ -1,0 +1,17 @@
+{
+  "agente": "Evidências",
+  "situacao": "Nenhuma checagem acima do limiar de similaridade",
+  "entrada": {
+    "segments": [
+      {
+        "id": "s01",
+        "text": "URGENTE: os médicos estão escondendo a cura natural da dengue!"
+      }
+    ]
+  },
+  "saida_esperada": {
+    "evidence": []
+  },
+  "efeito_no_grafo": "Nenhum objeto Evidence é emitido. O Sintetizador lista a frase como 'sem checagem encontrada'.",
+  "decisao_de_contrato": "Ausência de checagem = nenhum objeto Evidence (ver Manual §4.8)."
+}

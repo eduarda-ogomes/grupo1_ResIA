@@ -1,0 +1,17 @@
+{
+  "agente": "Evidências",
+  "situacao": "Checagem sobre fato parecido, mas diferente (risco principal)",
+  "entrada": {
+    "segments": [
+      {
+        "id": "s01",
+        "text": "O chá da folha de mamão cura a chikungunya em três dias."
+      }
+    ]
+  },
+  "saida_esperada": {
+    "evidence": [],
+    "observacao": "A checagem recuperada é sobre dengue, não chikungunya. O esperado é não emitir 'contradiz'; no máximo 'insuficiente'."
+  },
+  "efeito_no_grafo": "Caso obrigatório no gold set para medir o erro mais perigoso do sistema."
+}

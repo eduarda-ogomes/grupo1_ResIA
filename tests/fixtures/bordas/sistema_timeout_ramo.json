@@ -1,0 +1,11 @@
+{
+  "agente": "Sistema",
+  "situacao": "Agente Socrático estoura o timeout",
+  "saida_esperada": {
+    "socratic_questions": null,
+    "warnings": [
+      "socratico: timeout"
+    ]
+  },
+  "efeito_no_grafo": "O Sintetizador segue com os outros dois ramos e o dossiê informa que as perguntas não puderam ser geradas."
+}

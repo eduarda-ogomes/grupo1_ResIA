@@ -27,3 +27,8 @@ def test_grafo_roda_ponta_a_ponta_com_texto_livre():
     assert out["segments"]
     assert out["dossier"]
     assert out["warnings"] == []
+
+
+def test_initial_state_cobre_exatamente_os_campos_do_schema():
+    # Falha se alguém mudar o PipelineState sem atualizar initial_state (ver aviso em src/state.py)
+    assert set(initial_state("x")) == set(PipelineState.model_fields)

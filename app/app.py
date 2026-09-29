@@ -1,5 +1,6 @@
 import streamlit as st
 from src.graph import sistema_multiagente
+from src.state import PipelineState
 
 st.set_page_config(page_title="Dossiê Multiagente", layout="wide")
 
@@ -41,14 +42,28 @@ if st.button("Analisar", type="primary"):
                 st.info("Dica: Verifique se o Ollama está rodando e se o modelo 'llama3.2' está instalado.")
                 st.stop()
 
+        # Os eventos do stream trazem dicts crus; valida no schema para exibir objetos tipados
+        validated = PipelineState.model_validate(final_state)
+        final_state = {campo: getattr(validated, campo) for campo in PipelineState.model_fields}
+
         if final_state:
-            title = final_state.get('title', 'Sem Título')
+            title = final_state.get('title') or 'Sem título'
             published_at = final_state.get('published_at')
             date_str = f" - Publicado em: {published_at}" if published_at else ""
-            
+
             st.header(f"{title}")
             st.markdown(f"**Fonte/Ingestão**: {date_str}")
-            
+
+            for aviso in final_state.get('warnings', []):
+                st.warning(aviso, icon=":material/warning:")
+
+            segments = final_state.get('segments', [])
+            if segments:
+                with st.expander(f"Frases segmentadas pelo Ingestor ({len(segments)})"):
+                    st.table({"id": [s.id for s in segments], "frase": [s.text for s in segments]})
+            else:
+                st.error("O Ingestor não extraiu nenhum texto. Cole o texto da matéria manualmente.", icon=":material/error:")
+
             col1, col2 = st.columns(2)
             
             with col1:

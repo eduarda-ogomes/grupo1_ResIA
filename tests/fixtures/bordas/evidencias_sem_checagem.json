@@ -1,11 +1,19 @@
 {
-  "_caso": "Nenhuma checagem acima do limiar -> nenhum objeto Evidence para a frase (Seção 4.7)",
-  "segments": [
-    {
-      "id": "s01",
-      "text": "A prefeitura inaugurou três novas creches no bairro na semana passada."
-    }
-  ],
+  "agente": "Evidências",
+  "situacao": "Nenhuma checagem acima do limiar de similaridade",
+  "entrada": {
+    "segments": [
+      {
+        "id": "s01",
+        "text": "URGENTE: os médicos estão escondendo a cura natural da dengue!"
+      }
+    ]
+  },
+  "saida_esperada": {
+    "evidence": []
+  },
+  "efeito_no_grafo": "Nenhum objeto Evidence é emitido. O Sintetizador lista a frase como 'sem checagem encontrada'.",
+  "decisao_de_contrato": "Ausência de checagem = nenhum objeto Evidence (ver Manual §4.8).",
   "hits": {
     "s01": [
       {
@@ -21,7 +29,5 @@
       }
     ]
   },
-  "esperado": {
-    "evidence": []
-  }
+  "_hits": "Resultados de busca simulados para o teste unitário do agente (tests/unit/test_evidence_agente.py); dados sintéticos."
 }

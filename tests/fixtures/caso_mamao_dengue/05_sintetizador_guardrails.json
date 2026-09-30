@@ -1,0 +1,25 @@
+{
+  "filtro_veredito": {
+    "termos_encontrados": [],
+    "resultado": "aprovado"
+  },
+  "checagem_citacoes": {
+    "urls_no_dossie": [
+      "https://www.agencialupa.org/jornalismo/2024/02/06/e-falso-que-cha-de-folha-de-mamao-cura-a-dengue-em-tres-dias/",
+      "https://www.aosfatos.org/noticias/falso-cha-folha-mamao-dengue/"
+    ],
+    "urls_nas_evidencias": [
+      "https://www.agencialupa.org/jornalismo/2024/02/06/e-falso-que-cha-de-folha-de-mamao-cura-a-dengue-em-tres-dias/",
+      "https://www.aosfatos.org/noticias/falso-cha-folha-mamao-dengue/"
+    ],
+    "resultado": "aprovado"
+  },
+  "pre_processamento": {
+    "stance_descartada_por_ser_valor": [],
+    "frases_factuais_sem_evidencia": [
+      "s01",
+      "s04"
+    ],
+    "evidencias_deduplicadas": 0
+  }
+}

@@ -71,7 +71,7 @@ O manual (Seção 6.1) cita Aos Fatos, Lupa e Comprova.
 | `excerpt` é o título, cortado em até 300 caracteres no fim de uma frase | É a conclusão da agência, literal e disponível para todas as checagens. O código nunca reescreve texto. |
 | Saída em dicts, não em objetos `Evidence` | O Pydantic v2 rejeita instâncias de outra classe com os mesmos campos |
 | Índice ausente = falha (`evidence: None`), e não lista vazia | Sem índice, o sistema não pode afirmar que procurou |
-| Schema local temporário (`evidence_schema.py`) | O `state.py` da `main` ainda não segue a Seção 3.3 e não será alterado nesta branch (risco de conflito) |
+| Stub lê a fixture `02_evidencias_saida.json` e expõe `run` e `evidence_node` | Uma fonte só para a saída da Seção 4.6; os dois nomes atendem o nosso contrato (`run`, Seção 9.4) e o `graph.py` do grupo (`evidence_node`) |
 | Coleta dividida em ~38 buscas por palavra-chave | A API dá erro 503 depois de ~500–600 resultados de uma mesma busca |
 | Dados brutos e índice fora do Git | Seção 5.5 |
 
@@ -86,7 +86,8 @@ O manual (Seção 6.1) cita Aos Fatos, Lupa e Comprova.
 | Medir latência e memória na máquina da demo (orçamento < 2 GB, Seção 5.2) | — |
 | Terminar o download do UOL (`--delay 3`) e reindexar | — |
 | Cobrir frases que desmentem o boato | Resultados do gold set |
-| Avisar o R4 (`app.py` lê as evidências como objetos) e o R5 (erro de sintaxe na linha 11 do `synthesizer.py`) | — |
+| Avisar o R5 (erro de sintaxe na linha 11 do `synthesizer.py`) | — |
+| Plugar o agente real no `graph.py` e simular busca e NLI no teste do grafo inteiro (o CI não tem torch nem chromadb) | R1 (integração) |
 
 ## Histórico
 
@@ -96,3 +97,4 @@ O manual (Seção 6.1) cita Aos Fatos, Lupa e Comprova.
 | 27/09 | Stance pelo veredito + etapa "mesma alegação" (ADR 1). Limiar 0,75 → 0,55. Novas agências (ADR 2). Coleta por palavra-chave. |
 | 28/09 | Termos-chave (o NLI casou dengue × chikungunya com 0,98), depois relaxados para exigir *troca*. Normalização "Foto mostra". Título indexado e usado como excerpt. Até 6 candidatas. |
 | 28/09 | Simplificação. Ficou um único modo: o da Seção 4.2 e a proteção contra o boato citado saíram do código (continuam no histórico do Git, na tag `antes-da-simplificacao`). `src/retrieval/` passou a ter 4 arquivos. No empate UOL/BOL, prevalece o original. |
+| 29/09 | Merge da `develop` (Ingestor e `state.py` da Seção 3.3). O agente passa a usar `Segment`/`Evidence` do `src/state.py` e o `evidence_schema.py` temporário foi apagado. Stub unificado. Casos de borda no formato do grupo, incluindo o fato parecido (dengue × chikungunya). |

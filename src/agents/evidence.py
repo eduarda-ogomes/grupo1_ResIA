@@ -31,14 +31,12 @@ import logging
 import re
 from typing import Any, Iterable
 
-# TEMPORÁRIO: trocar por `from src.state import Evidence, Segment` quando o
-# state.py da Seção 3.3 estiver na main (ver evidence_schema.py).
-from src.agents.evidence_schema import Evidence, Segment
 from src.retrieval import config
 from src.retrieval.etapa2 import (display_verdict, key_terms_present, normalize_claim, normalize_text,
                                   stance_from_verdict)
 from src.retrieval.indice import Hit, get_checagem_texts, get_lead_text, search
 from src.retrieval.nli import classify
+from src.state import Evidence, Segment
 
 logger = logging.getLogger(__name__)
 

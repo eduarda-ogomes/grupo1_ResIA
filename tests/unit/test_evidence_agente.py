@@ -195,13 +195,16 @@ def test_caso_mamao_reproduz_a_saida_da_secao_4_6(monkeypatch):
     assert len(search.calls) == 1 and len(classify.calls) == 1   # um lote para a notícia inteira
 
 
-@pytest.mark.parametrize("fixture", ["evidencias_sem_checagem", "evidencias_veredito_inconclusivo"])
+# Fixtures no formato do grupo (tests/fixtures/README.md) + a chave "hits" com a busca simulada.
+# O NLI simulado diz "entailment" para tudo: no fato parecido, quem barra é a checagem de termos-chave.
+@pytest.mark.parametrize("fixture", ["evidencias_sem_checagem", "evidencias_veredito_inconclusivo",
+                                     "evidencias_fato_parecido"])
 def test_casos_de_borda(monkeypatch, fixture):
     case = load_fixture(f"bordas/{fixture}.json")
-    [segment] = case["segments"]
-    hits = [Hit(h["chunk_id"], h["text"], h["similarity"], h["metadata"]) for h in case["hits"]["s01"]]
+    [segment] = case["entrada"]["segments"]
+    hits = [Hit(h["chunk_id"], h["text"], h["similarity"], h["metadata"]) for h in case["hits"][segment["id"]]]
     output, _ = _run_one(monkeypatch, segment["text"], hits)
-    assert output == case["esperado"]
+    assert output == {"evidence": case["saida_esperada"]["evidence"]}
 
 
 # --- Robustez e contrato ------------------------------------------------------------------

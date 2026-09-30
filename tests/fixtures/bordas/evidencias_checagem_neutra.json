@@ -1,0 +1,26 @@
+{
+  "agente": "Evidências",
+  "situacao": "Checagem recuperada, mas o NLI classifica como neutra",
+  "entrada": {
+    "segments": [
+      {
+        "id": "s04",
+        "text": "Um especialista em plantas medicinais garante que a folha de mamão salva vidas."
+      }
+    ]
+  },
+  "saida_esperada": {
+    "evidence": [
+      {
+        "segment_id": "s04",
+        "stance": "insuficiente",
+        "excerpt": "<trecho literal recuperado da checagem>",
+        "source_url": "<url da checagem recuperada>",
+        "source_name": "<agência>",
+        "agency_verdict": "<veredito>"
+      }
+    ]
+  },
+  "efeito_no_grafo": "O dossiê mostra a checagem como relacionada, mas sem apoiar nem contradizer a frase.",
+  "decisao_de_contrato": "Checagem recuperada com NLI neutro = Evidence com stance 'insuficiente' e URL (ver Manual §4.8)."
+}

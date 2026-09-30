@@ -1,0 +1,18 @@
+{
+  "agente": "Ingestor",
+  "situacao": "URL atrás de paywall; nenhum conteúdo extraído",
+  "entrada": {
+    "raw_input": "https://exemplo-jornal.com.br/materia-fechada"
+  },
+  "saida_esperada": {
+    "clean_text": "",
+    "title": null,
+    "published_at": null,
+    "truncated": false,
+    "segments": [],
+    "warnings": [
+      "ingestor: conteúdo não extraído (paywall ou página vazia)"
+    ]
+  },
+  "efeito_no_grafo": "Os três ramos recebem segments vazio e devolvem None; o Sintetizador informa que não foi possível analisar a página."
+}

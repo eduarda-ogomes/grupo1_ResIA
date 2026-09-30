@@ -1,0 +1,11 @@
+# Dependências mínimas para rodar TODOS os testes no CI (sem torch, chromadb, transformers).
+# Mantenha em sincronia com requirements.txt: se um módulo importado pelos testes mudar, atualize aqui.
+pytest
+pydantic>=2.0
+langgraph>=0.0.20
+langchain-core
+streamlit
+trafilatura
+spacy>=3.8.0
+beautifulsoup4
+requests

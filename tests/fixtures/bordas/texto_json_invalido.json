@@ -1,0 +1,14 @@
+{
+  "agente": "Texto",
+  "situacao": "Modelo devolve JSON inválido duas vezes",
+  "entrada": {
+    "segments": "<segments do caso principal>"
+  },
+  "saida_esperada": {
+    "text_report": null,
+    "warnings": [
+      "texto: saída inválida após 1 retry"
+    ]
+  },
+  "efeito_no_grafo": "O dossiê informa que a estrutura do texto não pôde ser analisada; a stance continua sendo exibida para todas as frases com evidência."
+}

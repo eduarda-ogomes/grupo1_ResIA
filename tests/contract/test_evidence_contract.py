@@ -10,18 +10,9 @@ simulados). Rodar a partir da raiz do repositório:
 import pytest
 
 from src.agents import evidence as agent
-from src.agents.evidence_schema import Evidence
+from src.state import Evidence, PipelineState, initial_state
 from src.stubs import evidence_stub
 from tests.evidence_fakes import EVIDENCE_FIELDS, fachin_fakes, mamao_fakes, patch_agent
-
-
-def _state_evidence_class():
-    """Quando o state.py da Seção 3.3 chegar na main, valida também contra ele."""
-    try:
-        from src.state import Evidence as StateEvidence
-    except Exception:
-        return None
-    return StateEvidence if "segment_id" in StateEvidence.model_fields else None
 
 
 def _agente_fachin(monkeypatch):
@@ -49,16 +40,21 @@ def test_saida_respeita_o_contrato(produce, monkeypatch):
     assert set(output) <= {"evidence", "warnings"}, "o agente só escreve os próprios campos"
     assert isinstance(output["evidence"], list) and output["evidence"]
 
-    state_evidence = _state_evidence_class()
     for item in output["evidence"]:
         assert set(item) == EVIDENCE_FIELDS
         Evidence.model_validate(item)
-        if state_evidence is not None:
-            state_evidence.model_validate(item)
         assert item["stance"] in {"apoia", "contradiz", "insuficiente"}
         assert item["source_url"].startswith(("http://", "https://")), "citação obrigatória"
         assert item["excerpt"].strip()
         assert item["segment_id"] in segment_ids
+
+    # A saída entra no PipelineState estrito (Seção 3.3) sem erro.
+    merged = PipelineState(**initial_state("x", segments=state.segments, **output))
+    assert len(merged.evidence) == len(output["evidence"])
+
+
+def test_stub_expoe_o_nome_usado_pelo_grafo():
+    assert evidence_stub.evidence_node is evidence_stub.run
 
 
 def test_falha_devolve_none_e_aviso(monkeypatch):

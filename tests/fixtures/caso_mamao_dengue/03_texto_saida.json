@@ -1,0 +1,68 @@
+{
+  "text_report": {
+    "statements": [
+      {
+        "segment_id": "s01",
+        "kind": "factual"
+      },
+      {
+        "segment_id": "s02",
+        "kind": "factual"
+      },
+      {
+        "segment_id": "s03",
+        "kind": "factual"
+      },
+      {
+        "segment_id": "s04",
+        "kind": "factual"
+      },
+      {
+        "segment_id": "s05",
+        "kind": "valor"
+      },
+      {
+        "segment_id": "s06",
+        "kind": "valor"
+      }
+    ],
+    "markers": [
+      {
+        "type": "urgencia_artificial",
+        "segment_id": "s01",
+        "excerpt": "URGENTE",
+        "explanation": "Marcador de urgência em caixa alta, sem relação com um prazo real."
+      },
+      {
+        "type": "generalizacao",
+        "segment_id": "s01",
+        "excerpt": "os médicos estão escondendo",
+        "explanation": "Atribui uma intenção a toda uma categoria profissional, sem apontar quem nem como."
+      },
+      {
+        "type": "adjetivacao_extrema",
+        "segment_id": "s02",
+        "excerpt": "em apenas três dias",
+        "explanation": "Promessa de resultado rápido e garantido, típica de apelo emocional."
+      },
+      {
+        "type": "apelo_autoridade",
+        "segment_id": "s04",
+        "excerpt": "Um especialista em plantas medicinais garante",
+        "explanation": "Cita uma autoridade sem nome, formação ou fonte verificável."
+      },
+      {
+        "type": "falsa_dicotomia",
+        "segment_id": "s05",
+        "excerpt": "nada melhor do que a natureza",
+        "explanation": "Opõe 'natural' a tratamento médico como se fossem as únicas alternativas."
+      },
+      {
+        "type": "urgencia_artificial",
+        "segment_id": "s06",
+        "excerpt": "antes que apaguem este vídeo",
+        "explanation": "Sugere censura iminente para estimular compartilhamento imediato."
+      }
+    ]
+  }
+}

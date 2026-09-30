@@ -77,11 +77,16 @@ pip install -r requirements.txt
 3. Inicie o "Local Server" na porta padrão `1234`.
 
 ### 4. Iniciando a Interface
-Com o servidor do LMStudio rodando no fundo, execute o Streamlit no terminal do projeto:
+Com o servidor do LMStudio rodando no fundo, execute o Streamlit **a partir da raiz do repositório** (com o `venv` ativado). Os stubs e o ChromaDB usam caminhos relativos à raiz:
 ```bash
 streamlit run app/app.py
 ```
 Acesse `http://localhost:8501` no seu navegador e comece a analisar!
+
+Para rodar os testes (também da raiz, sem precisar definir `PYTHONPATH`):
+```bash
+pytest
+```
 
 ---
 *Este projeto foi arquitetado focado em escalabilidade, transparência explicável (XAI) e privacidade (inferência 100% local).*

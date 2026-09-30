@@ -1,0 +1,15 @@
+{
+  "agente": "Sintetizador",
+  "situacao": "Rascunho com termo de veredito",
+  "rascunho": "Esta notícia é falsa: o chá não cura a dengue.",
+  "saida_esperada": {
+    "filtro_veredito": {
+      "termos_encontrados": [
+        "falsa"
+      ],
+      "resultado": "reprovado"
+    },
+    "acao": "regenerar 1 vez com instrução reforçada"
+  },
+  "efeito_no_grafo": "Se a regeneração também falhar, o dossiê é entregue sem a seção de síntese livre e com aviso."
+}

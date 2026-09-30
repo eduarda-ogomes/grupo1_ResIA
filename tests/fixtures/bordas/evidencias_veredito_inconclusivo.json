@@ -1,11 +1,28 @@
 {
-  "_caso": "Checagem sobre a mesma alegação, mas com veredito que não é 'falso' nem 'verdadeiro' -> Evidence com stance insuficiente e URL (equivalente, no fluxo atual, ao 'NLI neutro' da Seção 4.7). Dados sintéticos.",
-  "segments": [
-    {
-      "id": "s01",
-      "text": "O governo vai obrigar todas as crianças a tomar a vacina contra a gripe."
-    }
-  ],
+  "agente": "Evidências",
+  "situacao": "Checagem sobre a mesma alegação, com veredito que não é 'falso' nem 'verdadeiro'",
+  "entrada": {
+    "segments": [
+      {
+        "id": "s01",
+        "text": "O governo vai obrigar todas as crianças a tomar a vacina contra a gripe."
+      }
+    ]
+  },
+  "saida_esperada": {
+    "evidence": [
+      {
+        "segment_id": "s01",
+        "stance": "insuficiente",
+        "excerpt": "Vacina contra a gripe é recomendada, mas não obrigatória para crianças",
+        "source_url": "https://exemplo.org/checagem/vacina-gripe-obrigatoria",
+        "source_name": "Agência Exemplo",
+        "agency_verdict": "Enganoso"
+      }
+    ]
+  },
+  "efeito_no_grafo": "O dossiê mostra a checagem como relacionada, mas sem apoiar nem contradizer a frase.",
+  "decisao_de_contrato": "Veredito como 'Enganoso' ou 'Falta contexto' = Evidence com stance 'insuficiente' e URL. No fluxo atual do agente, é o equivalente ao 'NLI neutro' da Seção 4.7 (ver docs/agents/evidencias_decisoes.md, ADR 1).",
   "hits": {
     "s01": [
       {
@@ -22,16 +39,5 @@
       }
     ]
   },
-  "esperado": {
-    "evidence": [
-      {
-        "segment_id": "s01",
-        "stance": "insuficiente",
-        "excerpt": "Vacina contra a gripe é recomendada, mas não obrigatória para crianças",
-        "source_url": "https://exemplo.org/checagem/vacina-gripe-obrigatoria",
-        "source_name": "Agência Exemplo",
-        "agency_verdict": "Enganoso"
-      }
-    ]
-  }
+  "_hits": "Resultados de busca simulados para o teste unitário do agente (tests/unit/test_evidence_agente.py); dados sintéticos."
 }

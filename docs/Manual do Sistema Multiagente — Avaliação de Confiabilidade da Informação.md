@@ -197,6 +197,40 @@ Cada agente é um módulo Python isolado, testável sem o grafo, que recebe uma 
 - **Modelo:** candidatos da família Llama 3.x 8B ou Qwen \~8B; a versão final sai do mini-benchmark da Seção 5.3.
 - **Falhas conhecidas:** ironia e sátira; confundir estilo editorial legítimo com manipulação; JSON inválido em modelos pequenos. Marcadores são apresentados como "padrões para observar", nunca como acusação.
 
+#### 4.3.1 Implementação: decisões e plano
+
+A implementação segue o design em [`docs/superpowers/specs/2026-09-29-agente-texto-design.md`](superpowers/specs/2026-09-29-agente-texto-design.md) e o passo a passo em [`docs/superpowers/plans/2026-09-29-agente-texto.md`](superpowers/plans/2026-09-29-agente-texto.md). O plano traz o código completo, os comandos e o resultado esperado de cada etapa.
+
+**Decisões fechadas**
+
+| Tema | Decisão |
+| --- | --- |
+| Modelo | `qwen2.5-7b` no LM Studio (`localhost:1234`), temperatura 0 |
+| Escopo | Fato/valor + os 5 marcadores do schema |
+| Chamadas | Lotes de 15 frases, com as 2 anteriores como contexto (só leitura) |
+| Saída | JSON Schema do `TextReport` no `response_format`, validado com Pydantic |
+| Retry | 1 por lote, com o erro anexado à nova mensagem |
+| Falha | Tudo ou nada: `text_report = None` + aviso `"texto: saída inválida após 1 retry"`; modelo fora do ar gera `"texto: falha ao chamar o modelo (o LM Studio está rodando?)"`, sem retry |
+| Sem frases | `text_report = None`, sem chamar o modelo (o Ingestor já avisou) |
+| Prompts | `src/prompts/texto_sistema.md` e `src/prompts/texto_exemplos.json`; o caso do mamão não entra como exemplo |
+| Imperativas | Classificadas como `valor` (Seção 4.8, item 3) |
+
+**Validação determinística (sem LLM).** Toda resposta do modelo passa por uma checagem em código antes de ser aceita: remove a cerca ```` ```json ````; valida no schema; descarta classificações de frases fora do lote; exige exatamente uma classificação por frase; descarta marcadores com `excerpt` vazio ou que não seja trecho literal da frase indicada.
+
+**Passo a passo**
+
+| Tarefa | Entrega |
+| --- | --- |
+| 0. Ambientação | Leitura (§1.1, §3.3, §3.5, §4.3, §4.7, §4.8, §7.1, §9.3, §10.5), venv, `pytest` verde, LM Studio com o Qwen 2.5 7B, branch `feat/agente-texto` |
+| 1. Prompts | Prompt de sistema e exemplos few-shot em `src/prompts/` |
+| 2. Lotes e mensagens | `dividir_em_lotes` e `montar_mensagens`, com a notícia delimitada como dado |
+| 3. Núcleo | `chamar_modelo`, `validar_lote`, retry e `texto_node` |
+| 4. Integração | Agente real no `graph.py`; `tests/unit/conftest.py` impede testes unitários de chamarem o LM Studio; `langchain-openai` no CI |
+| 5. Modelo real | `tests/integration/test_texto_lmstudio.py` (fora do CI), comparação com a anotação do caso do mamão e ajuste do prompt |
+| 6. Entrega | Card em `docs/agents/texto.md` e PR para a `develop`, revisado pelo R2 |
+
+**Fora deste plano:** gold set e harness de macro-F1, mini-benchmark de modelos, ironia e sátira, e exibir a classificação fato/valor no Streamlit.
+
 ### 4.4 Agente Socrático
 
 - **Técnica:** LLM local guiado por system prompt restrito, focado em maiêutica.
@@ -224,13 +258,13 @@ Cada agente é um módulo Python isolado, testável sem o grafo, que recebe uma 
 
 ### 4.6 Exemplo de ponta a ponta com um caso real
 
-**Caso:** vídeos e correntes que circularam no início de 2024 afirmando que o chá de folha de mamão cura a dengue e aumenta as plaquetas. Foi checado pela Agência Lupa em 06/02/2024 e pelo Aos Fatos em 16/02/2024.
+**Caso:** vídeos e correntes que circularam no início de 2024 afirmando que o chá de folha de mamão cura a dengue e aumenta as plaquetas. Foi checado pela [Agência Lupa](https://www.agencialupa.org/jornalismo/2024/02/06/e-falso-que-cha-de-folha-de-mamao-cura-a-dengue-em-tres-dias/) em 06/02/2024 e pelo [Aos Fatos](https://www.aosfatos.org/noticias/falso-cha-folha-mamao-dengue/) em 16/02/2024.
 
-O conteúdo original era vídeo. O texto de entrada abaixo é uma reconstrução das alegações descritas nas checagens, escrita para o exemplo, e não uma transcrição do post. Os campos `excerpt` são citações literais e curtas das checagens. Os JSON completos estão no pacote de fixtures, em `tests/fixtures/caso_mamao_dengue/`; aqui aparecem resumidos.
+O conteúdo original era vídeo. O texto de entrada abaixo é uma **reconstrução** das alegações descritas nas checagens, escrita para o exemplo, e não uma transcrição do post. Os campos `excerpt` são citações literais e curtas das checagens. Os JSON completos estão no pacote de fixtures, em `tests/fixtures/caso_mamao_dengue/`; aqui aparecem resumidos.
 
 **Entrada do grafo**
 
-```text
+```plain
 URGENTE: os médicos estão escondendo a cura natural da dengue! O chá da folha de mamão cura a dengue em apenas três dias. Ele estimula a medula óssea a produzir mais plaquetas e evita a dengue hemorrágica. Um especialista em plantas medicinais garante que a folha de mamão salva vidas. Não existe nada melhor do que a natureza para cuidar da nossa saúde. Compartilhe com todos antes que apaguem este vídeo!
 ```
 
@@ -314,7 +348,7 @@ URGENTE: os médicos estão escondendo a cura natural da dengue! O chá da folha
 
 **5. Sintetizador.** Entrada: o State completo com as saídas dos três ramos. Antes da chamada ao LLM, o pré-processamento determinístico registra que s01 e s04 são factuais sem evidência e que nenhuma stance precisou ser descartada. Saída (trecho do dossiê):
 
-```markdown
+```text
 ## O que as checagens dizem
 - "O chá da folha de mamão cura a dengue em apenas três dias." — uma checagem contradiz esta frase.
   A Agência Lupa registra: "Não existe um tratamento específico para a dengue e as formas graves da doença."
@@ -336,7 +370,7 @@ URGENTE: os médicos estão escondendo a cura natural da dengue! O chá da folha
 - O texto não tem link de origem nem data de publicação.
 ```
 
-**Guardrails:** o filtro de veredito não encontrou termos proibidos, e as duas URLs do dossiê estão na lista de evidências. Os dois passam.
+Guardrails: o filtro de veredito não encontrou termos proibidos, e as duas URLs do dossiê estão na lista de evidências. Os dois passam.
 
 ### 4.7 Casos de borda e falha
 
@@ -945,4 +979,4 @@ O maior risco técnico da versão enxuta é o Agente de Evidências citar uma ch
 
 **Documentos do desafio**
 
-- Slides do Desafio 1 (CBL) — cronograma Engage, Investigate, Act, Showcase
+- Slides do Desafio 1 (CBL) — cronograma Engage, Investigate, Act, Showcase

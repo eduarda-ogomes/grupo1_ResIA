@@ -45,8 +45,7 @@ frase ─► 1. busca: 10 trechos mais parecidos (similaridade ≥ 0,55), agrupa
 | `src/retrieval/indice.py` | ChromaDB e embeddings: coleção, busca, trechos de uma checagem |
 | `src/retrieval/nli.py` | Modelo de NLI (mDeBERTa) |
 | `src/retrieval/etapa2.py` | "Mesma alegação": normalização da alegação, termos-chave, veredito → stance |
-| `src/agents/evidence_schema.py` | Cópia temporária de `Segment`/`Evidence` da Seção 3.3 (sai quando o `state.py` novo entrar na `main`) |
-| `src/stubs/evidence_stub.py` | Stub para os outros agentes testarem sem modelos |
+| `src/stubs/evidence_stub.py` | Stub para os outros agentes testarem sem modelos: devolve a fixture `02_evidencias_saida.json` (Seção 4.6) |
 | `data/corpus/` | Coleta (`collect_factcheck_api.py`), download (`fetch_articles.py`), índice (`build_index.py`), diagnóstico e experimento |
 | `tests/` | Unitários (sem modelos), contrato e integração (modelos reais) |
 
@@ -115,6 +114,6 @@ A variável vale só para a janela do terminal em que foi definida. Fora do ambi
 
 ## Integração
 
-- Quando o `state.py` da Seção 3.3 entrar na `main`: trocar o import em `evidence.py` e no stub para `from src.state import Evidence, Segment` e apagar `evidence_schema.py`.
-- O alias `evidencias_node = run` existe só para o `graph.py` atual.
-- **Interface (R4):** as evidências chegam como dicts e podem ser `None`.
+- `Segment` e `Evidence` vêm do `src/state.py` (Seção 3.3, na `develop` desde 29/09). O teste de contrato também valida a saída dentro do `PipelineState` estrito.
+- O `graph.py` ainda usa o **stub** (`evidence_node`). Para plugar o agente real (integração do R1): `from src.agents.evidence import run as evidencias_node`. Nesse momento, o `tests/unit/test_state.py`, que roda o grafo inteiro, vai precisar simular a busca e o NLI, porque o CI não tem torch nem chromadb.
+- Os casos de borda em `tests/fixtures/bordas/evidencias_*.json` seguem o formato do grupo, com uma chave a mais, `hits` (busca simulada para o teste unitário).

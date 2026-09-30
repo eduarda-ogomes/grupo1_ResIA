@@ -1,0 +1,12 @@
+{
+  "agente": "Sintetizador",
+  "situacao": "Veredito implícito por paráfrase (escapa do filtro por lista)",
+  "rascunho": "A alegação de que o chá cura a dengue não procede.",
+  "saida_esperada": {
+    "filtro_veredito": {
+      "termos_encontrados": [],
+      "resultado": "aprovado (falso negativo conhecido)"
+    }
+  },
+  "efeito_no_grafo": "Caso obrigatório no gold set para medir quanto o filtro deixa passar (Manual §3.5)."
+}

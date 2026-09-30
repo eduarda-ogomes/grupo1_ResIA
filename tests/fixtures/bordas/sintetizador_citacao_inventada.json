@@ -1,0 +1,21 @@
+{
+  "agente": "Sintetizador",
+  "situacao": "Dossiê cita URL que não está nas evidências",
+  "urls_no_dossie": [
+    "https://www.agencialupa.org/jornalismo/2024/02/06/e-falso-que-cha-de-folha-de-mamao-cura-a-dengue-em-tres-dias/",
+    "https://site-inventado.com/checagem-dengue"
+  ],
+  "urls_nas_evidencias": [
+    "https://www.agencialupa.org/jornalismo/2024/02/06/e-falso-que-cha-de-folha-de-mamao-cura-a-dengue-em-tres-dias/",
+    "https://www.aosfatos.org/noticias/falso-cha-folha-mamao-dengue/"
+  ],
+  "saida_esperada": {
+    "checagem_citacoes": {
+      "urls_invalidas": [
+        "https://site-inventado.com/checagem-dengue"
+      ],
+      "resultado": "reprovado"
+    },
+    "acao": "regenerar 1 vez; se persistir, remover a frase com a URL inválida"
+  }
+}

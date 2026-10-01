@@ -1,6 +1,6 @@
 # Agente de Evidências — decisões (ADR)
 
-Dono: R2 (Túlio Celeri) · Atualizado em 28/09/2026 · Status: **proposto, a levar ao grupo**
+Dono: R2 (Túlio Celeri) · Atualizado em 01/10/2026 · Status: **proposto, a levar ao grupo**
 Como o agente funciona e como rodar: [`evidencias.md`](evidencias.md)
 
 Registra as decisões que divergem do manual ou que o grupo precisa conhecer, com os números que as motivaram. Divergências do manual estão marcadas com ⚠️.
@@ -60,6 +60,30 @@ O manual (Seção 6.1) cita Aos Fatos, Lupa e Comprova.
 - **A AFP recusa o download** (515 de 515 tentativas) e o UOL/BOL passou a recusar depois de ~1.100 downloads. O bloqueio **não é contornado**: o download desiste do site depois de 20 falhas seguidas. Toda checagem entra no índice pelo título, mesmo sem o texto. Índice atual: 2.903 checagens com texto e 2.923 só com título, num total de 32.094 trechos.
 - O BOL republica o UOL Confere com o mesmo título. As duas contam como uma checagem, e o agente cita o UOL (o original).
 
+## ADR 3 Avaliação: conjunto próprio e definição das métricas
+
+**Contexto.** A Sprint 2 pede "medir Recall@5 e stance" (Seção 10.2), mas o formato do gold set (R3) e o harness comum ainda não existem. A Seção 7.1 nomeia as métricas sem definir os casos de borda que decidem os números: o que conta quando a frase não tem evidência, a mesma alegação checada por várias agências, a frase que desmente o boato.
+
+**Decisão.**
+
+1. **Formato próprio**, só da parte de evidências (`data/gold/evidencias.json`), convertido para o formato do R3 quando ele existir.
+2. **Recall@5 por checagem distinta e sem limiar.** Os 30 trechos mais próximos são agrupados por URL; vale o top 5. Mede a busca, não o agente, como pede a Seção 7.1.
+3. **Várias URLs aceitas por frase**: espelhos (UOL/BOL) e outras agências que checaram a mesma alegação. Com uma URL só, achar a checagem da AFP no lugar da do Aos Fatos contaria como erro.
+4. **Frase sem evidência com URL aceita → stance prevista `insuficiente`** (primeiro sentido da Seção 4.8). Como isso faz uma frase `insuficiente` não encontrada contar como acerto, a **cobertura** é reportada ao lado.
+5. **`desmente` com stance esperada `apoia`.** Mede uma limitação conhecida (ADR 1) e baixa o F1 de propósito.
+6. **Casamento errado** como quarta métrica, com meta 0: é o erro mais grave (Seção 12) e nenhuma métrica da Seção 7.1 o mede diretamente.
+7. **Split por entrada** (metade calibração, metade teste), definido antes de calibrar.
+8. **Gold e resultados versionados no Git**: são pequenos e são material do relatório.
+9. **Macro-F1 calculado à mão**, sem `scikit-learn`, para não criar dependência no CI. Classe sem exemplo anotado sai da média, com aviso.
+
+**Consequências.**
+- ✅ Os números da Sprint 2 saem sem depender do harness; o `avaliar` registra modelos, limiares, índice e commit, então rodadas em máquinas diferentes são comparáveis.
+- ✅ O comando serve também para os itens 4 (calibração) e 5 (BGE-M3 × e5).
+- ❌ Amostra pequena (~20 frases com checagem): cada frase vale ~5 pontos de Recall. Reportar números absolutos e não tirar conclusões de diferenças pequenas.
+- ❌ `apoia` quase não tem exemplos: 36 checagens viram `apoia`, das quais 21 são guias explicativos (o `sortear` as marca). O F1 dessa classe vai ser instável.
+- ⚠️ Quem anota conhece as regras do agente. Paráfrases escritas por outra pessoa reduzem o viés.
+- ⚠️ A primeira versão do conjunto (01/10) foi escrita pelo Claude, a pedido do R2. Ela só vale para o relatório depois da revisão humana, e o relatório precisa declarar essa origem.
+
 ## Decisões menores
 
 | Decisão | Motivo |
@@ -80,8 +104,9 @@ O manual (Seção 6.1) cita Aos Fatos, Lupa e Comprova.
 | Item | Depende de |
 | --- | --- |
 | **Aprovar o ADR 1 e o ADR 2** | Reunião do grupo |
-| Formato do gold set; anotar as 12 entradas | R3 |
-| Script de métricas (Recall@5, macro-F1 de stance, taxa de evidência inventada) | Harness do R3 |
+| Revisar as 36 frases de `data/gold/evidencias.json` (escritas pelo Claude) e confirmar as URLs aceitas com o `diagnostico.py` | R2; revisão do R1 |
+| Rodar `avaliar --salvar` e registrar os números no card | Conjunto anotado |
+| Converter `data/gold/evidencias.json` para o formato do gold set | R3 |
 | Calibrar `SIM_THRESHOLD` e `CLAIM_MATCH_MIN_PROB`; comparar BGE-M3 × e5-large | Gold set |
 | Medir latência e memória na máquina da demo (orçamento < 2 GB, Seção 5.2) | — |
 | Terminar o download do UOL (`--delay 3`) e reindexar | — |
@@ -98,3 +123,6 @@ O manual (Seção 6.1) cita Aos Fatos, Lupa e Comprova.
 | 28/09 | Termos-chave (o NLI casou dengue × chikungunya com 0,98), depois relaxados para exigir *troca*. Normalização "Foto mostra". Título indexado e usado como excerpt. Até 6 candidatas. |
 | 28/09 | Simplificação. Ficou um único modo: o da Seção 4.2 e a proteção contra o boato citado saíram do código (continuam no histórico do Git, na tag `antes-da-simplificacao`). `src/retrieval/` passou a ter 4 arquivos. No empate UOL/BOL, prevalece o original. |
 | 29/09 | Merge da `develop` (Ingestor e `state.py` da Seção 3.3). O agente passa a usar `Segment`/`Evidence` do `src/state.py` e o `evidence_schema.py` temporário foi apagado. Stub unificado. Casos de borda no formato do grupo, incluindo o fato parecido (dengue × chikungunya). |
+| 01/10 | Avaliação (ADR 3): `eval/avaliar_evidencias.py` com `sortear`, `validar` e `avaliar`; formato do conjunto em `data/gold/evidencias.json`; testes sem modelos no CI. |
+| 01/10 | Comandos `esqueleto` (12 entradas com as checagens sorteadas e as frases em branco) e `completar` (monta o texto das entradas). Filtro de checagens utilizáveis: sem guias, alegações negativas, perguntas, links, textos longos e espelhos (BOL e Acervo Estadão). |
+| 01/10 | Conjunto preenchido: 36 frases escritas pelo Claude (rascunho, a revisar), URLs aceitas extras achadas por busca no corpus; `validar` sem erros. |

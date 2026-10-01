@@ -1,0 +1,531 @@
+{
+  "_sobre": "Conjunto de avaliação do Agente de Evidências (parte de evidências do gold set, Manual §6.2). Gerado pelo comando esqueleto: escreva o 'texto' de cada frase seguindo o '_instrucao', rode 'completar' para montar o texto das entradas e 'validar' até sair sem erros. Campos com '_' são só de apoio e o avaliar os ignora.",
+  "versao": 1,
+  "_gerado": {
+    "comando": "esqueleto",
+    "semente": 1,
+    "data": "2026-10-01"
+  },
+  "entradas": [
+    {
+      "id": "ev01",
+      "split": "teste",
+      "anotador": "Tulio",
+      "revisor": null,
+      "texto": "Durante os quatro anos de mandato, Jair Bolsonaro não moveu uma pedra na ponte do Rio Araguaia, que ficou abandonada. O governo apagou a página oficial sobre a Lei das Bets para que ninguém lembre que foi Lula quem assinou a lei. No Arkansas, as urnas eletrônicas trocavam sozinhas os votos dados a Donald Trump por votos em Kamala Harris.",
+      "frases": [
+        {
+          "id": "s01",
+          "texto": "Durante os quatro anos de mandato, Jair Bolsonaro não moveu uma pedra na ponte do Rio Araguaia, que ficou abandonada.",
+          "tipo": "com_checagem",
+          "checagens_aceitas": [
+            "https://www.aosfatos.org/noticias/direita-esquerda-compartilham-mentiras-ponte-entre-para-e-tocantins/",
+            "https://projetocomprova.com.br/publica%C3%A7%C3%B5es/ponte-que-liga-para-e-tocantins-comecou-a-ser-construida-no-governo-bolsonaro/",
+            "https://noticias.uol.com.br/comprova/ultimas-noticias/2025/11/27/ponte-que-liga-para-e-tocantins-comecou-no-governo-bolsonaro.htm"
+          ],
+          "stance_esperada": "contradiz",
+          "alegacao_original": "Bolsonaro deixou obra da ponte sobre o Rio Araguaia parada por quatro anos",
+          "obs": "Comprova e UOL checaram 'Governo Bolsonaro não fez nada na ponte': mesma alegação. AFP e Estadão (enganoso) tratam de outras versões e ficaram de fora.",
+          "_veredito": "Aos Fatos: Falso"
+        },
+        {
+          "id": "s02",
+          "texto": "O governo apagou a página oficial sobre a Lei das Bets para que ninguém lembre que foi Lula quem assinou a lei.",
+          "tipo": "com_checagem",
+          "checagens_aceitas": [
+            "https://www.aosfatos.org/noticias/lei-bets-regra-eleitoral/"
+          ],
+          "stance_esperada": "insuficiente",
+          "alegacao_original": "Governo excluiu o texto para tentar esconder que Lula sancionou a Lei das Bets",
+          "obs": "",
+          "_veredito": "Aos Fatos: Não é bem assim"
+        },
+        {
+          "id": "s03",
+          "texto": "No Arkansas, as urnas eletrônicas trocavam sozinhas os votos dados a Donald Trump por votos em Kamala Harris.",
+          "tipo": "com_checagem",
+          "checagens_aceitas": [
+            "https://checamos.afp.com/doc.afp.com.36LM6ZQ",
+            "https://www.aosfatos.org/noticias/falso-urnas-arkansas-impediram-voto-trump/"
+          ],
+          "stance_esperada": "contradiz",
+          "alegacao_original": "Máquina de votação no Arkansas muda voto de Donald Trump para Kamala Harris",
+          "obs": "Aos Fatos checou 'urnas no Arkansas não permitem voto em Trump': mesmo boato sobre as máquinas do Arkansas.",
+          "_veredito": "AFP Checamos: Falso"
+        }
+      ]
+    },
+    {
+      "id": "ev02",
+      "split": "calibracao",
+      "anotador": "Tulio",
+      "revisor": null,
+      "texto": "Em Roma, a primeira-dama Janja saiu escondida, no meio da noite, do hotel em que Macron se hospedava. Basta um aplicativo e um cabo USB para turbinar a internet de casa sem pagar nada a mais. O Ministério das Comunicações abriu consulta pública sobre o leilão de novas faixas de 5G para cidades do interior.",
+      "frases": [
+        {
+          "id": "s01",
+          "texto": "Em Roma, a primeira-dama Janja saiu escondida, no meio da noite, do hotel em que Macron se hospedava.",
+          "tipo": "com_checagem",
+          "checagens_aceitas": [
+            "https://projetocomprova.com.br/publica%C3%A7%C3%B5es/post-inventa-encontro-noturno-entre-janja-e-macron-em-roma/",
+            "https://noticias.uol.com.br/comprova/ultimas-noticias/2025/05/06/post-inventa-encontro-noturno-entre-janja-e-macron-em-roma.htm",
+            "https://www.bol.uol.com.br/noticias/2025/05/06/post-inventa-encontro-noturno-entre-janja-e-macron-em-roma.ghtm",
+            "https://www.estadao.com.br/estadao-verifica/falso-encontro-noturno-janja-macron-roma/"
+          ],
+          "stance_esperada": "contradiz",
+          "alegacao_original": "Janja foi vista saindo do hotel de Macron em Roma",
+          "obs": "",
+          "_veredito": "Projeto Comprova: Falso"
+        },
+        {
+          "id": "s02",
+          "texto": "Basta um aplicativo e um cabo USB para turbinar a internet de casa sem pagar nada a mais.",
+          "tipo": "com_checagem",
+          "checagens_aceitas": [
+            "https://www.estadao.com.br/estadao-verifica/aumentar-velocidade-internet-gratis-falso/"
+          ],
+          "stance_esperada": "contradiz",
+          "alegacao_original": "Truque com app e cabo USB permite aumentar velocidade da internet de graça",
+          "obs": "",
+          "_veredito": "Estadão: Falso"
+        },
+        {
+          "id": "s03",
+          "texto": "O Ministério das Comunicações abriu consulta pública sobre o leilão de novas faixas de 5G para cidades do interior.",
+          "tipo": "sem_checagem",
+          "checagens_aceitas": [],
+          "stance_esperada": null,
+          "obs": ""
+        }
+      ]
+    },
+    {
+      "id": "ev03",
+      "split": "teste",
+      "anotador": "Tulio",
+      "revisor": null,
+      "texto": "Ao contrário do que circula nas redes, Lula não virou réu em nenhuma corte internacional. O Parlamento português aprovou nesta semana novas regras para a renovação de vistos de trabalho de brasileiros. Militantes de esquerda colocaram veneno na água de André Ventura durante um comício em Portugal.",
+      "frases": [
+        {
+          "id": "s01",
+          "texto": "Ao contrário do que circula nas redes, Lula não virou réu em nenhuma corte internacional.",
+          "tipo": "desmente",
+          "checagens_aceitas": [
+            "https://projetocomprova.com.br/publica%C3%A7%C3%B5es/lula-nao-e-reu-em-tribunal-internacional-post-usa-audio-fora-de-contexto/",
+            "https://noticias.uol.com.br/comprova/ultimas-noticias/2024/10/14/lula-nao-e-reu-em-tribunal-internacional-post-usa-audio-fora-de-contexto.htm",
+            "https://www.estadao.com.br/estadao-verifica/lula-reu-supremo-tribunal-internacional-falso/"
+          ],
+          "stance_esperada": "apoia",
+          "alegacao_original": "Lula será julgado pelo Supremo Tribunal Internacional",
+          "obs": "",
+          "_veredito": "Projeto Comprova: Falso"
+        },
+        {
+          "id": "s02",
+          "texto": "O Parlamento português aprovou nesta semana novas regras para a renovação de vistos de trabalho de brasileiros.",
+          "tipo": "sem_checagem",
+          "checagens_aceitas": [],
+          "stance_esperada": null,
+          "obs": ""
+        },
+        {
+          "id": "s03",
+          "texto": "Militantes de esquerda colocaram veneno na água de André Ventura durante um comício em Portugal.",
+          "tipo": "com_checagem",
+          "checagens_aceitas": [
+            "https://www.estadao.com.br/estadao-verifica/andre-ventura-portugal-passou-mal-beber-agua/"
+          ],
+          "stance_esperada": "insuficiente",
+          "alegacao_original": "Esquerda tentou envenenar André Ventura em comício",
+          "obs": "",
+          "_veredito": "Estadão: Enganoso"
+        }
+      ]
+    },
+    {
+      "id": "ev04",
+      "split": "calibracao",
+      "anotador": "Tulio",
+      "revisor": null,
+      "texto": "A Justiça americana derrubou o tarifaço de Donald Trump, numa derrota dura para o presidente. A Neo Química Arena vai receber em dezembro a final da Copa do Brasil feminina. Moraes respondeu a torcedores com um gesto obsceno quando estava no estádio vendo o Corinthians.",
+      "frases": [
+        {
+          "id": "s01",
+          "texto": "A Justiça americana derrubou o tarifaço de Donald Trump, numa derrota dura para o presidente.",
+          "tipo": "com_checagem",
+          "checagens_aceitas": [
+            "https://projetocomprova.com.br/publica%C3%A7%C3%B5es/tarifas-de-trump-seguem-em-vigor-video-no-x-espalha-informacao-desatualizada/",
+            "https://www.estadao.com.br/estadao-verifica/tarifas-de-trump-seguem-em-vigor-video-no-x-espalha-informacao-desatualizada/"
+          ],
+          "stance_esperada": "insuficiente",
+          "alegacao_original": "Trump sofre derrota e Justiça dos EUA barra tarifaço",
+          "obs": "Estadão republicou a checagem do Comprova (mesmo título). A do Aos Fatos ('Trump cancelou o tarifaço') é outra alegação.",
+          "_veredito": "Projeto Comprova: Enganoso"
+        },
+        {
+          "id": "s02",
+          "texto": "A Neo Química Arena vai receber em dezembro a final da Copa do Brasil feminina.",
+          "tipo": "sem_checagem",
+          "checagens_aceitas": [],
+          "stance_esperada": null,
+          "obs": ""
+        },
+        {
+          "id": "s03",
+          "texto": "Moraes respondeu a torcedores com um gesto obsceno quando estava no estádio vendo o Corinthians.",
+          "tipo": "com_checagem",
+          "checagens_aceitas": [
+            "https://noticias.uol.com.br/confere/ultimas-noticias/2025/08/01/moraes-fez-sim-gesto-obsceno-durante-jogo-do-corinthians.htm"
+          ],
+          "stance_esperada": "apoia",
+          "alegacao_original": "Alexandre de Moraes fez gesto obsceno em jogo do Corinthians",
+          "obs": "As checagens sobre a torcida cantando contra Moraes são outra alegação e ficaram de fora.",
+          "_veredito": "UOL Notícias: Verdadeiro"
+        }
+      ]
+    },
+    {
+      "id": "ev05",
+      "split": "teste",
+      "anotador": "Tulio",
+      "revisor": null,
+      "texto": "O Itamaraty avisou que fecharia a embaixada dos Estados Unidos caso Flávio Dino fosse punido por Washington. O colegiado de ética dos deputados correu para cassar Glauber Braga, mas engavetou até agora o caso de Chiquinho Brazão. A Câmara criou uma frente parlamentar para acompanhar a qualidade da merenda nas escolas públicas.",
+      "frases": [
+        {
+          "id": "s01",
+          "texto": "O Itamaraty avisou que fecharia a embaixada dos Estados Unidos caso Flávio Dino fosse punido por Washington.",
+          "tipo": "fato_parecido",
+          "checagens_aceitas": [],
+          "stance_esperada": null,
+          "alegacao_original": "Governo ameaçou fechar embaixada americana se Moraes for sancionado pelos EUA",
+          "obs": "Troca de nome: a checagem-base fala de Moraes.",
+          "_veredito": "Aos Fatos: Falso",
+          "_base": "https://www.aosfatos.org/noticias/brasil-nao-ameacou-fechar-embaixadas-americanas-caso-moraes-seja-alvo-de-sancoes-pelos-eua/"
+        },
+        {
+          "id": "s02",
+          "texto": "O colegiado de ética dos deputados correu para cassar Glauber Braga, mas engavetou até agora o caso de Chiquinho Brazão.",
+          "tipo": "com_checagem",
+          "checagens_aceitas": [
+            "https://www.aosfatos.org/noticias/falso-conselho-de-etica-nao-recomendou-cassacao-brazao/"
+          ],
+          "stance_esperada": "contradiz",
+          "alegacao_original": "Conselho de Ética da Câmara aprovou cassação de Glauber Braga, mas não votou até hoje processo de Chiquinho Brazão",
+          "obs": "",
+          "_veredito": "Aos Fatos: Falso"
+        },
+        {
+          "id": "s03",
+          "texto": "A Câmara criou uma frente parlamentar para acompanhar a qualidade da merenda nas escolas públicas.",
+          "tipo": "sem_checagem",
+          "checagens_aceitas": [],
+          "stance_esperada": null,
+          "obs": ""
+        }
+      ]
+    },
+    {
+      "id": "ev06",
+      "split": "calibracao",
+      "anotador": "Tulio",
+      "revisor": null,
+      "texto": "Michelle Bolsonaro prometeu elevar o salário mínimo para mais de R$ 3.000 se chegar à Presidência. Bolsonaro foi parar no hospital depois de ser envenenado dentro da cela da Papudinha. A equipe médica informou que o ex-presidente fará sessões diárias de fisioterapia respiratória.",
+      "frases": [
+        {
+          "id": "s01",
+          "texto": "Michelle Bolsonaro prometeu elevar o salário mínimo para mais de R$ 3.000 se chegar à Presidência.",
+          "tipo": "fato_parecido",
+          "checagens_aceitas": [],
+          "stance_esperada": null,
+          "alegacao_original": "Se eleito, Flávio Bolsonaro irá aumentar o salário mínimo para acima de R$ 3.000",
+          "obs": "Troca de nome: a checagem-base fala de Flávio Bolsonaro (mesmo valor).",
+          "_veredito": "Projeto Comprova: Falso",
+          "_base": "https://projetocomprova.com.br/publica%C3%A7%C3%B5es/flavio-bolsonaro-nao-prometeu-salario-minimo-de-r-3-mil-informacao-circula-em-videos-com-ia/"
+        },
+        {
+          "id": "s02",
+          "texto": "Bolsonaro foi parar no hospital depois de ser envenenado dentro da cela da Papudinha.",
+          "tipo": "com_checagem",
+          "checagens_aceitas": [
+            "https://www.estadao.com.br/estadao-verifica/bolsonaro-internado-envenenado-falso/",
+            "https://noticias.uol.com.br/confere/ultimas-noticias/2026/03/20/falso-bolsonaro-internado-envenenamento-chumbo-prisao.ghtm"
+          ],
+          "stance_esperada": "contradiz",
+          "alegacao_original": "Jair Bolsonaro está internado porque foi envenenado por algo em sua cela na Papudinha",
+          "obs": "",
+          "_veredito": "Estadão: Falso"
+        },
+        {
+          "id": "s03",
+          "texto": "A equipe médica informou que o ex-presidente fará sessões diárias de fisioterapia respiratória.",
+          "tipo": "sem_checagem",
+          "checagens_aceitas": [],
+          "stance_esperada": null,
+          "obs": "Mesmo tema da frase s02 (saúde de Bolsonaro), sem checagem no corpus: testa a abstenção."
+        }
+      ]
+    },
+    {
+      "id": "ev07",
+      "split": "teste",
+      "anotador": "Tulio",
+      "revisor": null,
+      "texto": "Silvio Almeida, que deixou o ministério após denúncias de assédio, apareceu em gravação apoiando Guilherme Boulos na disputa de 2026. Um tremor de magnitude 6,7 sacudiu o Peru e foi sentido em diversas cidades do país. O Instituto Geofísico do Peru registrou mais de 40 réplicas nas 24 horas seguintes ao tremor.",
+      "frases": [
+        {
+          "id": "s01",
+          "texto": "Silvio Almeida, que deixou o ministério após denúncias de assédio, apareceu em gravação apoiando Guilherme Boulos na disputa de 2026.",
+          "tipo": "troca_numero",
+          "checagens_aceitas": [],
+          "stance_esperada": null,
+          "alegacao_original": "Ex-ministro Silvio Almeida, acusado de assédio sexual, pede votos para Guilherme Boulos nas eleições municipais de 2024",
+          "obs": "Troca de número: a checagem-base fala das eleições de 2024.",
+          "_veredito": "Estadão: Falso",
+          "_base": "https://www.estadao.com.br/estadao-verifica/silvio-almeida-pede-votos-boulos-prefeitura-de-sp-falso-2022/"
+        },
+        {
+          "id": "s02",
+          "texto": "Um tremor de magnitude 6,7 sacudiu o Peru e foi sentido em diversas cidades do país.",
+          "tipo": "com_checagem",
+          "checagens_aceitas": [
+            "https://www.aosfatos.org/noticias/imagens-terremoto-colombia-peru/",
+            "https://checamos.afp.com/doc.afp.com.C6R99CR",
+            "https://checamos.afp.com/doc.afp.com.C6EP4T3"
+          ],
+          "stance_esperada": "contradiz",
+          "alegacao_original": "Terremoto de magnitude 6,7 atinge o Peru e é sentido em várias regiões",
+          "obs": "AFP: imagens do terremoto da Colômbia atribuídas ao Peru, mesma alegação. A checagem da AFP sobre magnitude 7,2 (vídeo do Nepal) é outra e ficou de fora.",
+          "_veredito": "Aos Fatos: Falso"
+        },
+        {
+          "id": "s03",
+          "texto": "O Instituto Geofísico do Peru registrou mais de 40 réplicas nas 24 horas seguintes ao tremor.",
+          "tipo": "sem_checagem",
+          "checagens_aceitas": [],
+          "stance_esperada": null,
+          "obs": ""
+        }
+      ]
+    },
+    {
+      "id": "ev08",
+      "split": "calibracao",
+      "anotador": "Tulio",
+      "revisor": null,
+      "texto": "O PT marcou para novembro o encontro nacional que vai definir as diretrizes do programa de governo. Lula admitiu que pretende implantar o socialismo no Brasil, e a CNN cortou a transmissão no mesmo instante. Pablo Marçal passou 3 horas e 20 minutos sem receber nenhum voto na apuração, algo matematicamente impossível.",
+      "frases": [
+        {
+          "id": "s01",
+          "texto": "O PT marcou para novembro o encontro nacional que vai definir as diretrizes do programa de governo.",
+          "tipo": "sem_checagem",
+          "checagens_aceitas": [],
+          "stance_esperada": null,
+          "obs": ""
+        },
+        {
+          "id": "s02",
+          "texto": "Lula admitiu que pretende implantar o socialismo no Brasil, e a CNN cortou a transmissão no mesmo instante.",
+          "tipo": "com_checagem",
+          "checagens_aceitas": [
+            "https://noticias.uol.com.br/confere/ultimas-noticias/2025/08/12/lula-nao-disse-que-quer-implementar-o-socialismo-no-brasil.htm",
+            "https://checamos.afp.com/doc.afp.com.68QG2G3"
+          ],
+          "stance_esperada": "insuficiente",
+          "alegacao_original": "Lula assume que quer implantar o socialismo e a CNN corta na hora",
+          "obs": "AFP classificou como Enganoso; a stance é insuficiente nas duas.",
+          "_veredito": "UOL Notícias: Distorcido"
+        },
+        {
+          "id": "s03",
+          "texto": "Pablo Marçal passou 3 horas e 20 minutos sem receber nenhum voto na apuração, algo matematicamente impossível.",
+          "tipo": "troca_numero",
+          "checagens_aceitas": [],
+          "stance_esperada": null,
+          "alegacao_original": "Marçal ficou 1 hora e 9 minutos sem receber um voto! Matematicamente impossível. Este é o Brasil. Um circo. Ou o Brasil destrói essas urnas... ou nosso fim está bem próximo.",
+          "obs": "Troca de número: a checagem-base fala de 1 hora e 9 minutos.",
+          "_veredito": "UOL Notícias: Falso",
+          "_base": "https://noticias.uol.com.br/confere/ultimas-noticias/2024/10/31/falso-pablo-marcal-1h-sem-voto.htm"
+        }
+      ]
+    },
+    {
+      "id": "ev09",
+      "split": "teste",
+      "anotador": "Tulio",
+      "revisor": null,
+      "texto": "A Primeira Turma do STF marcou para a próxima terça o julgamento de um recurso sobre a execução de emendas parlamentares. Em postagem, o deputado Nikolas Ferreira garantiu que a oposição levará a moeda americana a R$ 7. Arrependida, Cármen Lúcia admitiu que agora defende a anistia para os condenados pela trama golpista.",
+      "frases": [
+        {
+          "id": "s01",
+          "texto": "A Primeira Turma do STF marcou para a próxima terça o julgamento de um recurso sobre a execução de emendas parlamentares.",
+          "tipo": "sem_checagem",
+          "checagens_aceitas": [],
+          "stance_esperada": null,
+          "obs": ""
+        },
+        {
+          "id": "s02",
+          "texto": "Em postagem, o deputado Nikolas Ferreira garantiu que a oposição levará a moeda americana a R$ 7.",
+          "tipo": "com_checagem",
+          "checagens_aceitas": [
+            "https://noticias.uol.com.br/confere/ultimas-noticias/2024/12/20/nao-ha-evidencias-de-que-nikolas-ferreira-falou-que-fara-dolar-subir-a-r-7.htm",
+            "https://www.aosfatos.org/noticias/falso-post-nikolas-ferreira-oposicao-dolar/",
+            "https://www.estadao.com.br/estadao-verifica/nikolas-ferreira-dolar-7-reais-governo-lula-falso/"
+          ],
+          "stance_esperada": "contradiz",
+          "alegacao_original": "Nikolas Ferreia disse que \"Faremos o dólar chegar a 7 reais\"",
+          "obs": "",
+          "_veredito": "UOL Notícias: Falso"
+        },
+        {
+          "id": "s03",
+          "texto": "Arrependida, Cármen Lúcia admitiu que agora defende a anistia para os condenados pela trama golpista.",
+          "tipo": "com_checagem",
+          "checagens_aceitas": [
+            "https://noticias.uol.com.br/confere/ultimas-noticias/2025/10/01/falso-carmen-lucia-defende-anistia-trama-golpista.htm",
+            "https://www.estadao.com.br/estadao-verifica/carmen-lucia-apoiar-anistia-que-tramita-no-congresso-falso/"
+          ],
+          "stance_esperada": "contradiz",
+          "alegacao_original": "Cármen Lúcia se diz arrependida ou é fingimento",
+          "obs": "A alegação do UOL no corpus está truncada; a paráfrase segue o título (Cármen Lúcia apoia anistia), que é o que as duas checagens desmentem.",
+          "_veredito": "UOL Notícias: Falso"
+        }
+      ]
+    },
+    {
+      "id": "ev10",
+      "split": "calibracao",
+      "anotador": "Tulio",
+      "revisor": null,
+      "texto": "Quem nasceu entre 1960 e 2006 pode pedir uma indenização do governo como forma de desculpas oficiais. Donald Trump mandou um aviso ao governo brasileiro por causa da extradição de Carla Zambelli. A Polícia Federal prendeu em Goiânia um grupo suspeito de desviar dinheiro de aposentados com empréstimos consignados.",
+      "frases": [
+        {
+          "id": "s01",
+          "texto": "Quem nasceu entre 1960 e 2006 pode pedir uma indenização do governo como forma de desculpas oficiais.",
+          "tipo": "com_checagem",
+          "checagens_aceitas": [
+            "https://www.estadao.com.br/estadao-verifica/restituicao-brasileiros-pedido-desculpas-nascidos-1960-2006-decreto-falso/",
+            "https://www.estadao.com.br/estadao-verifica/cleitinho-golpe-indenizacao-nascidos-entre-1960-e-2006/",
+            "https://www.estadao.com.br/estadao-verifica/indenizacao-pessoas-nascidas-1960-2006-falso/",
+            "https://noticias.uol.com.br/confere/ultimas-noticias/2025/02/20/nao-existe-indenizacao-para-quem-nasceu-entre-1960-e-2006-e-golpe.htm"
+          ],
+          "stance_esperada": "contradiz",
+          "alegacao_original": "pessoas que nasceram entre 1960 e 2006 têm direito a receber um valor do Estado como um pedido de desculpas",
+          "obs": "Quatro checagens do mesmo golpe da indenização a nascidos entre 1960 e 2006.",
+          "_veredito": "Estadão: Falso"
+        },
+        {
+          "id": "s02",
+          "texto": "Donald Trump mandou um aviso ao governo brasileiro por causa da extradição de Carla Zambelli.",
+          "tipo": "com_checagem",
+          "checagens_aceitas": [
+            "https://projetocomprova.com.br/publica%C3%A7%C3%B5es/trump-nao-enviou-recado-ao-brasil-sobre-extradicao-de-zambelli-ao-contrario-do-que-afirma-video-viral/",
+            "https://www.estadao.com.br/estadao-verifica/trump-mandou-recado-carla-zambelli-extradicao-falso/"
+          ],
+          "stance_esperada": "contradiz",
+          "alegacao_original": "Trump manda recado ao Brasil no caso Zambelli",
+          "obs": "",
+          "_veredito": "Projeto Comprova: Falso"
+        },
+        {
+          "id": "s03",
+          "texto": "A Polícia Federal prendeu em Goiânia um grupo suspeito de desviar dinheiro de aposentados com empréstimos consignados.",
+          "tipo": "sem_checagem",
+          "checagens_aceitas": [],
+          "stance_esperada": null,
+          "obs": ""
+        }
+      ]
+    },
+    {
+      "id": "ev11",
+      "split": "teste",
+      "anotador": "Tulio",
+      "revisor": null,
+      "texto": "Aviões de caça F-15 americanos aterrissaram na base da FAB em Natal para participar do exercício CRUZEX 2024. Indígenas protestaram na COP30 exigindo um barco como o de Janja em vez de caminhonetes Hilux. A Prefeitura de Belém anunciou a ampliação das linhas de ônibus que ligam o centro aos bairros da periferia.",
+      "frases": [
+        {
+          "id": "s01",
+          "texto": "Aviões de caça F-15 americanos aterrissaram na base da FAB em Natal para participar do exercício CRUZEX 2024.",
+          "tipo": "com_checagem",
+          "checagens_aceitas": [
+            "https://www.estadao.com.br/estadao-verifica/fab-cacas-f-15-eua-treinamento/",
+            "https://projetocomprova.com.br/publica%C3%A7%C3%B5es/aeronaves-estrangeiras-mostradas-em-video-participavam-de-simulacao-da-fab-entenda/"
+          ],
+          "stance_esperada": "apoia",
+          "alegacao_original": "Caças F-15 dos EUA pousaram na Base Aérea de Natal, no Rio Grande do Norte, como parte do exercício multinacional \"CRUZEX 2024\"",
+          "obs": "O Comprova checou a mesma alegação com o rótulo 'Contextualizando' (stance insuficiente); a esperada segue o Estadão (Verdadeiro).",
+          "_veredito": "Estadão: Verdadeiro"
+        },
+        {
+          "id": "s02",
+          "texto": "Indígenas protestaram na COP30 exigindo um barco como o de Janja em vez de caminhonetes Hilux.",
+          "tipo": "com_checagem",
+          "checagens_aceitas": [
+            "https://noticias.uol.com.br/confere/ultimas-noticias/2025/11/14/e-ia-video-de-indigenas-pedindo-navio-igual-ao-de-janja-na-cop30.htm",
+            "https://noticias.uol.com.br/confere/ultimas-noticias/2025/11/14/e-ia-video-de-indigenas-pedindo-navio-igual-ao-de-janja-na-cop30.amp.htm",
+            "https://www.aosfatos.org/noticias/video-que-mostra-protesto-de-indigenas-pedindo-um-navio-igual-ao-da-janja-foi-gerado-por-ia/",
+            "https://checamos.afp.com/doc.afp.com.83YB3WE"
+          ],
+          "stance_esperada": "contradiz",
+          "alegacao_original": "índios protestam na COP30 dizendo que querem navio igual da Janja e não hilux",
+          "obs": "",
+          "_veredito": "UOL Notícias: Falso"
+        },
+        {
+          "id": "s03",
+          "texto": "A Prefeitura de Belém anunciou a ampliação das linhas de ônibus que ligam o centro aos bairros da periferia.",
+          "tipo": "sem_checagem",
+          "checagens_aceitas": [],
+          "stance_esperada": null,
+          "obs": ""
+        }
+      ]
+    },
+    {
+      "id": "ev12",
+      "split": "calibracao",
+      "anotador": "Tulio",
+      "revisor": null,
+      "texto": "É mentira que Haddad, num encontro do BTG, tenha atribuído ao governo Bolsonaro todos os problemas do país. O Ministério da Fazenda prevê que a receita com impostos federais cresça 3% acima da inflação no próximo ano. Flávio Bolsonaro apareceu usando uma camiseta que insulta os nordestinos.",
+      "frases": [
+        {
+          "id": "s01",
+          "texto": "É mentira que Haddad, num encontro do BTG, tenha atribuído ao governo Bolsonaro todos os problemas do país.",
+          "tipo": "desmente",
+          "checagens_aceitas": [
+            "https://noticias.uol.com.br/comprova/ultimas-noticias/2025/09/29/post-inventa-declaracao-de-haddad-culpando-a-gestao-anterior-por-economia.htm",
+            "https://projetocomprova.com.br/publica%C3%A7%C3%B5es/post-inventa-declaracao-de-haddad-culpando-exclusivamente-a-gestao-anterior-por-problemas-economicos/"
+          ],
+          "stance_esperada": "apoia",
+          "alegacao_original": "Tudo de ruim nos últimos três anos é culpa de Bolsonaro, diz Haddad em evento do BTG",
+          "obs": "",
+          "_veredito": "UOL Notícias: Falso"
+        },
+        {
+          "id": "s02",
+          "texto": "O Ministério da Fazenda prevê que a receita com impostos federais cresça 3% acima da inflação no próximo ano.",
+          "tipo": "sem_checagem",
+          "checagens_aceitas": [],
+          "stance_esperada": null,
+          "obs": ""
+        },
+        {
+          "id": "s03",
+          "texto": "Flávio Bolsonaro apareceu usando uma camiseta que insulta os nordestinos.",
+          "tipo": "com_checagem",
+          "checagens_aceitas": [
+            "https://checamos.afp.com/doc.afp.com.C9AE4G3",
+            "https://noticias.uol.com.br/confere/ultimas-noticias/2026/09/25/falso-imagem-flavio-bolsonaro-camisa-ofensa-nordestinos.ghtm",
+            "https://www.bol.uol.com.br/noticias/2026/09/25/falso-imagem-flavio-bolsonaro-camisa-ofensa-nordestinos.ghtm"
+          ],
+          "stance_esperada": "contradiz",
+          "alegacao_original": "Flávio Bolsonaro veste camisa com ofensas a nordestinos",
+          "obs": "",
+          "_veredito": "AFP Checamos: Falso"
+        }
+      ]
+    }
+  ],
+  "_anotacao": "Frases escritas pelo Claude em 01/10/2026 e revisadas pelo R2. As URLs aceitas extras foram achadas por busca de palavras no corpus, sem o diagnostico.py: confirmar com ele."
+}

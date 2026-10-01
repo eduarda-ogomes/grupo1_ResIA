@@ -4,7 +4,7 @@ from src.agents.ingestor import ingestor_node
 from src.stubs.evidence_stub import evidence_node as evidencias_node
 from src.agents.text_analysis import texto_node
 from src.stubs.socratic_stub import socratic_node as socratico_node
-from src.stubs.synthesizer_stub import synthesizer_node as sintetizador_node
+from src.agents.synthesizer import synthesizer_node as sintetizador_node
 
 # ATENÇÃO: o PipelineState é estrito (sem valores padrão). Quem chamar o grafo
 # deve passar o estado completo criado por `initial_state(...)` (src/state.py):

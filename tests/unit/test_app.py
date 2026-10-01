@@ -32,3 +32,10 @@ def test_app_mostra_aviso_quando_ingestor_nao_extrai(monkeypatch):
     assert not at.exception
     assert any("paywall" in w.value for w in at.warning)
     assert any("não extraiu nenhum texto" in e.value for e in at.error)
+
+def test_app_mostra_aviso_quando_o_agente_de_texto_falha():
+    # o conftest deixa o modelo "desligado"
+    at = analisar("O suco de mamão cura a dengue. Isso não tem comprovação.")
+
+    assert not at.exception
+    assert any("texto: falha ao chamar o modelo" in w.value for w in at.warning)

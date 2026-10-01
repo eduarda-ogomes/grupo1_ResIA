@@ -1,0 +1,21 @@
+[
+  {
+    "entrada": "O prefeito comprou novos carros para a polícia, logo a criminalidade vai cair no próximo mês.",
+    "saida": {
+      "socratic_questions": [
+        "Quais dados históricos ou estudos demonstram que o aumento da frota policial causa diretamente a redução da criminalidade?",
+        "O argumento considera outros fatores socioeconômicos que afetam a segurança pública, ou assume uma relação causal simplificada?"
+      ]
+    }
+  },
+  {
+    "entrada": "URGENTE: os médicos estão escondendo a cura natural da dengue! O chá da folha de mamão cura a dengue em apenas três dias. Ele estimula a medula óssea a produzir mais plaquetas e evita a dengue hemorrágica. Um especialista em plantas medicinais garante que a folha de mamão salva vidas. Não existe nada melhor do que a natureza para cuidar da nossa saúde. Compartilhe com todos antes que apaguem este vídeo!",
+    "saida": {
+      "socratic_questions": [
+        "Quais estudos o texto apresenta para sustentar que o chá cura a dengue em três dias, e onde eles foram publicados?",
+        "Quem é o especialista citado, e como você verificaria a formação e o histórico dele?",
+        "O que dizem as orientações oficiais de saúde sobre o tratamento da dengue, e elas coincidem com o que o texto afirma?"
+      ]
+    }
+  }
+]

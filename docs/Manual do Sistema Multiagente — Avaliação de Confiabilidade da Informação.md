@@ -256,6 +256,90 @@ A implementação segue o design em [`docs/superpowers/specs/2026-09-29-agente-t
   - **Formatação de andaime:** apresenta os dados de forma neutra, com linguagem de evidência ("duas checagens contradizem esta frase"), para que o usuário tome a decisão final.
 - **Sobre o Qwen 32B:** não cabe com folga em um MacBook Air M4 de 24GB. Um 32B quantizado ocupa \~19GB só em pesos, acima do que a GPU enxerga por padrão, e gera 4–6 tokens/s. Use a API ou, como fallback, o próprio 8B local (Seção 5.2).
 
+#### 4.5.1 Implementação: decisões e guia
+
+O design completo, com o porquê de cada decisão, está em [`docs/superpowers/specs/2026-10-01-agente-sintetizador-design.md`](superpowers/specs/2026-10-01-agente-sintetizador-design.md). Esta seção é o guia de implementação: o que usar, por quê, como funciona e em que ordem construir.
+
+**Abordagem: híbrida.** O código escreve tudo o que é fato; o LLM escreve só a análise do argumento. Um modelo de 7B copia mal URLs e citações literais. Com o código montando a seção de checagens a partir de `evidence`, a validade de citação (meta 1,00, Seção 7.1) é garantida por construção, o filtro de veredito só precisa olhar o texto do LLM, e uma falha do LLM não impede a entrega do dossiê.
+
+| Seção do dossiê | Quem escreve |
+| --- | --- |
+| `## O que as checagens dizem` | Código |
+| `## Como o texto argumenta` | `qwen2.5-7b`, com fallback em código |
+| `## Perguntas para pensar antes de decidir` | Código (copia as perguntas do Socrático, na ordem recebida) |
+| `## Limites desta análise` | Código, sempre presente |
+
+**Decisões fechadas**
+
+| Tema | Decisão | Por quê |
+| --- | --- | --- |
+| Modelo | `qwen2.5-7b` no LM Studio (`localhost:1234`), temperatura 0, timeout de 120 s, sem retry do cliente | Mesmo modelo do Agente de Texto: custo zero, sem chave no CI, um único modelo carregado na demo (Seção 5.2). Trocar por API depois muda só `src/services/llm.py` |
+| Contrato | `sintetizador_node(state) -> {"dossier": str}`; nunca devolve `dossier = None` | O dossiê sempre chega ao usuário, mesmo com ramos falhando |
+| Schema | `src/state.py` não muda; o `synthesizer.py` atual (que usa `Dossier` e `state.framing`, inexistentes) é reescrito do zero | O contrato da Seção 3.3 já basta |
+| Saída do LLM | Bullets em Markdown, sem JSON | Não há estrutura a validar; os guardrails olham o texto |
+| Retry | 1, nomeando o problema na nova mensagem ("Seu texto usou o termo 'falso'.") | Seções 3.5 e 4.7 |
+| Veredito da agência | Selo com atribuição montado pelo código (`Agência Lupa: Falso`), fora do texto do LLM | Seção 4.8, item 2 |
+| IDs de frase | Nunca aparecem no dossiê; a frase é citada pelo próprio texto | O usuário não conhece `s01` |
+| Prompt | `src/prompts/sintetizador_sistema.md`, com um exemplo few-shot inventado (o caso do mamão não entra) | Seção 5.5; o mamão é o caso de teste |
+
+**Como funciona**
+
+```text
+State ─► 1. Pré-processamento (código, sem LLM)
+           - deduplica evidências por (segment_id, source_url)
+           - descarta stance de frases marcadas como "valor" pelo Agente de Texto
+           - lista as frases factuais sem nenhuma evidência
+        ─► 2. "Como o texto argumenta" (qwen2.5-7b)
+           - entrada: frases com rótulo fato/valor em <frases> e marcadores em <marcadores>, como dado
+           - o LLM descreve os marcadores que já existem, em 2 a 6 bullets; não procura padrões novos
+           - guardrails sobre esse texto: filtro de veredito + qualquer URL reprova
+           - reprovou → 1 retry; reprovou de novo → fallback determinístico
+        ─► 3. Montagem (código): as 4 seções, na ordem da tabela
+        ─► 4. Checagem final de citações sobre o dossiê inteiro
+        ─► {"dossier": str} (+ "warnings" quando o problema é do próprio Sintetizador)
+```
+
+Na seção de checagens, cada frase com evidência vira uma linha com o resumo por stance ("duas checagens contradizem e uma apoia esta frase") e uma sublinha por evidência: `<source_name>: <agency_verdict> — "<excerpt>" (<source_url>)`. Sem `agency_verdict`, a sublinha sai sem selo. Se `text_report` é `None`, não há como saber o que é opinião, e todas as evidências são exibidas (Seção 4.7).
+
+**Guardrails (código, sem LLM)**
+
+- **Filtro de veredito** (`src/guardrails/veredito.py`): `falso/a/os/as`, `verdadeiro/a/os/as`, `fake news`, `mentira(s)`, `desinformação`; ignora maiúsculas e acentos, respeita fronteira de palavra (`falsificação` passa). Aplica-se só ao texto do LLM. Paráfrases ("não procede") passam: falso negativo conhecido, fixado em teste.
+- **Checagem de citações** (`src/guardrails/citacoes.py`): extrai as URLs (sem a pontuação final) e devolve as que não estão nas evidências. No texto do LLM, qualquer URL reprova. No dossiê final, a linha com URL inválida é removida.
+
+**Casos degradados.** O Sintetizador só grava aviso próprio quando o problema é dele; se um ramo anterior falhou, o dossiê declara a ausência em linguagem natural (Seção 3.4).
+
+| Situação | Chama o 7B? | Dossiê | Aviso próprio |
+| --- | --- | --- | --- |
+| `segments` vazio | Não | Só "Limites": a página não pôde ser analisada; sugere colar o texto | — |
+| `evidence is None` | Sim | "Não foi possível consultar o banco de checagens nesta análise." | — |
+| `evidence == []` | Sim | "Nenhuma checagem encontrada no nosso banco para as frases factuais. Isso não confirma nem descarta essas frases." | — |
+| `text_report is None` | Não | "Não foi possível analisar a estrutura do texto." | — |
+| Sem marcadores e sem frases de valor | Não | "Nenhum padrão de viés ou falácia foi apontado neste texto." | — |
+| `socratic_questions is None` | Sim | "As perguntas não puderam ser geradas nesta análise." | — |
+| LM Studio fora do ar ou timeout | Sim, sem retry | Fallback | `"sintetizador: falha ao chamar o modelo (o LM Studio está rodando?)"` |
+| Guardrails reprovam duas vezes | Sim, 1 retry | Fallback | `"sintetizador: síntese livre reprovada nos guardrails após 1 retry"` |
+| URL fora das evidências no dossiê final | — | Linha removida | `"sintetizador: citação removida (URL fora das evidências)"` |
+
+O **fallback** lista um bullet por marcador com rótulo e trecho literal (`- Urgência: "URGENTE"`) e uma linha "Juízo de valor: … é uma opinião e não foi checada" por frase de valor. Não copia o `explanation` do Agente de Texto, que também é texto de LLM e furaria o filtro de veredito.
+
+A seção **Limites** sai do State: texto truncado; sem data de publicação; sem link de origem (entrada não é URL); cada ramo que não rodou; e sempre "o banco de checagens pode não conter checagens mais recentes que a última coleta".
+
+**Passo a passo**
+
+Cada tarefa segue TDD (teste falhando → implementação → teste passando → commit). O CI roda Python 3.10. Nenhum teste unitário pode chamar o LM Studio.
+
+| Tarefa | Entrega |
+| --- | --- |
+| 0. Ambientação | Leitura (§1.1, §3.3–3.5, §4.5, §4.6, §4.7, §4.8, §7.1, §10.5) e do spec; venv, `pytest` verde; LM Studio com o Qwen 2.5 7B; branch `feat/agente-sintetizador` a partir da `develop` |
+| 1. Guardrails | `src/guardrails/veredito.py` e `src/guardrails/citacoes.py` com `tests/unit/test_guardrails.py`, usando as fixtures `bordas/sintetizador_*.json` |
+| 2. Pré-processamento e montagem | Deduplicação, descarte de stance de opinião, factuais sem checagem e as três seções escritas pelo código; testes com o caso do mamão (`05_sintetizador_entrada.json`) e com cada linha da tabela de casos degradados |
+| 3. Prompt e LLM | `src/prompts/sintetizador_sistema.md`; cliente `llm_sintetizador` em `src/services/llm.py`; chamada, retry e fallback, testados com um modelo falso que conta chamadas |
+| 4. Integração | `sintetizador_node` real no `graph.py` no lugar do stub; teste de contrato com o modelo falso; `tests/unit/conftest.py` bloqueando o LM Studio (se o Agente de Texto já criou, reaproveitar) |
+| 5. Modelo real | `tests/integration/test_sintetizador_lmstudio.py` (fora do CI): caso do mamão passa nos dois guardrails e tem as 4 seções; ajuste do prompt |
+| 6. Entrega | Card em `docs/agents/sintetizador.md` e PR para a `develop`, revisado pelo R4 |
+
+**Fora deste guia:** Sintetizador via API ou 14B local, reordenar as perguntas socráticas, LLM-as-judge e medição de vazamento de veredito no gold set, timeout por nó no grafo e mudanças na interface Streamlit (`st.write(dossier)` já renderiza Markdown).
+
 ### 4.6 Exemplo de ponta a ponta com um caso real
 
 **Caso:** vídeos e correntes que circularam no início de 2024 afirmando que o chá de folha de mamão cura a dengue e aumenta as plaquetas. Foi checado pela [Agência Lupa](https://www.agencialupa.org/jornalismo/2024/02/06/e-falso-que-cha-de-folha-de-mamao-cura-a-dengue-em-tres-dias/) em 06/02/2024 e pelo [Aos Fatos](https://www.aosfatos.org/noticias/falso-cha-folha-mamao-dengue/) em 16/02/2024.

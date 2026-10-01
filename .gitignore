@@ -5,3 +5,4 @@ __pycache__/
 chroma_data/
 .streamlit/
 .DS_Store
+data/corpus/raw/

@@ -13,5 +13,21 @@
     "evidence": []
   },
   "efeito_no_grafo": "Nenhum objeto Evidence é emitido. O Sintetizador lista a frase como 'sem checagem encontrada'.",
-  "decisao_de_contrato": "Ausência de checagem = nenhum objeto Evidence (ver Manual §4.8)."
+  "decisao_de_contrato": "Ausência de checagem = nenhum objeto Evidence (ver Manual §4.8).",
+  "hits": {
+    "s01": [
+      {
+        "chunk_id": "x-000",
+        "text": "Trecho de uma checagem sobre outro assunto.",
+        "similarity": 0.41,
+        "metadata": {
+          "source_url": "https://exemplo.org/checagem/outro-assunto",
+          "source_name": "Agência Exemplo",
+          "agency_verdict": "Falso",
+          "claim_reviewed": "Prefeitura fechou todas as creches do bairro"
+        }
+      }
+    ]
+  },
+  "_hits": "Resultados de busca simulados para o teste unitário do agente (tests/unit/test_evidence_agente.py); dados sintéticos."
 }

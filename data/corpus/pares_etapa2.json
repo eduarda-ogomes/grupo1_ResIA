@@ -1,0 +1,301 @@
+{
+ "_sobre": "Pares para o experimento da etapa 'mesma alegação' (data/corpus/experimento_etapa2.py). 'alegacao' e 'source_url' são reais (Fact Check Tools API, coletados em 27/09/2026); 'frase' foi escrita para o experimento. 'mesma_alegacao' = resposta esperada. Tipos: parafrase, parafrase_midia (alegação começa com 'Foto/Vídeo mostra'), troca_nome, troca_numero, outro_fato, negacao (a frase desmente o boato: casar daria stance errada). Os pares 36 e 37 (28/09) são a mesma frase do caso Fachin contra checagens que só têm título (AFP) ou cujo texto não foi baixado (UOL), vindos do diagnóstico.",
+ "pares": [
+  {
+   "id": "01_fachin_parafrase_midia",
+   "source_url": "https://www.aosfatos.org/noticias/foto-briga-fachin-moraes-ia/",
+   "alegacao": "Foto mostra Edson Fachin apontando o dedo para Alexandre de Moraes em discussão",
+   "frase": "Fachin apontou o dedo para Moraes durante uma discussão acalorada no STF.",
+   "tipo": "parafrase_midia",
+   "mesma_alegacao": true
+  },
+  {
+   "id": "02_elefante_parafrase_midia",
+   "source_url": "https://www.aosfatos.org/noticias/flavio-bolsonaro-elefante-morto-safari-ia/",
+   "alegacao": "Foto mostra Flávio ao lado de elefante morto em safári",
+   "frase": "Flávio Bolsonaro foi fotografado ao lado de um elefante morto durante um safári.",
+   "tipo": "parafrase_midia",
+   "mesma_alegacao": true
+  },
+  {
+   "id": "03_pix5000_parafrase",
+   "source_url": "https://www.aosfatos.org/noticias/falso-pix-acima-de-5000-sera-taxado/",
+   "alegacao": "Pix acima de R$ 5.000 será taxado pela Receita Federal",
+   "frase": "A Receita Federal vai cobrar imposto sobre transferências por Pix acima de R$ 5 mil.",
+   "tipo": "parafrase",
+   "mesma_alegacao": true
+  },
+  {
+   "id": "04_hemorragia_parafrase",
+   "source_url": "https://www.aosfatos.org/noticias/falso-lula-morreu-apos-hemorragia-cerebral/",
+   "alegacao": "Lula morreu após hemorragia cerebral",
+   "frase": "O presidente Lula faleceu depois de sofrer uma hemorragia no cérebro.",
+   "tipo": "parafrase",
+   "mesma_alegacao": true
+  },
+  {
+   "id": "05_bolsa1800_parafrase",
+   "source_url": "https://www.aosfatos.org/noticias/e-falso-que-governo-anunciou-r-1800-no-bolsa-familia/",
+   "alegacao": "Bolsa Família vai pagar R$ 1800 em 20 de julho de 2026",
+   "frase": "Os beneficiários do Bolsa Família vão receber R$ 1.800 no dia 20 de julho.",
+   "tipo": "parafrase",
+   "mesma_alegacao": true
+  },
+  {
+   "id": "06_aluguel44_parafrase",
+   "source_url": "https://www.aosfatos.org/noticias/nao-e-verdade-que-governo-instituiu-imposto-de-44-sobre-todos-os-alugueis-residenciais/",
+   "alegacao": "Governo instituiu imposto de 44% sobre todos os aluguéis residenciais a partir de 2026",
+   "frase": "A partir de 2026, todo aluguel residencial passa a pagar um imposto de 44% criado pelo governo.",
+   "tipo": "parafrase",
+   "mesma_alegacao": true
+  },
+  {
+   "id": "07_lewandowski_parafrase",
+   "source_url": "https://www.aosfatos.org/noticias/lewandowski-vacina-covid-19/",
+   "alegacao": "Lewandowski não tomou vacina contra a Covid-19",
+   "frase": "O ministro Lewandowski nunca se vacinou contra a Covid.",
+   "tipo": "parafrase",
+   "mesma_alegacao": true
+  },
+  {
+   "id": "08_moraes_prisao_parafrase",
+   "source_url": "https://www.aosfatos.org/noticias/e-falso-que-moraes-pediu-a-prisao-de-bolsonaro/",
+   "alegacao": "Alexandre de Moraes pediu a prisão de Jair Bolsonaro",
+   "frase": "Moraes solicitou que Bolsonaro fosse preso.",
+   "tipo": "parafrase",
+   "mesma_alegacao": true
+  },
+  {
+   "id": "09_smartmatic_parafrase",
+   "source_url": "https://www.aosfatos.org/noticias/smartmatic-urnas-eletronicas-brasileiras/",
+   "alegacao": "Smartmatic desenvolveu urnas brasileiras",
+   "frase": "As urnas eletrônicas usadas no Brasil foram criadas pela empresa Smartmatic.",
+   "tipo": "parafrase",
+   "mesma_alegacao": true
+  },
+  {
+   "id": "10_paraguai_parafrase",
+   "source_url": "https://checamos.afp.com/doc.afp.com.C9DR7ZQ",
+   "alegacao": "Presidente do Paraguai agradece Lula pela migração de empresas brasileiras",
+   "frase": "O presidente paraguaio agradeceu a Lula porque empresas brasileiras estão se mudando para o Paraguai.",
+   "tipo": "parafrase",
+   "mesma_alegacao": true
+  },
+  {
+   "id": "11_china_gaza_parafrase_midia",
+   "source_url": "https://www.aosfatos.org/noticias/videos-mostram-ajuda-humanitaria-dos-emirados-arabes-e-nao-da-china-a-gaza/",
+   "alegacao": "Vídeos mostram ajuda humanitária da China em Gaza",
+   "frase": "A China está mandando ajuda humanitária para a Faixa de Gaza.",
+   "tipo": "parafrase_midia",
+   "mesma_alegacao": true
+  },
+  {
+   "id": "12_vacina_japonesa_parafrase",
+   "source_url": "https://checamos.afp.com/doc.afp.com.B7FJ9G3",
+   "alegacao": "Lula tomou vacina japonesa contra a dengue e deixou povo com a do Butantan",
+   "frase": "Lula se vacinou contra a dengue com a vacina japonesa e deixou a população com a do Butantan.",
+   "tipo": "parafrase",
+   "mesma_alegacao": true
+  },
+  {
+   "id": "13_hackers35_parafrase",
+   "source_url": "https://www.aosfatos.org/noticias/hackers-urnas-eletronicas-teste-seguranca/",
+   "alegacao": "Hackers invadem urna eletrônica 35 vezes",
+   "frase": "Hackers conseguiram invadir a urna eletrônica 35 vezes.",
+   "tipo": "parafrase",
+   "mesma_alegacao": true
+  },
+  {
+   "id": "14_tarifas_parafrase",
+   "source_url": "https://www.aosfatos.org/noticias/trump-nao-cancelou-tarifa/",
+   "alegacao": "Donald Trump removeu tarifas de produtos brasileiros",
+   "frase": "Trump acabou com as tarifas sobre os produtos do Brasil.",
+   "tipo": "parafrase",
+   "mesma_alegacao": true
+  },
+  {
+   "id": "15_visita_hospital_parafrase",
+   "source_url": "https://www.aosfatos.org/noticias/e-falso-que-lula-visitou-bolsonaro-no-hospital-apos-cirurgia-do-ex-presidente/",
+   "alegacao": "Lula visitou Bolsonaro em hospital após cirurgia",
+   "frase": "Depois da cirurgia, Bolsonaro recebeu a visita de Lula no hospital.",
+   "tipo": "parafrase",
+   "mesma_alegacao": true
+  },
+  {
+   "id": "16_enxurrada_mg_parafrase_midia",
+   "source_url": "https://www.aosfatos.org/noticias/sao-gerados-por-ia-videos-que-mostram-enxurrada-destruindo-casas-em-mg/",
+   "alegacao": "Vídeo mostra enxurrada e casas destruídas após chuvas fortes em Minas Gerais",
+   "frase": "Uma enxurrada destruiu casas depois das chuvas fortes em Minas Gerais.",
+   "tipo": "parafrase_midia",
+   "mesma_alegacao": true
+  },
+  {
+   "id": "17_vacina_japonesa_troca_nome",
+   "source_url": "https://checamos.afp.com/doc.afp.com.B7FJ9G3",
+   "alegacao": "Lula tomou vacina japonesa contra a dengue e deixou povo com a do Butantan",
+   "frase": "Lula se vacinou contra a chikungunya com a vacina japonesa e deixou a população com a do Butantan.",
+   "tipo": "troca_nome",
+   "mesma_alegacao": false
+  },
+  {
+   "id": "18_lewandowski_troca_nome",
+   "source_url": "https://www.aosfatos.org/noticias/lewandowski-vacina-covid-19/",
+   "alegacao": "Lewandowski não tomou vacina contra a Covid-19",
+   "frase": "O ministro Fux nunca se vacinou contra a Covid.",
+   "tipo": "troca_nome",
+   "mesma_alegacao": false
+  },
+  {
+   "id": "19_moraes_prisao_troca_nome",
+   "source_url": "https://www.aosfatos.org/noticias/e-falso-que-moraes-pediu-a-prisao-de-bolsonaro/",
+   "alegacao": "Alexandre de Moraes pediu a prisão de Jair Bolsonaro",
+   "frase": "Moraes solicitou que Lula fosse preso.",
+   "tipo": "troca_nome",
+   "mesma_alegacao": false
+  },
+  {
+   "id": "20_smartmatic_troca_nome",
+   "source_url": "https://www.aosfatos.org/noticias/smartmatic-urnas-eletronicas-brasileiras/",
+   "alegacao": "Smartmatic desenvolveu urnas brasileiras",
+   "frase": "As urnas eletrônicas usadas no Brasil foram criadas pela empresa Huawei.",
+   "tipo": "troca_nome",
+   "mesma_alegacao": false
+  },
+  {
+   "id": "21_paraguai_troca_nome",
+   "source_url": "https://checamos.afp.com/doc.afp.com.C9DR7ZQ",
+   "alegacao": "Presidente do Paraguai agradece Lula pela migração de empresas brasileiras",
+   "frase": "O presidente argentino agradeceu a Lula porque empresas brasileiras estão se mudando para a Argentina.",
+   "tipo": "troca_nome",
+   "mesma_alegacao": false
+  },
+  {
+   "id": "22_china_gaza_troca_nome",
+   "source_url": "https://www.aosfatos.org/noticias/videos-mostram-ajuda-humanitaria-dos-emirados-arabes-e-nao-da-china-a-gaza/",
+   "alegacao": "Vídeos mostram ajuda humanitária da China em Gaza",
+   "frase": "A Rússia está mandando ajuda humanitária para a Faixa de Gaza.",
+   "tipo": "troca_nome",
+   "mesma_alegacao": false
+  },
+  {
+   "id": "23_enxurrada_mg_troca_nome",
+   "source_url": "https://www.aosfatos.org/noticias/sao-gerados-por-ia-videos-que-mostram-enxurrada-destruindo-casas-em-mg/",
+   "alegacao": "Vídeo mostra enxurrada e casas destruídas após chuvas fortes em Minas Gerais",
+   "frase": "Uma enxurrada destruiu casas depois das chuvas fortes no Rio Grande do Sul.",
+   "tipo": "troca_nome",
+   "mesma_alegacao": false
+  },
+  {
+   "id": "24_elefante_troca_nome",
+   "source_url": "https://www.aosfatos.org/noticias/flavio-bolsonaro-elefante-morto-safari-ia/",
+   "alegacao": "Foto mostra Flávio ao lado de elefante morto em safári",
+   "frase": "Eduardo Bolsonaro foi fotografado ao lado de um elefante morto durante um safári.",
+   "tipo": "troca_nome",
+   "mesma_alegacao": false
+  },
+  {
+   "id": "25_pix5000_troca_numero",
+   "source_url": "https://www.aosfatos.org/noticias/falso-pix-acima-de-5000-sera-taxado/",
+   "alegacao": "Pix acima de R$ 5.000 será taxado pela Receita Federal",
+   "frase": "A Receita Federal vai cobrar imposto sobre transferências por Pix acima de R$ 50 mil.",
+   "tipo": "troca_numero",
+   "mesma_alegacao": false
+  },
+  {
+   "id": "26_aluguel44_troca_numero",
+   "source_url": "https://www.aosfatos.org/noticias/nao-e-verdade-que-governo-instituiu-imposto-de-44-sobre-todos-os-alugueis-residenciais/",
+   "alegacao": "Governo instituiu imposto de 44% sobre todos os aluguéis residenciais a partir de 2026",
+   "frase": "A partir de 2026, todo aluguel residencial passa a pagar um imposto de 4% criado pelo governo.",
+   "tipo": "troca_numero",
+   "mesma_alegacao": false
+  },
+  {
+   "id": "27_hackers35_troca_numero",
+   "source_url": "https://www.aosfatos.org/noticias/hackers-urnas-eletronicas-teste-seguranca/",
+   "alegacao": "Hackers invadem urna eletrônica 35 vezes",
+   "frase": "Hackers conseguiram invadir a urna eletrônica 3 vezes.",
+   "tipo": "troca_numero",
+   "mesma_alegacao": false
+  },
+  {
+   "id": "28_bolsa1800_troca_numero",
+   "source_url": "https://www.aosfatos.org/noticias/e-falso-que-governo-anunciou-r-1800-no-bolsa-familia/",
+   "alegacao": "Bolsa Família vai pagar R$ 1800 em 20 de julho de 2026",
+   "frase": "Os beneficiários do Bolsa Família vão receber R$ 600 no dia 20 de julho.",
+   "tipo": "troca_numero",
+   "mesma_alegacao": false
+  },
+  {
+   "id": "29_fachin_outro_fato",
+   "source_url": "https://www.aosfatos.org/noticias/foto-briga-fachin-moraes-ia/",
+   "alegacao": "Foto mostra Edson Fachin apontando o dedo para Alexandre de Moraes em discussão",
+   "frase": "Fachin levou para a Presidência do STF parte das investigações sobre o INSS.",
+   "tipo": "outro_fato",
+   "mesma_alegacao": false
+  },
+  {
+   "id": "30_pix5000_outro_fato",
+   "source_url": "https://www.aosfatos.org/noticias/falso-pix-acima-de-5000-sera-taxado/",
+   "alegacao": "Pix acima de R$ 5.000 será taxado pela Receita Federal",
+   "frase": "Quem tiver dívidas de impostos vai ter a chave Pix excluída.",
+   "tipo": "outro_fato",
+   "mesma_alegacao": false
+  },
+  {
+   "id": "31_hemorragia_outro_fato",
+   "source_url": "https://www.aosfatos.org/noticias/falso-lula-morreu-apos-hemorragia-cerebral/",
+   "alegacao": "Lula morreu após hemorragia cerebral",
+   "frase": "Lula visitou Bolsonaro no hospital depois da cirurgia.",
+   "tipo": "outro_fato",
+   "mesma_alegacao": false
+  },
+  {
+   "id": "32_tarifas_outro_fato",
+   "source_url": "https://www.aosfatos.org/noticias/trump-nao-cancelou-tarifa/",
+   "alegacao": "Donald Trump removeu tarifas de produtos brasileiros",
+   "frase": "Trump disse que vai fazer com Lula o que fez com Maduro.",
+   "tipo": "outro_fato",
+   "mesma_alegacao": false
+  },
+  {
+   "id": "33_smartmatic_outro_fato",
+   "source_url": "https://www.aosfatos.org/noticias/smartmatic-urnas-eletronicas-brasileiras/",
+   "alegacao": "Smartmatic desenvolveu urnas brasileiras",
+   "frase": "O TSE anunciou novas urnas eletrônicas para as eleições de 2026.",
+   "tipo": "outro_fato",
+   "mesma_alegacao": false
+  },
+  {
+   "id": "34_pix5000_negacao",
+   "source_url": "https://www.aosfatos.org/noticias/falso-pix-acima-de-5000-sera-taxado/",
+   "alegacao": "Pix acima de R$ 5.000 será taxado pela Receita Federal",
+   "frase": "A Receita Federal não vai taxar transferências por Pix acima de R$ 5 mil.",
+   "tipo": "negacao",
+   "mesma_alegacao": false
+  },
+  {
+   "id": "35_hemorragia_negacao",
+   "source_url": "https://www.aosfatos.org/noticias/falso-lula-morreu-apos-hemorragia-cerebral/",
+   "alegacao": "Lula morreu após hemorragia cerebral",
+   "frase": "Lula não morreu, ao contrário do que dizem posts sobre uma hemorragia cerebral.",
+   "tipo": "negacao",
+   "mesma_alegacao": false
+  },
+  {
+   "id": "36_fachin_afp_parafrase_midia",
+   "source_url": "https://checamos.afp.com/doc.afp.com.C97Q6KE",
+   "alegacao": "Imagem mostra Edson Fachin com dedo em riste apontado para Alexandre de Moraes",
+   "frase": "Fachin apontou o dedo para Moraes durante uma discussão acalorada no STF.",
+   "tipo": "parafrase_midia",
+   "mesma_alegacao": true
+  },
+  {
+   "id": "37_fachin_uol_parafrase_midia",
+   "source_url": "https://noticias.uol.com.br/confere/ultimas-noticias/2026/09/25/falso-imagem-edson-fachin-aponta-dedo-alexandre-moraes-ia.ghtm",
+   "alegacao": "Imagem mostra Fachin apontando o dedo para Moraes",
+   "frase": "Fachin apontou o dedo para Moraes durante uma discussão acalorada no STF.",
+   "tipo": "parafrase_midia",
+   "mesma_alegacao": true
+  }
+ ]
+}

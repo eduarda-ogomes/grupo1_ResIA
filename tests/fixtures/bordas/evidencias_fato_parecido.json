@@ -13,5 +13,22 @@
     "evidence": [],
     "observacao": "A checagem recuperada é sobre dengue, não chikungunya. O esperado é não emitir 'contradiz'; no máximo 'insuficiente'."
   },
-  "efeito_no_grafo": "Caso obrigatório no gold set para medir o erro mais perigoso do sistema."
+  "efeito_no_grafo": "Caso obrigatório no gold set para medir o erro mais perigoso do sistema.",
+  "hits": {
+    "s01": [
+      {
+        "chunk_id": "z-000",
+        "text": "É falso que o chá de folha de mamão cure a dengue em três dias.",
+        "similarity": 0.86,
+        "metadata": {
+          "source_url": "https://www.agencialupa.org/jornalismo/2024/02/06/e-falso-que-cha-de-folha-de-mamao-cura-a-dengue-em-tres-dias/",
+          "source_name": "Agência Lupa",
+          "agency_verdict": "Falso",
+          "claim_reviewed": "Chá de folha de mamão cura a dengue em três dias",
+          "review_title": "É falso que chá de folha de mamão cura a dengue em três dias"
+        }
+      }
+    ]
+  },
+  "_hits": "Resultado de busca simulado para o teste unitário do agente: a checagem de dengue vem com similaridade alta, e os termos-chave barram a troca dengue x chikungunya antes do NLI."
 }

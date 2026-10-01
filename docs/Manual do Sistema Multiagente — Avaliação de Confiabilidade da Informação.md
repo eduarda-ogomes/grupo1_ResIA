@@ -979,4 +979,4 @@ O maior risco técnico da versão enxuta é o Agente de Evidências citar uma ch
 
 **Documentos do desafio**
 
-- Slides do Desafio 1 (CBL) — cronograma Engage, Investigate, Act, Showcase
+- Slides do Desafio 1 (CBL) — cronograma Engage, Investigate, Act, Showcase

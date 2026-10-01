@@ -1,0 +1,41 @@
+[
+  {
+    "entrada": [
+      {"id": "s01", "text": "A taxa de desemprego ficou em 7,8% no trimestre encerrado em junho, segundo o IBGE."},
+      {"id": "s02", "text": "O resultado é o menor para o período desde 2014."}
+    ],
+    "saida": {
+      "statements": [
+        {"segment_id": "s01", "kind": "factual"},
+        {"segment_id": "s02", "kind": "factual"}
+      ],
+      "markers": []
+    }
+  },
+  {
+    "entrada": [
+      {"id": "s01", "text": "ATENÇÃO: a vacina da gripe está deixando todo mundo doente!"},
+      {"id": "s02", "text": "Um médico renomado confirmou que ninguém deveria tomar essa vacina."},
+      {"id": "s03", "text": "Ou você protege sua família, ou confia cegamente na indústria farmacêutica."},
+      {"id": "s04", "text": "É um absurdo terrível o que estão fazendo com a população."},
+      {"id": "s05", "text": "Envie para seus contatos agora mesmo!"}
+    ],
+    "saida": {
+      "statements": [
+        {"segment_id": "s01", "kind": "factual"},
+        {"segment_id": "s02", "kind": "factual"},
+        {"segment_id": "s03", "kind": "valor"},
+        {"segment_id": "s04", "kind": "valor"},
+        {"segment_id": "s05", "kind": "valor"}
+      ],
+      "markers": [
+        {"type": "urgencia_artificial", "segment_id": "s01", "excerpt": "ATENÇÃO", "explanation": "Chamada de alerta em caixa alta, sem prazo real."},
+        {"type": "generalizacao", "segment_id": "s01", "excerpt": "todo mundo doente", "explanation": "Estende o efeito a todas as pessoas sem apresentar dados."},
+        {"type": "apelo_autoridade", "segment_id": "s02", "excerpt": "Um médico renomado confirmou", "explanation": "Cita uma autoridade sem nome nem fonte verificável."},
+        {"type": "falsa_dicotomia", "segment_id": "s03", "excerpt": "Ou você protege sua família, ou confia cegamente na indústria farmacêutica", "explanation": "Apresenta apenas duas opções quando existem outras."},
+        {"type": "adjetivacao_extrema", "segment_id": "s04", "excerpt": "absurdo terrível", "explanation": "Intensificadores emocionais no lugar de informação."},
+        {"type": "urgencia_artificial", "segment_id": "s05", "excerpt": "agora mesmo", "explanation": "Pede ação imediata sem motivo concreto."}
+      ]
+    }
+  }
+]

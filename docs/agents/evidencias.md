@@ -33,7 +33,7 @@ frase ─► 1. busca: 10 trechos mais parecidos (similaridade ≥ 0,55), agrupa
             até 6 checagens; mesma checagem em 2 sites conta 1 (fica o original, não o espelho do BOL)
       ─► 2. termos-chave: a frase troca um nome, número ou doença da alegação checada? → descarta
             (a 1ª palavra da frase só é nome se o corpus a usa como nome: "Lula" sim, "Aviões" não)
-      ─► 3. NLI: frase e alegação (sem "Foto/Vídeo mostra") se implicam em alguma direção (≥ 0,5)?
+      ─► 3. NLI: frase e alegação (sem "Foto/Vídeo mostra") se implicam em alguma direção (≥ 0,8)?
       ─► 4. evidência: stance = veredito da agência; excerpt = título da checagem; até 3 por frase
 ```
 
@@ -119,7 +119,7 @@ A variável vale só para a janela do terminal em que foi definida. Fora do ambi
 | Variável | Padrão | Uso |
 | --- | --- | --- |
 | `EVIDENCE_SIM_THRESHOLD` | `0.55` | Similaridade mínima na busca (provisório) |
-| `EVIDENCE_CLAIM_MATCH_MIN_PROB` | `0.5` | Entailment mínimo da etapa 2 (provisório) |
+| `EVIDENCE_CLAIM_MATCH_MIN_PROB` | `0.8` | Entailment mínimo da etapa 2 (calibrado em 01/10; `0.5` volta ao valor antigo) |
 | `EVIDENCE_SEARCH_K` / `EVIDENCE_CLAIM_CANDIDATES` / `EVIDENCE_MAX_PER_SEGMENT` | `10` / `6` / `3` | Trechos buscados / checagens avaliadas / evidências por frase |
 | `EVIDENCE_EMBEDDING_MODEL` / `EVIDENCE_NLI_MODEL` | `BAAI/bge-m3` / `MoritzLaurer/mDeBERTa-v3-base-mnli-xnli` | Modelos |
 | `EVIDENCE_DEVICE` | automático | `cuda` → `mps` → `cpu` |
@@ -205,12 +205,18 @@ Para comparar modelos de embedding (item 5): defina `EVIDENCE_EMBEDDING_MODEL`, 
 | 01/10 | todos | 18/19 = **0,95** | 14/19 = 0,74 | **0,61** | 14/14 = 1,00 | 0/11 = **0,00** | **7** | `eval/resultados/evidencias_2026-10-01.json` |
 | 01/10 | teste | 10/10 | 7/10 | 0,44 | 7/7 | 0/5 | 3 | (mesmo arquivo) |
 | 01/10 | calibração | 8/9 | 7/9 | 0,75 | 7/7 | 0/6 | 4 | (mesmo arquivo) |
+| 01/10 (termos-chave) | todos | 18/19 | **15/19 = 0,79** | **0,72** ✅ | 15/15 | 0/11 | 7 | `evidencias_2026-10-01_2.json` |
+| 01/10 (termos-chave) | teste | 10/10 | 8/10 | 0,69 | 8/8 | 0/5 | 3 | (mesmo arquivo) |
+| 01/10 (termos-chave) | calibração | 8/9 | 7/9 | 0,75 | 7/7 | 0/6 | 4 | (mesmo arquivo) |
+| 01/10 (NLI 0,8) | teste | 10/10 | 8/10 | 0,69 ✅ | 8/8 | 0/5 | **2** | `evidencias_2026-10-01_3.json` |
 
-Configuração: BGE-M3, mDeBERTa, `SIM_THRESHOLD` 0,55, `CLAIM_MATCH_MIN_PROB` 0,5, índice com 32.094 trechos, Mac (`mps`), commit `9eba0f7`. A "stance nas cobertas" foi criada depois da rodada e calculada a partir do detalhe por frase salvo no arquivo; as próximas rodadas já a gravam.
+Configuração: BGE-M3, mDeBERTa, `SIM_THRESHOLD` 0,55, índice com 32.094 trechos. Primeira rodada: `CLAIM_MATCH_MIN_PROB` 0,5, Mac (`mps`), commit `9eba0f7`; a "stance nas cobertas" foi criada depois dela e calculada a partir do detalhe por frase salvo no arquivo. Rodadas "termos-chave" e "NLI 0,8": Windows (CPU), commit `fc2cce2`, com a correção dos termos-chave; a primeira com NLI 0,5, a segunda com 0,8 (o valor calibrado, medido uma única vez no teste).
 
 Leitura:
 - **Quando o agente acha a checagem certa, a stance sai certa (14/14).** O macro-F1 abaixo da meta vem de checagens perdidas (5 de 19) e das 2 frases que desmentem o boato, não de erro de stance.
 - A revocação de `insuficiente` (1,00) está inflada: em ev08/s02 o agente perdeu a checagem e citou outra, e a frase contou como acerto. A "stance nas cobertas" existe para isso.
+- A correção dos termos-chave recuperou o F-15 (`apoia`) e levou o macro-F1 acima da meta; Cármen Lúcia continua perdida, agora pelo NLI.
+- **Calibração do NLI** (`calibracao_2026-10-01.json`, só no split de calibração): a cobertura ficou em 7/9 com 0,5, 0,6, 0,7 e 0,8, e os casamentos errados caíram de 4 para 2 com 0,8. No teste, 0,8 manteve a cobertura (8/10) e tirou 1 dos 3 casamentos errados. Os 2 que sobram no conjunto todo com nota alta (Kamala 0,98, Bolsonaro na UTI 0,93) passam de qualquer limiar.
 - A análise dos erros e os próximos passos estão no ADR 3.
 
 Estado do conjunto (01/10): 12 entradas e 36 frases, `validar` sem erros, URLs aceitas conferidas com o `diagnostico.py` (que acrescentou mais duas; saída em `eval/resultados/diagnostico_gold.txt`). **As frases foram escritas pelo Claude**, a pedido do R2, o que contraria a regra 6 acima. Antes de os números entrarem no relatório:
@@ -236,15 +242,17 @@ Windows (PowerShell): os mesmos comandos, ativando o ambiente com `venv\Scripts\
 Ordem: o item 3 (termos-chave, já no código) muda quais checagens chegam ao NLI, então a calibração vem depois dele. No Windows, troque `export X=1` por `$env:X = "1"` e rode antes `$env:PYTHONUTF8 = "1"`.
 
 ```bash
-# 1. Efeito da correção dos termos-chave (compare com a rodada de 01/10)
+# 1. Efeito da correção dos termos-chave                     (feito em 01/10: evidencias_2026-10-01_2.json)
 python eval/avaliar_evidencias.py avaliar --salvar
 
-# 2. Calibração: só no split de calibração; depois a escolha UMA vez no teste (o comando sugere a linha)
+# 2. Calibração no split de calibração; a escolha UMA vez no teste
+#                                                            (feito em 01/10: 0,8, agora o padrão)
 python eval/avaliar_evidencias.py calibrar --nli 0.5 0.6 0.7 0.8 --salvar
-export EVIDENCE_CLAIM_MATCH_MIN_PROB=0.7        # o valor escolhido
+export EVIDENCE_CLAIM_MATCH_MIN_PROB=0.8
 python eval/avaliar_evidencias.py avaliar --split teste --salvar
 
 # 3. Tempo e memória; com GPU, compara o NLI em fp32 e fp16
+#    (feito no Windows/CPU em 01/10: recursos_2026-10-01.json; falta no Mac, a máquina da demo)
 pip install psutil                              # opcional: memória do processo (no Windows, necessário)
 python eval/medir_recursos.py --comparar-fp16 --salvar
 export EVIDENCE_NLI_FP16=1                      # se nenhuma decisão mudou

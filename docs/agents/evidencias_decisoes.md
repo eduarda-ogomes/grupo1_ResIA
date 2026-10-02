@@ -19,7 +19,7 @@ Nenhum limiar de probabilidade separa esses erros. A similaridade também não: 
 **Decisão.** A stance passa a vir do **veredito da agência**, mas só depois de uma etapa que confirma que a checagem é sobre a **mesma alegação** da frase. A comparação é com o `claim_reviewed` (a alegação que a agência checou, fornecida pela Fact Check Tools API):
 
 1. **Termos-chave.** Se a frase tem um nome próprio, número ou doença que não aparece na checagem, e a alegação tem outro da mesma classe que não aparece na frase, é uma troca ("chikungunya" × "dengue", "Fux" × "Lewandowski", "5 mil" × "50 mil"). A checagem é descartada.
-2. **NLI entre alegação e frase.** Antes da comparação, tira-se "Foto/Vídeo/Imagem mostra" da alegação. A checagem segue se o entailment for ≥ 0,5 em **pelo menos uma direção**. Uma direção basta porque a notícia costuma ser mais específica ou mais genérica que a alegação.
+2. **NLI entre alegação e frase.** Antes da comparação, tira-se "Foto/Vídeo/Imagem mostra" da alegação. A checagem segue se o entailment for ≥ 0,8 em **pelo menos uma direção** (0,5 até 01/10; ver a decisão do limiar abaixo). Uma direção basta porque a notícia costuma ser mais específica ou mais genérica que a alegação.
 3. **Stance e excerpt.** A stance vem do veredito: falso → `contradiz`, verdadeiro → `apoia`, o resto → `insuficiente`. O `excerpt` é o título da checagem, que é a conclusão escrita pela agência.
 
 O parágrafo que reproduz o boato deixa de ser premissa. Ele passa a só ajudar a busca a achar a checagem certa.
@@ -32,7 +32,7 @@ O parágrafo que reproduz o boato deixa de ser premissa. Ele passa a só ajudar 
 | Só termos-chave | 31/35 | 4 (negações, R$ 600) | 0 |
 | **NLI + termos-chave + normalização (adotada)** | **35/37** | **0** | 2 (Fachin × Aos Fatos e AFP) |
 
-O NLI e os termos-chave se completam. O NLI deixa passar troca de nome entre frases quase iguais, e os termos-chave pegam isso. Os termos-chave deixam passar negação, e o NLI pega. Os limiares 0,5, 0,7 e 0,9 deram o mesmo resultado, porque o NLI responde perto de 0 ou de 1.
+O NLI e os termos-chave se completam. O NLI deixa passar troca de nome entre frases quase iguais, e os termos-chave pegam isso. Os termos-chave deixam passar negação, e o NLI pega. Nos 37 pares, os limiares 0,5, 0,7 e 0,9 deram o mesmo resultado, porque o NLI responde perto de 0 ou de 1. No conjunto de avaliação não foi assim, e o limiar passou para 0,8 em 01/10 (decisões menores).
 
 **Consequências.**
 - ✅ Nenhum "casou errado" nos 37 pares. O erro grave (citar a checagem errada, ou `apoia` para boato) fica barrado.
@@ -111,6 +111,7 @@ Análise dos erros:
 | Decisão | Motivo |
 | --- | --- |
 | Embedding `BAAI/bge-m3` | Candidato da Seção 5.3. Não exige prefixos (com o e5, esquecer o `query:` piora a busca sem dar erro). A comparação com o e5-large sai do Recall@5. |
+| Limiar do NLI na etapa 2 **0,8** (era 0,5) | Calibrado em 01/10 com o `calibrar`, só no split de calibração: com 0,5, 0,6, 0,7 e 0,8 a cobertura ficou em 7/9, e os casamentos errados caíram de 4 para 2 (saem "Lula comunista", NLI 0,52, e "tarifaço", 0,67 no Mac e um pouco acima de 0,7 na CPU do Windows). Medido uma única vez no teste: cobertura igual (8/10), macro-F1 igual (0,69), casamentos errados de 3 para 2 (sai a Lei das Bets, 0,56). O Manual prioriza não citar a checagem errada (Seções 4.7 e 12.1). Custo: checagem certa com nota entre 0,5 e 0,8 deixa de ser citada; no diagnóstico das 36 frases, essa faixa tinha 1 certa (Nikolas Ferreira, 0,51, coberta por outras duas agências) e 3 erradas. Amostra pequena, frases ainda sem revisão do R1: recalibrar quando o conjunto for revisado. Reversível com `EVIDENCE_CLAIM_MATCH_MIN_PROB=0.5` |
 | Limiar de similaridade **0,55** (o manual sugere 0,75) | Medido no corpus real: outro assunto ≈ 0,45, outro fato ≈ 0,55–0,57, checagem certa ≈ 0,58–0,68. Com 0,75, nada passaria. O limiar só separa "outro assunto"; "outro fato" é papel do ADR 1. |
 | Até 6 candidatas avaliadas, até 3 evidências por frase | O limite de 3 aplicado antes da etapa 2 deixou o Aos Fatos de fora no caso Fachin |
 | Vereditos mapeados de forma conservadora | Só rótulos inequívocos (falso, montagem; verdadeiro, comprovado) viram `contradiz`/`apoia`. "Enganoso", "Falta contexto", texto livre e rótulos desconhecidos viram `insuficiente`. |
@@ -130,12 +131,10 @@ Análise dos erros:
 | **Aprovar o ADR 1 e o ADR 2** | Reunião do grupo |
 | Revisão das 36 frases de `data/gold/evidencias.json` (escritas pelo Claude), preenchendo `revisor` | R1 |
 | Decidir casos de anotação: ev01/s02 (aceitar a checagem do Temer?), ev08/s02 (o "Lula comunista" é outro episódio?), ev11/s01 (F-15: as duas URLs aceitas têm stances diferentes) e trocar frases `sem_checagem` neutras por boatos sem checagem | R2, com a revisão do R1 |
-| Rodar o `avaliar` de novo para medir o efeito da correção dos termos-chave | — |
-| Calibrar `CLAIM_MATCH_MIN_PROB` (0,5 a 0,8) com o `calibrar`, só no split `calibracao`; medir a escolha uma vez no `teste` | — |
-| Rodar o `medir_recursos.py --comparar-fp16` e decidir o `EVIDENCE_NLI_FP16` | — |
+| Recalibrar `CLAIM_MATCH_MIN_PROB` quando o conjunto for revisado ou ampliado | Revisão do R1 |
+| Rodar o `medir_recursos.py --comparar-fp16` no Mac e decidir o `EVIDENCE_NLI_FP16`. No Windows (CPU), os pesos somam 2,63 GB (BGE-M3 em fp32: 2,12 GB; NLI: 0,52 GB, aparentemente já em meia precisão); na GPU do Mac o BGE-M3 é carregado em fp16, o que deve levar o total para perto de 1,6 GB. Tempo na CPU: 4,9 s por notícia de 3 frases e 64 s por notícia de 36 (p50) | Mac |
 | Converter `data/gold/evidencias.json` para o formato do gold set | R3 |
 | Comparar BGE-M3 × e5-large pelo Recall@5 | — |
-| Medir latência e memória também na máquina da demo (orçamento < 2 GB, Seção 5.2) | Máquina da demo |
 | Testar o UOL com `fetch_articles.py --apenas-sites noticias.uol.com.br --limit 5 --delay 3`; se baixar, terminar e reindexar | — |
 | Cobrir frases que desmentem o boato | Resultados do gold set |
 | Avisar o R5 (erro de sintaxe na linha 11 do `synthesizer.py`) | — |
@@ -155,3 +154,4 @@ Análise dos erros:
 | 01/10 | Conjunto preenchido: 36 frases escritas pelo Claude (rascunho, a revisar), URLs aceitas extras achadas por busca no corpus; `validar` sem erros. |
 | 01/10 | Primeira rodada do `avaliar` (Recall@5 0,95; macro-F1 0,61; inventada 0,00; 7 casamentos errados) e análise de erros. Nova métrica "stance nas cobertas" (14/14) e comando `frases`, que gera a entrada do `diagnostico.py`. |
 | 01/10 | Sprint 3: termos-chave com vocabulário de nomes do corpus (`nomes_proprios.txt`), pontuação separando nomes e "COP30" inteiro; comando `calibrar`; `eval/medir_recursos.py` e NLI em fp16 opcional; `fetch_articles.py --apenas-sites`. |
+| 01/10 | Rodadas com a correção dos termos-chave (cobertura 15/19, macro-F1 0,72). Calibração do NLI no split de calibração e teste: limiar da etapa 2 de 0,5 para **0,8**. Medição de tempo e memória no Windows (CPU). O `avaliar` deixa de contar resultados não commitados como alteração local. |

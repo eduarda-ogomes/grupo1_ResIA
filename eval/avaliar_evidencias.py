@@ -964,7 +964,8 @@ def configuracao_atual() -> dict:
         "chromadb": versao("chromadb"),
         "python": sys.version.split()[0],
         "git_commit": commit,
-        "git_alteracoes_locais": bool(git("status", "--porcelain")) if commit else None,
+        # Só arquivos já versionados: resultados novos ainda não commitados não contam como alteração.
+        "git_alteracoes_locais": bool(git("status", "--porcelain", "--untracked-files=no")) if commit else None,
     }
 
 

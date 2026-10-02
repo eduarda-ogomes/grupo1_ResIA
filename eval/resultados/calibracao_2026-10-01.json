@@ -1,0 +1,425 @@
+{
+  "data": "2026-10-01T21:58:59",
+  "split": "calibracao",
+  "gold": "data\\gold\\evidencias.json",
+  "configuracao": {
+    "embedding_model": "BAAI/bge-m3",
+    "nli_model": "MoritzLaurer/mDeBERTa-v3-base-mnli-xnli",
+    "device": "cpu",
+    "sim_threshold": 0.55,
+    "claim_match_min_prob": 0.5,
+    "search_k": 10,
+    "claim_candidates": 6,
+    "max_evidence_per_segment": 3,
+    "recall_k": 5,
+    "recall_k_busca": 30,
+    "colecao": "checagens__baai-bge-m3",
+    "trechos_no_indice": 32094,
+    "chromadb": "1.5.9",
+    "python": "3.14.7",
+    "git_commit": "fc2cce22ec58a925b006da0c9e717612f87f2f54",
+    "git_alteracoes_locais": true
+  },
+  "combinacoes": [
+    {
+      "sim_threshold": 0.55,
+      "claim_match_min_prob": 0.5,
+      "n_frases": 18,
+      "n_por_tipo": {
+        "com_checagem": 9,
+        "sem_checagem": 6,
+        "fato_parecido": 1,
+        "troca_numero": 1,
+        "desmente": 1
+      },
+      "recall_at_5": {
+        "acertos": 8,
+        "total": 9,
+        "valor": 0.8888888888888888
+      },
+      "cobertura": {
+        "acertos": 7,
+        "total": 9,
+        "valor": 0.7777777777777778
+      },
+      "macro_f1": {
+        "valor": 0.7474747474747474,
+        "classes_na_media": [
+          "apoia",
+          "contradiz",
+          "insuficiente"
+        ],
+        "por_classe": {
+          "apoia": {
+            "precisao": 1.0,
+            "revocacao": 0.5,
+            "f1": 0.6666666666666666,
+            "suporte": 2,
+            "previstas": 1
+          },
+          "contradiz": {
+            "precisao": 1.0,
+            "revocacao": 0.8333333333333334,
+            "f1": 0.9090909090909091,
+            "suporte": 6,
+            "previstas": 5
+          },
+          "insuficiente": {
+            "precisao": 0.5,
+            "revocacao": 1.0,
+            "f1": 0.6666666666666666,
+            "suporte": 2,
+            "previstas": 4
+          }
+        },
+        "n": 10,
+        "avisos": []
+      },
+      "stance_cobertas": {
+        "acertos": 7,
+        "total": 7,
+        "valor": 1.0
+      },
+      "matriz_confusao": {
+        "apoia": {
+          "apoia": 1,
+          "contradiz": 0,
+          "insuficiente": 1
+        },
+        "contradiz": {
+          "apoia": 0,
+          "contradiz": 5,
+          "insuficiente": 1
+        },
+        "insuficiente": {
+          "apoia": 0,
+          "contradiz": 0,
+          "insuficiente": 2
+        }
+      },
+      "evidencia_inventada": {
+        "acertos": 0,
+        "total": 6,
+        "valor": 0.0
+      },
+      "casamento_errado": {
+        "evidencias": 4,
+        "frases": 4,
+        "por_tipo": {
+          "com_checagem": 3,
+          "troca_numero": 1
+        }
+      },
+      "erros": [
+        "[ev02/s01] Em Roma, a primeira-dama Janja saiu escondida, no meio da noite, do hotel em que Macron se\n    Cobertura: o agente não emitiu a checagem esperada",
+        "[ev02/s01] Em Roma, a primeira-dama Janja saiu escondida, no meio da noite, do hotel em que Macron se\n    Stance: esperada contradiz, prevista insuficiente",
+        "[ev04/s01] A Justiça americana derrubou o tarifaço de Donald Trump, numa derrota dura para o presiden\n    Casamento errado: https://www.aosfatos.org/noticias/nao-e-verdade-que-trump-cancelou-tarifaco-de-produtos-brasileiros/",
+        "[ev06/s02] Bolsonaro foi parar no hospital depois de ser envenenado dentro da cela da Papudinha.\n    Casamento errado: https://www.estadao.com.br/estadao-verifica/video-em-que-bolsonaro-circula-em-corredor-de-hospital-foi-feito-apos-cirurgia-em-2025-nao-agora/",
+        "[ev08/s02] Lula admitiu que pretende implantar o socialismo no Brasil, e a CNN cortou a transmissão n\n    Recall@5: nenhuma URL aceita no top 5",
+        "[ev08/s02] Lula admitiu que pretende implantar o socialismo no Brasil, e a CNN cortou a transmissão n\n    Cobertura: o agente não emitiu a checagem esperada",
+        "[ev08/s02] Lula admitiu que pretende implantar o socialismo no Brasil, e a CNN cortou a transmissão n\n    Casamento errado: https://www.aosfatos.org/noticias/falso-lula-assumiu-ser-comunista/",
+        "[ev08/s03] Pablo Marçal passou 3 horas e 20 minutos sem receber nenhum voto na apuração, algo matemat\n    Casamento errado: https://www.estadao.com.br/estadao-verifica/porcentagens-candidatos-apuracao-sao-paulo/",
+        "[ev12/s01] É mentira que Haddad, num encontro do BTG, tenha atribuído ao governo Bolsonaro todos os p\n    Stance: esperada apoia, prevista insuficiente"
+      ]
+    },
+    {
+      "sim_threshold": 0.55,
+      "claim_match_min_prob": 0.6,
+      "n_frases": 18,
+      "n_por_tipo": {
+        "com_checagem": 9,
+        "sem_checagem": 6,
+        "fato_parecido": 1,
+        "troca_numero": 1,
+        "desmente": 1
+      },
+      "recall_at_5": {
+        "acertos": 8,
+        "total": 9,
+        "valor": 0.8888888888888888
+      },
+      "cobertura": {
+        "acertos": 7,
+        "total": 9,
+        "valor": 0.7777777777777778
+      },
+      "macro_f1": {
+        "valor": 0.7474747474747474,
+        "classes_na_media": [
+          "apoia",
+          "contradiz",
+          "insuficiente"
+        ],
+        "por_classe": {
+          "apoia": {
+            "precisao": 1.0,
+            "revocacao": 0.5,
+            "f1": 0.6666666666666666,
+            "suporte": 2,
+            "previstas": 1
+          },
+          "contradiz": {
+            "precisao": 1.0,
+            "revocacao": 0.8333333333333334,
+            "f1": 0.9090909090909091,
+            "suporte": 6,
+            "previstas": 5
+          },
+          "insuficiente": {
+            "precisao": 0.5,
+            "revocacao": 1.0,
+            "f1": 0.6666666666666666,
+            "suporte": 2,
+            "previstas": 4
+          }
+        },
+        "n": 10,
+        "avisos": []
+      },
+      "stance_cobertas": {
+        "acertos": 7,
+        "total": 7,
+        "valor": 1.0
+      },
+      "matriz_confusao": {
+        "apoia": {
+          "apoia": 1,
+          "contradiz": 0,
+          "insuficiente": 1
+        },
+        "contradiz": {
+          "apoia": 0,
+          "contradiz": 5,
+          "insuficiente": 1
+        },
+        "insuficiente": {
+          "apoia": 0,
+          "contradiz": 0,
+          "insuficiente": 2
+        }
+      },
+      "evidencia_inventada": {
+        "acertos": 0,
+        "total": 6,
+        "valor": 0.0
+      },
+      "casamento_errado": {
+        "evidencias": 3,
+        "frases": 3,
+        "por_tipo": {
+          "com_checagem": 2,
+          "troca_numero": 1
+        }
+      },
+      "erros": [
+        "[ev02/s01] Em Roma, a primeira-dama Janja saiu escondida, no meio da noite, do hotel em que Macron se\n    Cobertura: o agente não emitiu a checagem esperada",
+        "[ev02/s01] Em Roma, a primeira-dama Janja saiu escondida, no meio da noite, do hotel em que Macron se\n    Stance: esperada contradiz, prevista insuficiente",
+        "[ev04/s01] A Justiça americana derrubou o tarifaço de Donald Trump, numa derrota dura para o presiden\n    Casamento errado: https://www.aosfatos.org/noticias/nao-e-verdade-que-trump-cancelou-tarifaco-de-produtos-brasileiros/",
+        "[ev06/s02] Bolsonaro foi parar no hospital depois de ser envenenado dentro da cela da Papudinha.\n    Casamento errado: https://www.estadao.com.br/estadao-verifica/video-em-que-bolsonaro-circula-em-corredor-de-hospital-foi-feito-apos-cirurgia-em-2025-nao-agora/",
+        "[ev08/s02] Lula admitiu que pretende implantar o socialismo no Brasil, e a CNN cortou a transmissão n\n    Recall@5: nenhuma URL aceita no top 5",
+        "[ev08/s02] Lula admitiu que pretende implantar o socialismo no Brasil, e a CNN cortou a transmissão n\n    Cobertura: o agente não emitiu a checagem esperada",
+        "[ev08/s03] Pablo Marçal passou 3 horas e 20 minutos sem receber nenhum voto na apuração, algo matemat\n    Casamento errado: https://www.estadao.com.br/estadao-verifica/porcentagens-candidatos-apuracao-sao-paulo/",
+        "[ev12/s01] É mentira que Haddad, num encontro do BTG, tenha atribuído ao governo Bolsonaro todos os p\n    Stance: esperada apoia, prevista insuficiente"
+      ]
+    },
+    {
+      "sim_threshold": 0.55,
+      "claim_match_min_prob": 0.7,
+      "n_frases": 18,
+      "n_por_tipo": {
+        "com_checagem": 9,
+        "sem_checagem": 6,
+        "fato_parecido": 1,
+        "troca_numero": 1,
+        "desmente": 1
+      },
+      "recall_at_5": {
+        "acertos": 8,
+        "total": 9,
+        "valor": 0.8888888888888888
+      },
+      "cobertura": {
+        "acertos": 7,
+        "total": 9,
+        "valor": 0.7777777777777778
+      },
+      "macro_f1": {
+        "valor": 0.7474747474747474,
+        "classes_na_media": [
+          "apoia",
+          "contradiz",
+          "insuficiente"
+        ],
+        "por_classe": {
+          "apoia": {
+            "precisao": 1.0,
+            "revocacao": 0.5,
+            "f1": 0.6666666666666666,
+            "suporte": 2,
+            "previstas": 1
+          },
+          "contradiz": {
+            "precisao": 1.0,
+            "revocacao": 0.8333333333333334,
+            "f1": 0.9090909090909091,
+            "suporte": 6,
+            "previstas": 5
+          },
+          "insuficiente": {
+            "precisao": 0.5,
+            "revocacao": 1.0,
+            "f1": 0.6666666666666666,
+            "suporte": 2,
+            "previstas": 4
+          }
+        },
+        "n": 10,
+        "avisos": []
+      },
+      "stance_cobertas": {
+        "acertos": 7,
+        "total": 7,
+        "valor": 1.0
+      },
+      "matriz_confusao": {
+        "apoia": {
+          "apoia": 1,
+          "contradiz": 0,
+          "insuficiente": 1
+        },
+        "contradiz": {
+          "apoia": 0,
+          "contradiz": 5,
+          "insuficiente": 1
+        },
+        "insuficiente": {
+          "apoia": 0,
+          "contradiz": 0,
+          "insuficiente": 2
+        }
+      },
+      "evidencia_inventada": {
+        "acertos": 0,
+        "total": 6,
+        "valor": 0.0
+      },
+      "casamento_errado": {
+        "evidencias": 3,
+        "frases": 3,
+        "por_tipo": {
+          "com_checagem": 2,
+          "troca_numero": 1
+        }
+      },
+      "erros": [
+        "[ev02/s01] Em Roma, a primeira-dama Janja saiu escondida, no meio da noite, do hotel em que Macron se\n    Cobertura: o agente não emitiu a checagem esperada",
+        "[ev02/s01] Em Roma, a primeira-dama Janja saiu escondida, no meio da noite, do hotel em que Macron se\n    Stance: esperada contradiz, prevista insuficiente",
+        "[ev04/s01] A Justiça americana derrubou o tarifaço de Donald Trump, numa derrota dura para o presiden\n    Casamento errado: https://www.aosfatos.org/noticias/nao-e-verdade-que-trump-cancelou-tarifaco-de-produtos-brasileiros/",
+        "[ev06/s02] Bolsonaro foi parar no hospital depois de ser envenenado dentro da cela da Papudinha.\n    Casamento errado: https://www.estadao.com.br/estadao-verifica/video-em-que-bolsonaro-circula-em-corredor-de-hospital-foi-feito-apos-cirurgia-em-2025-nao-agora/",
+        "[ev08/s02] Lula admitiu que pretende implantar o socialismo no Brasil, e a CNN cortou a transmissão n\n    Recall@5: nenhuma URL aceita no top 5",
+        "[ev08/s02] Lula admitiu que pretende implantar o socialismo no Brasil, e a CNN cortou a transmissão n\n    Cobertura: o agente não emitiu a checagem esperada",
+        "[ev08/s03] Pablo Marçal passou 3 horas e 20 minutos sem receber nenhum voto na apuração, algo matemat\n    Casamento errado: https://www.estadao.com.br/estadao-verifica/porcentagens-candidatos-apuracao-sao-paulo/",
+        "[ev12/s01] É mentira que Haddad, num encontro do BTG, tenha atribuído ao governo Bolsonaro todos os p\n    Stance: esperada apoia, prevista insuficiente"
+      ]
+    },
+    {
+      "sim_threshold": 0.55,
+      "claim_match_min_prob": 0.8,
+      "n_frases": 18,
+      "n_por_tipo": {
+        "com_checagem": 9,
+        "sem_checagem": 6,
+        "fato_parecido": 1,
+        "troca_numero": 1,
+        "desmente": 1
+      },
+      "recall_at_5": {
+        "acertos": 8,
+        "total": 9,
+        "valor": 0.8888888888888888
+      },
+      "cobertura": {
+        "acertos": 7,
+        "total": 9,
+        "valor": 0.7777777777777778
+      },
+      "macro_f1": {
+        "valor": 0.7474747474747474,
+        "classes_na_media": [
+          "apoia",
+          "contradiz",
+          "insuficiente"
+        ],
+        "por_classe": {
+          "apoia": {
+            "precisao": 1.0,
+            "revocacao": 0.5,
+            "f1": 0.6666666666666666,
+            "suporte": 2,
+            "previstas": 1
+          },
+          "contradiz": {
+            "precisao": 1.0,
+            "revocacao": 0.8333333333333334,
+            "f1": 0.9090909090909091,
+            "suporte": 6,
+            "previstas": 5
+          },
+          "insuficiente": {
+            "precisao": 0.5,
+            "revocacao": 1.0,
+            "f1": 0.6666666666666666,
+            "suporte": 2,
+            "previstas": 4
+          }
+        },
+        "n": 10,
+        "avisos": []
+      },
+      "stance_cobertas": {
+        "acertos": 7,
+        "total": 7,
+        "valor": 1.0
+      },
+      "matriz_confusao": {
+        "apoia": {
+          "apoia": 1,
+          "contradiz": 0,
+          "insuficiente": 1
+        },
+        "contradiz": {
+          "apoia": 0,
+          "contradiz": 5,
+          "insuficiente": 1
+        },
+        "insuficiente": {
+          "apoia": 0,
+          "contradiz": 0,
+          "insuficiente": 2
+        }
+      },
+      "evidencia_inventada": {
+        "acertos": 0,
+        "total": 6,
+        "valor": 0.0
+      },
+      "casamento_errado": {
+        "evidencias": 2,
+        "frases": 2,
+        "por_tipo": {
+          "com_checagem": 1,
+          "troca_numero": 1
+        }
+      },
+      "erros": [
+        "[ev02/s01] Em Roma, a primeira-dama Janja saiu escondida, no meio da noite, do hotel em que Macron se\n    Cobertura: o agente não emitiu a checagem esperada",
+        "[ev02/s01] Em Roma, a primeira-dama Janja saiu escondida, no meio da noite, do hotel em que Macron se\n    Stance: esperada contradiz, prevista insuficiente",
+        "[ev06/s02] Bolsonaro foi parar no hospital depois de ser envenenado dentro da cela da Papudinha.\n    Casamento errado: https://www.estadao.com.br/estadao-verifica/video-em-que-bolsonaro-circula-em-corredor-de-hospital-foi-feito-apos-cirurgia-em-2025-nao-agora/",
+        "[ev08/s02] Lula admitiu que pretende implantar o socialismo no Brasil, e a CNN cortou a transmissão n\n    Recall@5: nenhuma URL aceita no top 5",
+        "[ev08/s02] Lula admitiu que pretende implantar o socialismo no Brasil, e a CNN cortou a transmissão n\n    Cobertura: o agente não emitiu a checagem esperada",
+        "[ev08/s03] Pablo Marçal passou 3 horas e 20 minutos sem receber nenhum voto na apuração, algo matemat\n    Casamento errado: https://www.estadao.com.br/estadao-verifica/porcentagens-candidatos-apuracao-sao-paulo/",
+        "[ev12/s01] É mentira que Haddad, num encontro do BTG, tenha atribuído ao governo Bolsonaro todos os p\n    Stance: esperada apoia, prevista insuficiente"
+      ]
+    }
+  ]
+}

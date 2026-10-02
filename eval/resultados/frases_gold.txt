@@ -1,0 +1,72 @@
+# ev01/s01 com_checagem
+Durante os quatro anos de mandato, Jair Bolsonaro não moveu uma pedra na ponte do Rio Araguaia, que ficou abandonada.
+# ev01/s02 com_checagem
+O governo apagou a página oficial sobre a Lei das Bets para que ninguém lembre que foi Lula quem assinou a lei.
+# ev01/s03 com_checagem
+No Arkansas, as urnas eletrônicas trocavam sozinhas os votos dados a Donald Trump por votos em Kamala Harris.
+# ev02/s01 com_checagem
+Em Roma, a primeira-dama Janja saiu escondida, no meio da noite, do hotel em que Macron se hospedava.
+# ev02/s02 com_checagem
+Basta um aplicativo e um cabo USB para turbinar a internet de casa sem pagar nada a mais.
+# ev02/s03 sem_checagem
+O Ministério das Comunicações abriu consulta pública sobre o leilão de novas faixas de 5G para cidades do interior.
+# ev03/s01 desmente
+Ao contrário do que circula nas redes, Lula não virou réu em nenhuma corte internacional.
+# ev03/s02 sem_checagem
+O Parlamento português aprovou nesta semana novas regras para a renovação de vistos de trabalho de brasileiros.
+# ev03/s03 com_checagem
+Militantes de esquerda colocaram veneno na água de André Ventura durante um comício em Portugal.
+# ev04/s01 com_checagem
+A Justiça americana derrubou o tarifaço de Donald Trump, numa derrota dura para o presidente.
+# ev04/s02 sem_checagem
+A Neo Química Arena vai receber em dezembro a final da Copa do Brasil feminina.
+# ev04/s03 com_checagem
+Moraes respondeu a torcedores com um gesto obsceno quando estava no estádio vendo o Corinthians.
+# ev05/s01 fato_parecido
+O Itamaraty avisou que fecharia a embaixada dos Estados Unidos caso Flávio Dino fosse punido por Washington.
+# ev05/s02 com_checagem
+O colegiado de ética dos deputados correu para cassar Glauber Braga, mas engavetou até agora o caso de Chiquinho Brazão.
+# ev05/s03 sem_checagem
+A Câmara criou uma frente parlamentar para acompanhar a qualidade da merenda nas escolas públicas.
+# ev06/s01 fato_parecido
+Michelle Bolsonaro prometeu elevar o salário mínimo para mais de R$ 3.000 se chegar à Presidência.
+# ev06/s02 com_checagem
+Bolsonaro foi parar no hospital depois de ser envenenado dentro da cela da Papudinha.
+# ev06/s03 sem_checagem
+A equipe médica informou que o ex-presidente fará sessões diárias de fisioterapia respiratória.
+# ev07/s01 troca_numero
+Silvio Almeida, que deixou o ministério após denúncias de assédio, apareceu em gravação apoiando Guilherme Boulos na disputa de 2026.
+# ev07/s02 com_checagem
+Um tremor de magnitude 6,7 sacudiu o Peru e foi sentido em diversas cidades do país.
+# ev07/s03 sem_checagem
+O Instituto Geofísico do Peru registrou mais de 40 réplicas nas 24 horas seguintes ao tremor.
+# ev08/s01 sem_checagem
+O PT marcou para novembro o encontro nacional que vai definir as diretrizes do programa de governo.
+# ev08/s02 com_checagem
+Lula admitiu que pretende implantar o socialismo no Brasil, e a CNN cortou a transmissão no mesmo instante.
+# ev08/s03 troca_numero
+Pablo Marçal passou 3 horas e 20 minutos sem receber nenhum voto na apuração, algo matematicamente impossível.
+# ev09/s01 sem_checagem
+A Primeira Turma do STF marcou para a próxima terça o julgamento de um recurso sobre a execução de emendas parlamentares.
+# ev09/s02 com_checagem
+Em postagem, o deputado Nikolas Ferreira garantiu que a oposição levará a moeda americana a R$ 7.
+# ev09/s03 com_checagem
+Arrependida, Cármen Lúcia admitiu que agora defende a anistia para os condenados pela trama golpista.
+# ev10/s01 com_checagem
+Quem nasceu entre 1960 e 2006 pode pedir uma indenização do governo como forma de desculpas oficiais.
+# ev10/s02 com_checagem
+Donald Trump mandou um aviso ao governo brasileiro por causa da extradição de Carla Zambelli.
+# ev10/s03 sem_checagem
+A Polícia Federal prendeu em Goiânia um grupo suspeito de desviar dinheiro de aposentados com empréstimos consignados.
+# ev11/s01 com_checagem
+Aviões de caça F-15 americanos aterrissaram na base da FAB em Natal para participar do exercício CRUZEX 2024.
+# ev11/s02 com_checagem
+Indígenas protestaram na COP30 exigindo um barco como o de Janja em vez de caminhonetes Hilux.
+# ev11/s03 sem_checagem
+A Prefeitura de Belém anunciou a ampliação das linhas de ônibus que ligam o centro aos bairros da periferia.
+# ev12/s01 desmente
+É mentira que Haddad, num encontro do BTG, tenha atribuído ao governo Bolsonaro todos os problemas do país.
+# ev12/s02 sem_checagem
+O Ministério da Fazenda prevê que a receita com impostos federais cresça 3% acima da inflação no próximo ano.
+# ev12/s03 com_checagem
+Flávio Bolsonaro apareceu usando uma camiseta que insulta os nordestinos.

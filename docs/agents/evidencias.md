@@ -182,6 +182,7 @@ O `validar` confere tudo isso que é verificável: JSON e ids, tipo × URLs × s
 | Recall@5 (busca) | `com_checagem` | Alguma URL aceita entre as 5 primeiras checagens distintas da busca (`search(k=30)` + `group_hits_by_url` sem limiar). Sem limiar e sem etapa 2: mede a recuperação. | ≥ 0,70 |
 | Cobertura (agente) | `com_checagem` | O agente emitiu evidência com URL aceita. Mostra quanto o limiar e a etapa 2 cortam. | — |
 | Macro-F1 de stance | `com_checagem`, `desmente` | Prevista = stance da primeira evidência com URL aceita; sem ela, `insuficiente` (Seção 4.8). Média nas classes com exemplo anotado. | ≥ 0,65 |
+| Stance nas cobertas | `com_checagem`, `desmente` em que o agente citou uma URL aceita | % com a stance certa. Separa erro de stance de checagem perdida: no macro-F1, uma frase `insuficiente` cuja checagem o agente perdeu conta como acerto. | — |
 | Evidência inventada | `sem_checagem` | % de frases com qualquer evidência | ≤ 0,10 |
 | Casamento errado | todas | Evidências com URL fora das aceitas (inclui `fato_parecido`) | 0 |
 
@@ -191,14 +192,36 @@ Para comparar modelos de embedding (item 5): defina `EVIDENCE_EMBEDDING_MODEL`, 
 
 ### Resultados
 
-| Data | Split | Recall@5 | Cobertura | Macro-F1 | Inventada | Casamento errado | Arquivo |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| — | — | pendente (rodar `avaliar --salvar` no Mac) | | | | | |
+| Data | Split | Recall@5 | Cobertura | Macro-F1 | Stance nas cobertas | Inventada | Casamento errado | Arquivo |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 01/10 | todos | 18/19 = **0,95** | 14/19 = 0,74 | **0,61** | 14/14 = 1,00 | 0/11 = **0,00** | **7** | `eval/resultados/evidencias_2026-10-01.json` |
+| 01/10 | teste | 10/10 | 7/10 | 0,44 | 7/7 | 0/5 | 3 | (mesmo arquivo) |
+| 01/10 | calibração | 8/9 | 7/9 | 0,75 | 7/7 | 0/6 | 4 | (mesmo arquivo) |
 
-Estado do conjunto (01/10): 12 entradas e 36 frases escritas, `validar` sem erros. **As frases foram escritas pelo Claude**, a pedido do R2, o que contraria a regra 6 acima. Antes de os números entrarem no relatório:
+Configuração: BGE-M3, mDeBERTa, `SIM_THRESHOLD` 0,55, `CLAIM_MATCH_MIN_PROB` 0,5, índice com 32.094 trechos, Mac (`mps`), commit `9eba0f7`. A "stance nas cobertas" foi criada depois da rodada e calculada a partir do detalhe por frase salvo no arquivo; as próximas rodadas já a gravam.
+
+Leitura:
+- **Quando o agente acha a checagem certa, a stance sai certa (14/14).** O macro-F1 abaixo da meta vem de checagens perdidas (5 de 19) e das 2 frases que desmentem o boato, não de erro de stance.
+- A revocação de `insuficiente` (1,00) está inflada: em ev08/s02 o agente perdeu a checagem e citou outra, e a frase contou como acerto. A "stance nas cobertas" existe para isso.
+- A análise dos erros e os próximos passos estão no ADR 3.
+
+Estado do conjunto (01/10): 12 entradas e 36 frases, `validar` sem erros, URLs aceitas conferidas com o `diagnostico.py` (que acrescentou mais duas; saída em `eval/resultados/diagnostico_gold.txt`). **As frases foram escritas pelo Claude**, a pedido do R2, o que contraria a regra 6 acima. Antes de os números entrarem no relatório:
 - o R1 revisa as frases e preenche `revisor`;
-- quem anota confirma as URLs aceitas com o `diagnostico.py`, porque as extras foram achadas por busca de palavras no corpus;
 - o relatório declara a origem das paráfrases.
+
+### Como reproduzir
+
+macOS:
+
+```bash
+source venv/bin/activate
+python eval/avaliar_evidencias.py validar
+python eval/avaliar_evidencias.py frases          # grava eval/resultados/frases_gold.txt
+python data/corpus/diagnostico.py --arquivo eval/resultados/frases_gold.txt > eval/resultados/diagnostico_gold.txt
+python eval/avaliar_evidencias.py avaliar --salvar
+```
+
+Windows (PowerShell): os mesmos comandos, ativando o ambiente com `venv\Scripts\Activate.ps1`. Antes, rode `$env:PYTHONUTF8 = "1"`: sem isso, o Python grava a saída redirecionada na codificação do Windows e quebra nos caracteres "✓" e "…" do diagnóstico. Para gravar o diagnóstico em UTF-8, use `| Out-File -Encoding utf8 eval/resultados/diagnostico_gold.txt` no lugar do `>`.
 
 ## Integração
 

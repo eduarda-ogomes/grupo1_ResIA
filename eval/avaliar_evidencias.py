@@ -1,18 +1,20 @@
 """Avaliação do Agente de Evidências (Manual §6.2 e §7.1).
 
-Três comandos, sempre a partir da raiz do repositório:
+Comandos, sempre a partir da raiz do repositório:
 
     python eval/avaliar_evidencias.py sortear --n 30 [--veredito verdadeiro] [--agencia AFP] [--semente 1]
     python eval/avaliar_evidencias.py esqueleto [--semente 1] [--saida data/gold/evidencias.json] [--forcar]
     python eval/avaliar_evidencias.py completar [--refazer-textos]
     python eval/avaliar_evidencias.py validar [--gold data/gold/evidencias.json]
     python eval/avaliar_evidencias.py avaliar [--split teste|calibracao|todos] [--salvar]
+    python eval/avaliar_evidencias.py frases [--split ...] [--saida eval/resultados/frases_gold.txt]
 
 - sortear: lista checagens do corpus para parafrasear (sem índice, sem modelos).
 - esqueleto: gera as 12 entradas com as checagens sorteadas e as frases em branco.
 - completar: monta o texto de cada entrada juntando as frases escritas.
 - validar: confere o conjunto de avaliação (sem índice, sem modelos).
 - avaliar: roda a busca e o agente reais e calcula as métricas (precisa do índice e dos modelos).
+- frases: grava as frases do conjunto, uma por linha, para o data/corpus/diagnostico.py --arquivo.
 
 Métricas (definições no ADR 3, docs/agents/evidencias_decisoes.md):
 - Recall@5: em frases `com_checagem`, alguma URL aceita está entre as 5 primeiras
@@ -20,6 +22,8 @@ Métricas (definições no ADR 3, docs/agents/evidencias_decisoes.md):
 - Cobertura: em frases `com_checagem`, o agente emitiu evidência com URL aceita.
 - Macro-F1 de stance: em frases `com_checagem` e `desmente`; stance prevista = a da
   primeira evidência com URL aceita, ou `insuficiente` se não houver (§4.8).
+- Stance nas cobertas: nas mesmas frases, só as em que o agente citou uma URL aceita;
+  % com a stance certa. Separa erro de stance de checagem perdida, que o macro-F1 mistura.
 - Evidência inventada: em frases `sem_checagem`, % com qualquer evidência.
 - Casamento errado: evidências cujo link não está entre as URLs aceitas da frase.
 
@@ -402,6 +406,7 @@ def calcular_metricas(frases: Sequence[dict], rankings: dict[str, list[str]],
     detalhes, erros = [], []
     pares_stance: list[tuple[str, str]] = []
     recall_ok = recall_total = cobertas = inventadas = total_sem = 0
+    stance_cobertas = stance_cobertas_ok = 0
     errados_por_tipo: Counter = Counter()
     frases_com_errado = 0
 
@@ -437,6 +442,10 @@ def calcular_metricas(frases: Sequence[dict], rankings: dict[str, list[str]],
             prevista = prever_stance(evidencias, aceitas)
             d["stance_prevista"] = prevista
             pares_stance.append((f["stance_esperada"], prevista))
+            d["citou_aceita"] = any(u in aceitas for u in urls_emitidas)
+            if d["citou_aceita"]:
+                stance_cobertas += 1
+                stance_cobertas_ok += prevista == f["stance_esperada"]
             if prevista != f["stance_esperada"]:
                 erros.append(f"{curto}\n    Stance: esperada {f['stance_esperada']}, prevista {prevista}")
 
@@ -461,6 +470,7 @@ def calcular_metricas(frases: Sequence[dict], rankings: dict[str, list[str]],
         "recall_at_5": _taxa(recall_ok, recall_total),
         "cobertura": _taxa(cobertas, recall_total),
         "macro_f1": f1,
+        "stance_cobertas": _taxa(stance_cobertas_ok, stance_cobertas),
         "matriz_confusao": matriz_confusao(pares_stance),
         "evidencia_inventada": _taxa(inventadas, total_sem),
         "casamento_errado": {"evidencias": sum(errados_por_tipo.values()), "frases": frases_com_errado,
@@ -817,13 +827,14 @@ def formatar_relatorio(m: dict, split: str) -> str:
     linhas = [f"Avaliação do Agente de Evidências | split: {split} | {m['n_frases']} frases {m['n_por_tipo']}", ""]
     linhas.append(f"{'Métrica':28s} {'Valor':>16s}   {'Meta':8s}")
     r, c, inv = m["recall_at_5"], m["cobertura"], m["evidencia_inventada"]
-    f1, ce = m["macro_f1"], m["casamento_errado"]
+    f1, ce, sc = m["macro_f1"], m["casamento_errado"], m["stance_cobertas"]
     linhas += [
         f"{'Recall@5 (busca)':28s} {r['acertos']:>4d}/{r['total']:<4d}{_num(r['valor']):>7s}   ≥ 0,70    "
         f"{_status('recall_at_5', r['valor'])}",
         f"{'Cobertura (agente)':28s} {c['acertos']:>4d}/{c['total']:<4d}{_num(c['valor']):>7s}   —",
         f"{'Macro-F1 de stance':28s} {str(len(f1['classes_na_media'])) + ' classes':>9s}"
         f"{_num(f1['valor']):>7s}   ≥ 0,65    {_status('macro_f1', f1['valor'])}",
+        f"{'Stance nas cobertas':28s} {sc['acertos']:>4d}/{sc['total']:<4d}{_num(sc['valor']):>7s}   —",
         f"{'Evidência inventada':28s} {inv['acertos']:>4d}/{inv['total']:<4d}{_num(inv['valor']):>7s}   ≤ 0,10    "
         f"{_status('evidencia_inventada', inv['valor'])}",
         f"{'Casamento errado':28s} {ce['evidencias']:>9d} ev.{'':4s}   = 0       "
@@ -1030,6 +1041,23 @@ def cmd_avaliar(args) -> int:
     return 0
 
 
+def listar_frases(gold: dict, split: str = "todos") -> list[str]:
+    """Linhas para o diagnostico.py --arquivo: um comentário com a chave e o tipo, depois a frase."""
+    linhas = []
+    for f in selecionar_frases(gold, split):
+        linhas += [f"# {f['chave']} {f['tipo']}", _normaliza_espacos(f["texto"])]
+    return linhas
+
+
+def cmd_frases(args) -> int:
+    linhas = listar_frases(carregar_json(args.gold), args.split)
+    args.saida.parent.mkdir(parents=True, exist_ok=True)
+    args.saida.write_text("\n".join(linhas) + "\n", encoding="utf-8")
+    print(f"{len(linhas) // 2} frases gravadas em {_relativo(args.saida)}. Próximo passo:")
+    print(f"  python data/corpus/diagnostico.py --arquivo {_relativo(args.saida)}")
+    return 0
+
+
 def _relativo(caminho: Path) -> str:
     caminho = Path(caminho).resolve()
     return str(caminho.relative_to(REPO_ROOT)) if caminho.is_relative_to(REPO_ROOT) else str(caminho)
@@ -1072,6 +1100,12 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--split", choices=("todos", *SPLITS), default="todos")
     p.add_argument("--salvar", action="store_true", help="grava eval/resultados/evidencias_<data>.json")
     p.set_defaults(func=cmd_avaliar)
+
+    p = sub.add_parser("frases", help="grava as frases do conjunto para o diagnostico.py --arquivo")
+    comum(p)
+    p.add_argument("--split", choices=("todos", *SPLITS), default="todos")
+    p.add_argument("--saida", type=Path, default=RESULTADOS_DIR / "frases_gold.txt")
+    p.set_defaults(func=cmd_frases)
 
     args = parser.parse_args(argv)
     return args.func(args)

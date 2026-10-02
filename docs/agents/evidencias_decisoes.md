@@ -69,7 +69,7 @@ O manual (Seção 6.1) cita Aos Fatos, Lupa e Comprova.
 1. **Formato próprio**, só da parte de evidências (`data/gold/evidencias.json`), convertido para o formato do R3 quando ele existir.
 2. **Recall@5 por checagem distinta e sem limiar.** Os 30 trechos mais próximos são agrupados por URL; vale o top 5. Mede a busca, não o agente, como pede a Seção 7.1.
 3. **Várias URLs aceitas por frase**: espelhos (UOL/BOL) e outras agências que checaram a mesma alegação. Com uma URL só, achar a checagem da AFP no lugar da do Aos Fatos contaria como erro.
-4. **Frase sem evidência com URL aceita → stance prevista `insuficiente`** (primeiro sentido da Seção 4.8). Como isso faz uma frase `insuficiente` não encontrada contar como acerto, a **cobertura** é reportada ao lado.
+4. **Frase sem evidência com URL aceita → stance prevista `insuficiente`** (primeiro sentido da Seção 4.8). Como isso faz uma frase `insuficiente` não encontrada contar como acerto, a **cobertura** e a **stance nas cobertas** (só as frases em que o agente citou uma URL aceita) são reportadas ao lado. A segunda foi acrescentada depois da primeira rodada, em que esse viés apareceu (ev08/s02).
 5. **`desmente` com stance esperada `apoia`.** Mede uma limitação conhecida (ADR 1) e baixa o F1 de propósito.
 6. **Casamento errado** como quarta métrica, com meta 0: é o erro mais grave (Seção 12) e nenhuma métrica da Seção 7.1 o mede diretamente.
 7. **Split por entrada** (metade calibração, metade teste), definido antes de calibrar.
@@ -83,6 +83,28 @@ O manual (Seção 6.1) cita Aos Fatos, Lupa e Comprova.
 - ❌ `apoia` quase não tem exemplos: 36 checagens viram `apoia`, das quais 21 são guias explicativos (o `sortear` as marca). O F1 dessa classe vai ser instável.
 - ⚠️ Quem anota conhece as regras do agente. Paráfrases escritas por outra pessoa reduzem o viés.
 - ⚠️ A primeira versão do conjunto (01/10) foi escrita pelo Claude, a pedido do R2. Ela só vale para o relatório depois da revisão humana, e o relatório precisa declarar essa origem.
+
+**Primeira rodada (01/10, commit `9eba0f7`).** Números completos no card (seção Avaliação).
+
+| Recall@5 | Cobertura | Macro-F1 | Stance nas cobertas | Inventada | Casamento errado |
+| --- | --- | --- | --- | --- | --- |
+| 18/19 = 0,95 ✅ | 14/19 = 0,74 | 0,61 ❌ | 14/14 = 1,00 | 0/11 = 0,00 ✅ | 7 ❌ |
+
+Análise dos erros:
+- **Stance:** certa em todas as 14 frases em que o agente citou a checagem certa. O F1 abaixo da meta vem das checagens perdidas e das 2 frases `desmente` (0 de 2, limitação conhecida do ADR 1).
+- **Checagens perdidas (5 de 19).** Quatro estavam em 1º lugar na busca e caíram na etapa 2:
+  - "Aviões…" (F-15) e "Arrependida…" (Cármen Lúcia): a primeira palavra, em maiúscula, conta como nome próprio, e a checagem certa é rejeitada como troca de termo;
+  - Janja em Roma: o NLI recusou uma paráfrase boa (entailment 0,00 e 0,10);
+  - Arkansas: as duas checagens aceitas foram rejeitadas na etapa 2.
+
+  A quinta (Lula e o socialismo) nem chegou ao top 5: as checagens certas (UOL e AFP) só têm título no índice. É o único erro de Recall@5.
+- **Casamentos errados (7):**
+  - 2 em `troca_numero`: a alegação checada não tem o número trocado (2024 × 2026) ou o NLI aceitou outra alegação (0,98);
+  - 5 em `com_checagem`: o NLI aceitou checagens de outro fato do mesmo tema. Três tinham entailment entre 0,52 e 0,67 (Lula comunista, tarifaço, Lei das Bets) e cairiam com um limiar perto de 0,7; Kamala (0,98) e Bolsonaro na UTI (0,93) não caem com nenhum limiar.
+  - Ev01/s02 (Lei das Bets) é provavelmente falha de anotação: a frase afirma que "foi Lula quem assinou a lei", e a checagem citada ("Foi Temer, não Lula, quem permitiu as bets") checa essa parte. Se entrar em `checagens_aceitas`, são 6.
+- **"COP30":** vira `cop` nos nomes e `cop30` nos termos, e os dois nunca batem.
+- **Abstenção (0/11) otimista:** 10 das 11 frases `sem_checagem` são notícias neutras, que nem parecem boato; só ev06/s03 testa a abstenção num tema próximo de checagens.
+- **Ressalva:** a análise olhou frases dos dois splits. Corrigir falhas de regra geral (maiúscula, COP30) é legítimo; os limiares devem ser calibrados só no split `calibracao`.
 
 ## Decisões menores
 
@@ -104,8 +126,10 @@ O manual (Seção 6.1) cita Aos Fatos, Lupa e Comprova.
 | Item | Depende de |
 | --- | --- |
 | **Aprovar o ADR 1 e o ADR 2** | Reunião do grupo |
-| Revisar as 36 frases de `data/gold/evidencias.json` (escritas pelo Claude) e confirmar as URLs aceitas com o `diagnostico.py` | R2; revisão do R1 |
-| Rodar `avaliar --salvar` e registrar os números no card | Conjunto anotado |
+| Revisão das 36 frases de `data/gold/evidencias.json` (escritas pelo Claude), preenchendo `revisor` | R1 |
+| Decidir casos de anotação: ev01/s02 (aceitar a checagem do Temer?), ev08/s02 (o "Lula comunista" é outro episódio?), ev11/s01 (F-15: as duas URLs aceitas têm stances diferentes) e trocar frases `sem_checagem` neutras por boatos sem checagem | R2, com a revisão do R1 |
+| Termos-chave: primeira palavra em maiúscula só conta como nome se aparecer em maiúscula de novo ou na checagem; normalizar nomes colados a números (COP30) | — |
+| Testar `CLAIM_MATCH_MIN_PROB` perto de 0,7, só no split `calibracao` | — |
 | Converter `data/gold/evidencias.json` para o formato do gold set | R3 |
 | Calibrar `SIM_THRESHOLD` e `CLAIM_MATCH_MIN_PROB`; comparar BGE-M3 × e5-large | Gold set |
 | Medir latência e memória na máquina da demo (orçamento < 2 GB, Seção 5.2) | — |
@@ -126,3 +150,4 @@ O manual (Seção 6.1) cita Aos Fatos, Lupa e Comprova.
 | 01/10 | Avaliação (ADR 3): `eval/avaliar_evidencias.py` com `sortear`, `validar` e `avaliar`; formato do conjunto em `data/gold/evidencias.json`; testes sem modelos no CI. |
 | 01/10 | Comandos `esqueleto` (12 entradas com as checagens sorteadas e as frases em branco) e `completar` (monta o texto das entradas). Filtro de checagens utilizáveis: sem guias, alegações negativas, perguntas, links, textos longos e espelhos (BOL e Acervo Estadão). |
 | 01/10 | Conjunto preenchido: 36 frases escritas pelo Claude (rascunho, a revisar), URLs aceitas extras achadas por busca no corpus; `validar` sem erros. |
+| 01/10 | Primeira rodada do `avaliar` (Recall@5 0,95; macro-F1 0,61; inventada 0,00; 7 casamentos errados) e análise de erros. Nova métrica "stance nas cobertas" (14/14) e comando `frases`, que gera a entrada do `diagnostico.py`. |

@@ -527,5 +527,5 @@
       ]
     }
   ],
-  "_anotacao": "Frases escritas pelo Claude em 01/10/2026 e revisadas pelo R2. As URLs aceitas extras foram achadas por busca de palavras no corpus, sem o diagnostico.py: confirmar com ele."
+  "_anotacao": "Frases escritas pelo Claude em 01/10/2026 e revisadas pelo R2. As URLs aceitas extras foram achadas por busca de palavras no corpus e conferidas com o diagnostico.py, que acrescentou mais duas (eval/resultados/diagnostico_gold.txt). Falta a revisão do R1 (campo revisor)."
 }

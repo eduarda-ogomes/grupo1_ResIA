@@ -148,14 +148,43 @@ def test_calcular_metricas_em_gold_sintetico():
     detalhe = {d["chave"]: d for d in m["por_frase"]}
     assert detalhe["ev01/s01"]["posicao_aceita"] == 1
     assert detalhe["ev01/s02"]["posicao_aceita"] is None
+    # stance nas cobertas: só ev01/s01 citou uma URL aceita, e acertou
+    assert (m["stance_cobertas"]["acertos"], m["stance_cobertas"]["total"]) == (1, 1)
     assert len(m["erros"]) == 5   # recall e cobertura (ev01/s02); inventada; stance (desmente); casamento errado
+
+
+def test_stance_nas_cobertas_separa_stance_errada_de_checagem_perdida():
+    frases = av.selecionar_frases(gold_sintetico())
+    saidas = {
+        "ev01/s01": [ev(URL_FACHIN, "apoia")],                   # citou a certa, stance errada
+        "ev01/s02": [ev("https://outra", "insuficiente")],       # citou só uma errada: não entra
+        "ev02/s02": [ev(URL_FACHIN, "contradiz")],               # desmente: citou a certa, stance errada
+    }
+    m = av.calcular_metricas(frases, {}, saidas)
+    assert (m["stance_cobertas"]["acertos"], m["stance_cobertas"]["total"]) == (0, 2)
+    # o macro-F1 conta ev01/s02 como acerto de 'insuficiente', mesmo com a checagem perdida
+    assert m["matriz_confusao"]["insuficiente"]["insuficiente"] == 1
 
 
 def test_relatorio_formata_sem_erro():
     frases = av.selecionar_frases(gold_sintetico())
     m = av.calcular_metricas(frases, {}, {})
     texto = av.formatar_relatorio(m, "todos")
-    assert "Recall@5" in texto and "Matriz de confusão" in texto
+    assert "Recall@5" in texto and "Matriz de confusão" in texto and "Stance nas cobertas" in texto
+
+
+def test_listar_frases_para_o_diagnostico():
+    linhas = av.listar_frases(gold_sintetico(), "calibracao")
+    assert linhas == ["# ev02/s01 sem_checagem", "Prefeitura anunciou ontem uma nova linha de ônibus noturna.",
+                      "# ev02/s02 desmente", "A agência confirmou que aquela imagem do plenário é montagem."]
+
+
+def test_comando_frases_grava_utf8(tmp_path):
+    gold, saida = tmp_path / "gold.json", tmp_path / "sub" / "frases.txt"
+    gold.write_text(json.dumps(gold_sintetico(), ensure_ascii=False), encoding="utf-8")
+    assert av.main(["frases", "--gold", str(gold), "--saida", str(saida)]) == 0
+    texto = saida.read_text(encoding="utf-8")
+    assert texto.count("\n# ") == 4 and "ônibus" in texto
 
 
 # --- executar_avaliacao com busca e agente simulados -------------------------------------------

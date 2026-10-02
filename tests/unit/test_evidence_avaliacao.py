@@ -498,3 +498,56 @@ def test_comando_esqueleto_nao_sobrescreve(tmp_path):
     assert av.main(["esqueleto", "--claims", str(claims), "--saida", str(saida)]) == 1
     assert av.main(["esqueleto", "--claims", str(claims), "--saida", str(saida), "--forcar"]) == 0
     assert av.main(["completar", "--gold", str(saida)]) == 0
+
+
+# --- calibrar --------------------------------------------------------------------------------
+
+def _agente_por_limiar(segmentos, sim, nli):
+    """Simula o efeito do limiar do NLI: com 0,7 ou mais, a evidência errada da frase s01 some."""
+    evs = []
+    for s in segmentos:
+        if s["text"].startswith("Ministro do STF"):
+            evs.append(ev(URL_FACHIN, "contradiz", s["id"]))
+            if nli < 0.7:
+                evs.append(ev(URL_DENGUE, "contradiz", s["id"]))   # casamento errado que o limiar barra
+    return {"evidence": evs}
+
+
+def test_calibracao_roda_a_busca_uma_vez_e_o_agente_por_combinacao():
+    buscas = []
+
+    def buscar(textos):
+        buscas.append(list(textos))
+        return [[URL_FACHIN] for _ in textos]
+
+    linhas = av.executar_calibracao(gold_sintetico(), [0.55], [0.5, 0.7], "todos", buscar, _agente_por_limiar)
+    assert len(buscas) == 1
+    assert [(l["claim_match_min_prob"], l["metricas"]["casamento_errado"]["evidencias"]) for l in linhas] == \
+        [(0.5, 1), (0.7, 0)]
+    melhor = av.sugerir_limiares(linhas)
+    assert melhor["claim_match_min_prob"] == 0.7
+    texto = av.formatar_calibracao(linhas, "todos")
+    assert "Sugestão" in texto and "--split teste" in texto
+
+
+def test_sugestao_desempata_por_cobertura_e_depois_pelo_limiar_mais_baixo():
+    def linha(sim, nli, errados, cobertas):
+        return {"sim_threshold": sim, "claim_match_min_prob": nli,
+                "metricas": {"casamento_errado": {"evidencias": errados}, "cobertura": {"acertos": cobertas}}}
+    linhas = [linha(0.55, 0.8, 0, 5), linha(0.55, 0.7, 0, 6), linha(0.55, 0.6, 0, 6), linha(0.55, 0.5, 2, 9)]
+    assert av.sugerir_limiares(linhas)["claim_match_min_prob"] == 0.6
+    assert av.sugerir_limiares([]) is None
+
+
+def test_agente_com_limiares_restaura_a_configuracao(monkeypatch):
+    vistos = []
+    monkeypatch.setattr(av, "rodar_agente", lambda segs: vistos.append(
+        (av.config.SIM_THRESHOLD, av.config.CLAIM_MATCH_MIN_PROB)) or {"evidence": []})
+    antes = (av.config.SIM_THRESHOLD, av.config.CLAIM_MATCH_MIN_PROB)
+    av.rodar_agente_com_limiares([], 0.6, 0.75)
+    assert vistos == [(0.6, 0.75)]
+    assert (av.config.SIM_THRESHOLD, av.config.CLAIM_MATCH_MIN_PROB) == antes
+
+
+def test_caminho_resultado_com_prefixo(tmp_path):
+    assert av.caminho_resultado(tmp_path, "2026-10-02", prefixo="calibracao").name == "calibracao_2026-10-02.json"

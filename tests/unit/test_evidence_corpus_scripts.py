@@ -91,6 +91,20 @@ def test_download_desiste_do_site_que_recusa(tmp_path, monkeypatch):
     assert len((tmp_path / "a.jsonl").read_text(encoding="utf-8").splitlines()) == 3
 
 
+def test_download_apenas_dos_sites_pedidos(tmp_path, monkeypatch):
+    claims = [{"source_url": f"https://checamos.afp.com/doc{i}"} for i in range(3)]
+    claims += [{"source_url": f"https://noticias.uol.com.br/confere/a{i}.htm"} for i in range(8)]
+    (tmp_path / "c.jsonl").write_text("\n".join(json.dumps(c) for c in claims), encoding="utf-8")
+    calls = []
+    monkeypatch.setattr(fetch_articles, "fetch_text", lambda url, retries: calls.append(url) or ("texto", "t"))
+    monkeypatch.setattr(fetch_articles.time, "sleep", lambda s: None)
+    monkeypatch.setattr(sys, "argv", ["x", "--claims", str(tmp_path / "c.jsonl"), "--out", str(tmp_path / "a.jsonl"),
+                                      "--failures", str(tmp_path / "f.jsonl"),
+                                      "--apenas-sites", "www.noticias.uol.com.br", "--limit", "5"])
+    fetch_articles.main()
+    assert len(calls) == 5 and all("uol" in u for u in calls)
+
+
 # --- experimento_etapa2: lógica das variantes ---------------------------------
 
 @pytest.fixture

@@ -32,6 +32,7 @@ run(state) -> {"evidence": [
 frase ─► 1. busca: 10 trechos mais parecidos (similaridade ≥ 0,55), agrupados por checagem;
             até 6 checagens; mesma checagem em 2 sites conta 1 (fica o original, não o espelho do BOL)
       ─► 2. termos-chave: a frase troca um nome, número ou doença da alegação checada? → descarta
+            (a 1ª palavra da frase só é nome se o corpus a usa como nome: "Lula" sim, "Aviões" não)
       ─► 3. NLI: frase e alegação (sem "Foto/Vídeo mostra") se implicam em alguma direção (≥ 0,5)?
       ─► 4. evidência: stance = veredito da agência; excerpt = título da checagem; até 3 por frase
 ```
@@ -47,7 +48,9 @@ frase ─► 1. busca: 10 trechos mais parecidos (similaridade ≥ 0,55), agrupa
 | `src/retrieval/etapa2.py` | "Mesma alegação": normalização da alegação, termos-chave, veredito → stance |
 | `src/stubs/evidence_stub.py` | Stub para os outros agentes testarem sem modelos: devolve a fixture `02_evidencias_saida.json` (Seção 4.6) |
 | `data/corpus/` | Coleta (`collect_factcheck_api.py`), download (`fetch_articles.py`), índice (`build_index.py`), diagnóstico e experimento |
-| `eval/avaliar_evidencias.py` | Avaliação: `sortear`, `validar` e `avaliar` (Recall@5, stance, evidência inventada); ver [Avaliação](#avaliação) |
+| `data/corpus/nomes_proprios.txt` | Palavras que o corpus usa como nome próprio (gerado pelo `build_index.py`; versionado) |
+| `eval/avaliar_evidencias.py` | Avaliação: `sortear`, `validar`, `avaliar` (Recall@5, stance, evidência inventada) e `calibrar` (limiares); ver [Avaliação](#avaliação) |
+| `eval/medir_recursos.py` | Tempo de carga, memória dos modelos (orçamento da Seção 5.2) e tempo por notícia |
 | `data/gold/evidencias.json` | Conjunto de avaliação (parte de evidências do gold set) |
 | `eval/resultados/` | Resultado de cada rodada do `avaliar --salvar`, versionado para o relatório |
 | `tests/` | Unitários (sem modelos), contrato e integração (modelos reais) |
@@ -104,6 +107,9 @@ python eval/avaliar_evidencias.py esqueleto                             # 12 ent
 python eval/avaliar_evidencias.py completar                             # monta o texto das entradas a partir das frases
 python eval/avaliar_evidencias.py validar                               # confere data/gold/evidencias.json
 python eval/avaliar_evidencias.py avaliar --split todos --salvar        # índice e modelos reais
+python eval/avaliar_evidencias.py calibrar --nli 0.5 0.6 0.7 0.8       # limiares, só no split de calibração
+python eval/avaliar_evidencias.py frases                                # entrada do diagnostico.py --arquivo
+python eval/medir_recursos.py --comparar-fp16 --salvar                  # tempo e memória
 ```
 
 A variável vale só para a janela do terminal em que foi definida. Fora do ambiente virtual, no macOS, use `python3` no lugar de `python`. No Mac com Apple Silicon, o agente usa a GPU (`mps`) automaticamente.
@@ -117,6 +123,7 @@ A variável vale só para a janela do terminal em que foi definida. Fora do ambi
 | `EVIDENCE_SEARCH_K` / `EVIDENCE_CLAIM_CANDIDATES` / `EVIDENCE_MAX_PER_SEGMENT` | `10` / `6` / `3` | Trechos buscados / checagens avaliadas / evidências por frase |
 | `EVIDENCE_EMBEDDING_MODEL` / `EVIDENCE_NLI_MODEL` | `BAAI/bge-m3` / `MoritzLaurer/mDeBERTa-v3-base-mnli-xnli` | Modelos |
 | `EVIDENCE_DEVICE` | automático | `cuda` → `mps` → `cpu` |
+| `EVIDENCE_NLI_FP16` | `0` | `1` carrega o NLI em fp16 na GPU (metade da memória). Ligar só depois do `medir_recursos.py --comparar-fp16` mostrar que as decisões não mudam |
 | `EVIDENCE_CHROMA_PATH` / `EVIDENCE_RAW_DIR` | `chroma_data/` / `data/corpus/raw/` | Caminhos (fora do Git) |
 
 ## Limitações conhecidas
@@ -126,6 +133,7 @@ A variável vale só para a janela do terminal em que foi definida. Fora do ambi
 - Paráfrases muito diferentes da alegação podem ser perdidas (ex.: "com dedo em riste", NLI 0,07). O agente prefere perder a citar a checagem errada.
 - `apoia` é raro: das 5.826 checagens, 36 viram `apoia`, e 21 delas são guias do Comprova ("Como funciona o golpe do SMS"), não alegações. Uma ("Não é Moraes no avião de Vorcaro", Comprovado) daria a stance invertida, porque o comprovado é que a imagem é real.
 - Termos-chave dependem de maiúsculas corretas; limiares ainda não calibrados no gold set.
+- Um nome que nunca apareceu no corpus não conta como nome quando abre a frase ("Fulano disse…"): uma troca desse nome por outro só é barrada pelo NLI. Regenere o `nomes_proprios.txt` quando o corpus mudar (`build_index.py --so-nomes`).
 
 ## Avaliação
 
@@ -222,6 +230,37 @@ python eval/avaliar_evidencias.py avaliar --salvar
 ```
 
 Windows (PowerShell): os mesmos comandos, ativando o ambiente com `venv\Scripts\Activate.ps1`. Antes, rode `$env:PYTHONUTF8 = "1"`: sem isso, o Python grava a saída redirecionada na codificação do Windows e quebra nos caracteres "✓" e "…" do diagnóstico. Para gravar o diagnóstico em UTF-8, use `| Out-File -Encoding utf8 eval/resultados/diagnostico_gold.txt` no lugar do `>`.
+
+### Roteiro da Sprint 3 (rodar na máquina com o índice)
+
+Ordem: o item 3 (termos-chave, já no código) muda quais checagens chegam ao NLI, então a calibração vem depois dele. No Windows, troque `export X=1` por `$env:X = "1"` e rode antes `$env:PYTHONUTF8 = "1"`.
+
+```bash
+# 1. Efeito da correção dos termos-chave (compare com a rodada de 01/10)
+python eval/avaliar_evidencias.py avaliar --salvar
+
+# 2. Calibração: só no split de calibração; depois a escolha UMA vez no teste (o comando sugere a linha)
+python eval/avaliar_evidencias.py calibrar --nli 0.5 0.6 0.7 0.8 --salvar
+export EVIDENCE_CLAIM_MATCH_MIN_PROB=0.7        # o valor escolhido
+python eval/avaliar_evidencias.py avaliar --split teste --salvar
+
+# 3. Tempo e memória; com GPU, compara o NLI em fp32 e fp16
+pip install psutil                              # opcional: memória do processo (no Windows, necessário)
+python eval/medir_recursos.py --comparar-fp16 --salvar
+export EVIDENCE_NLI_FP16=1                      # se nenhuma decisão mudou
+python eval/medir_recursos.py --salvar
+
+# 4. UOL: bloqueio ou limite de taxa?
+python data/corpus/fetch_articles.py --apenas-sites noticias.uol.com.br --limit 5 --delay 3
+# se baixar: o resto com a mesma pausa e reindexar
+python data/corpus/fetch_articles.py --apenas-sites noticias.uol.com.br --delay 3
+python data/corpus/build_index.py
+
+# 5. BGE-M3 x e5-large (outra coleção; 30-60 min para indexar)
+export EVIDENCE_EMBEDDING_MODEL=intfloat/multilingual-e5-large
+python data/corpus/build_index.py
+python eval/avaliar_evidencias.py avaliar --salvar   # compare só o Recall@5
+```
 
 ## Integração
 

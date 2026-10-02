@@ -8,6 +8,7 @@ Comandos, sempre a partir da raiz do repositório:
     python eval/avaliar_evidencias.py validar [--gold data/gold/evidencias.json]
     python eval/avaliar_evidencias.py avaliar [--split teste|calibracao|todos] [--salvar]
     python eval/avaliar_evidencias.py frases [--split ...] [--saida eval/resultados/frases_gold.txt]
+    python eval/avaliar_evidencias.py calibrar [--nli 0.5 0.6 0.7 0.8] [--sim 0.55] [--salvar]
 
 - sortear: lista checagens do corpus para parafrasear (sem índice, sem modelos).
 - esqueleto: gera as 12 entradas com as checagens sorteadas e as frases em branco.
@@ -15,6 +16,8 @@ Comandos, sempre a partir da raiz do repositório:
 - validar: confere o conjunto de avaliação (sem índice, sem modelos).
 - avaliar: roda a busca e o agente reais e calcula as métricas (precisa do índice e dos modelos).
 - frases: grava as frases do conjunto, uma por linha, para o data/corpus/diagnostico.py --arquivo.
+- calibrar: roda o agente com vários limiares (CLAIM_MATCH_MIN_PROB e SIM_THRESHOLD) só no
+  split de calibração e compara as métricas. A escolha final é medida uma vez no split de teste.
 
 Métricas (definições no ADR 3, docs/agents/evidencias_decisoes.md):
 - Recall@5: em frases `com_checagem`, alguma URL aceita está entre as 5 primeiras
@@ -505,6 +508,27 @@ def rodar_agente(segmentos: list[dict]) -> dict:
     return run(SimpleNamespace(segments=segmentos))
 
 
+def rodar_agente_por_entrada(frases: list[dict], agente: Agente) -> tuple[dict[str, list[dict]], list[float]]:
+    """Uma chamada ao agente por entrada, com todas as frases dela; devolve as evidências por frase e os tempos."""
+    saidas: dict[str, list[dict]] = {f["chave"]: [] for f in frases}
+    tempos = []
+    por_entrada: dict[str, list[dict]] = defaultdict(list)
+    for f in frases:
+        por_entrada[f["entrada_id"]].append(f)
+    for entrada_id, fs in por_entrada.items():
+        t0 = time.perf_counter()
+        resultado = agente([{"id": f["frase_id"], "text": f["texto"]} for f in fs])
+        tempos.append(time.perf_counter() - t0)
+        evidencias = resultado.get("evidence")
+        if evidencias is None:
+            raise RuntimeError(f"o agente falhou na entrada {entrada_id}: {resultado.get('warnings')}")
+        for ev in evidencias:
+            k = chave(entrada_id, ev.get("segment_id"))
+            if k in saidas:
+                saidas[k].append(ev)
+    return saidas, tempos
+
+
 def executar_avaliacao(gold: dict, split: str = "todos", buscar: Buscar = rodar_busca,
                        agente: Agente = rodar_agente) -> tuple[dict, dict]:
     """Roda a busca (todas as frases de uma vez) e o agente (uma chamada por entrada)."""
@@ -517,22 +541,7 @@ def executar_avaliacao(gold: dict, split: str = "todos", buscar: Buscar = rodar_
     tempo_busca = time.perf_counter() - t0
     rankings = {f["chave"]: r for f, r in zip(frases, rankings_lista)}
 
-    saidas: dict[str, list[dict]] = {f["chave"]: [] for f in frases}
-    tempos_agente = []
-    por_entrada: dict[str, list[dict]] = defaultdict(list)
-    for f in frases:
-        por_entrada[f["entrada_id"]].append(f)
-    for entrada_id, fs in por_entrada.items():
-        t0 = time.perf_counter()
-        resultado = agente([{"id": f["frase_id"], "text": f["texto"]} for f in fs])
-        tempos_agente.append(time.perf_counter() - t0)
-        evidencias = resultado.get("evidence")
-        if evidencias is None:
-            raise RuntimeError(f"o agente falhou na entrada {entrada_id}: {resultado.get('warnings')}")
-        for ev in evidencias:
-            k = chave(entrada_id, ev.get("segment_id"))
-            if k in saidas:
-                saidas[k].append(ev)
+    saidas, tempos_agente = rodar_agente_por_entrada(frases, agente)
 
     tempos = {
         "busca_s": round(tempo_busca, 3),
@@ -541,6 +550,69 @@ def executar_avaliacao(gold: dict, split: str = "todos", buscar: Buscar = rodar_
         "observacao": "a busca inclui o carregamento do modelo de embeddings; a primeira entrada do agente, o do NLI",
     }
     return calcular_metricas(frases, rankings, saidas), tempos
+
+
+# =============================================================================
+# Calibração dos limiares (item 4 da Sprint 3)
+# =============================================================================
+
+AgenteComLimiares = Callable[[list[dict], float, float], dict]
+
+
+def rodar_agente_com_limiares(segmentos: list[dict], sim: float, nli: float) -> dict:
+    """O agente real com SIM_THRESHOLD e CLAIM_MATCH_MIN_PROB trocados só durante a chamada."""
+    antes = (config.SIM_THRESHOLD, config.CLAIM_MATCH_MIN_PROB)
+    config.SIM_THRESHOLD, config.CLAIM_MATCH_MIN_PROB = sim, nli
+    try:
+        return rodar_agente(segmentos)
+    finally:
+        config.SIM_THRESHOLD, config.CLAIM_MATCH_MIN_PROB = antes
+
+
+def executar_calibracao(gold: dict, valores_sim: Sequence[float], valores_nli: Sequence[float],
+                        split: str = "calibracao", buscar: Buscar = rodar_busca,
+                        agente: AgenteComLimiares = rodar_agente_com_limiares) -> list[dict]:
+    """Métricas para cada combinação de limiares. A busca do Recall@5 não depende deles: roda uma vez."""
+    frases = selecionar_frases(gold, split)
+    if not frases:
+        raise ValueError(f"nenhuma frase no split '{split}'")
+    rankings = dict(zip([f["chave"] for f in frases], buscar([f["texto"] for f in frases])))
+    linhas = []
+    for sim in valores_sim:
+        for nli in valores_nli:
+            saidas, _ = rodar_agente_por_entrada(frases, lambda segs: agente(segs, sim, nli))
+            m = calcular_metricas(frases, rankings, saidas)
+            linhas.append({"sim_threshold": sim, "claim_match_min_prob": nli, "metricas": m})
+    return linhas
+
+
+def sugerir_limiares(linhas: Sequence[dict]) -> dict | None:
+    """Menos casamentos errados; empate: mais cobertura; empate: limiares mais baixos (perde menos)."""
+    if not linhas:
+        return None
+    return min(linhas, key=lambda l: (l["metricas"]["casamento_errado"]["evidencias"],
+                                      -l["metricas"]["cobertura"]["acertos"],
+                                      l["sim_threshold"], l["claim_match_min_prob"]))
+
+
+def formatar_calibracao(linhas: Sequence[dict], split: str) -> str:
+    cab = (f"{'SIM':>5s} {'NLI':>5s} {'Cobertura':>10s} {'Stance cob.':>11s} {'Macro-F1':>9s} "
+           f"{'Inventada':>10s} {'Cas. errado':>11s}")
+    saida = [f"Calibração | split: {split}", "", cab]
+    for l in linhas:
+        m = l["metricas"]
+        c, sc, inv = m["cobertura"], m["stance_cobertas"], m["evidencia_inventada"]
+        saida.append(f"{_num(l['sim_threshold']):>5s} {_num(l['claim_match_min_prob']):>5s} "
+                     f"{c['acertos']:>6d}/{c['total']:<3d} {sc['acertos']:>7d}/{sc['total']:<3d} "
+                     f"{_num(m['macro_f1']['valor']):>9s} {inv['acertos']:>6d}/{inv['total']:<3d} "
+                     f"{m['casamento_errado']['evidencias']:>11d}")
+    melhor = sugerir_limiares(linhas)
+    if melhor:
+        saida += ["", f"Sugestão (menos casamentos errados, depois mais cobertura): SIM {_num(melhor['sim_threshold'])}, "
+                      f"NLI {_num(melhor['claim_match_min_prob'])}. Meça a escolha UMA vez no split de teste:",
+                  f"  EVIDENCE_SIM_THRESHOLD={melhor['sim_threshold']} EVIDENCE_CLAIM_MATCH_MIN_PROB="
+                  f"{melhor['claim_match_min_prob']} python eval/avaliar_evidencias.py avaliar --split teste --salvar"]
+    return "\n".join(saida)
 
 
 # =============================================================================
@@ -896,12 +968,12 @@ def configuracao_atual() -> dict:
     }
 
 
-def caminho_resultado(pasta: Path, dia: str) -> Path:
-    """eval/resultados/evidencias_<dia>.json; se já existir, _2, _3..."""
-    caminho = pasta / f"evidencias_{dia}.json"
+def caminho_resultado(pasta: Path, dia: str, prefixo: str = "evidencias") -> Path:
+    """eval/resultados/<prefixo>_<dia>.json; se já existir, _2, _3..."""
+    caminho = pasta / f"{prefixo}_{dia}.json"
     n = 2
     while caminho.exists():
-        caminho = pasta / f"evidencias_{dia}_{n}.json"
+        caminho = pasta / f"{prefixo}_{dia}_{n}.json"
         n += 1
     return caminho
 
@@ -1041,6 +1113,30 @@ def cmd_avaliar(args) -> int:
     return 0
 
 
+def cmd_calibrar(args) -> int:
+    gold = carregar_json(args.gold)
+    if args.split == "teste":
+        print("Aviso: calibrar no split de teste contamina a medida final. Use --split calibracao.")
+    try:
+        linhas = executar_calibracao(gold, args.sim, args.nli, args.split)
+    except ValueError as exc:
+        print(f"Nada a calibrar: {exc}.")
+        return 1
+    print(formatar_calibracao(linhas, args.split))
+    if args.salvar:
+        agora = datetime.now()
+        RESULTADOS_DIR.mkdir(parents=True, exist_ok=True)
+        caminho = caminho_resultado(RESULTADOS_DIR, agora.strftime("%Y-%m-%d"), prefixo="calibracao")
+        resumo = [{"sim_threshold": l["sim_threshold"], "claim_match_min_prob": l["claim_match_min_prob"],
+                   **{k: v for k, v in l["metricas"].items() if k not in ("por_frase", "erros")},
+                   "erros": l["metricas"]["erros"]} for l in linhas]
+        _gravar_json(caminho, {"data": agora.isoformat(timespec="seconds"), "split": args.split,
+                               "gold": _relativo(args.gold), "configuracao": configuracao_atual(),
+                               "combinacoes": resumo})
+        print(f"\nResultado salvo em {_relativo(caminho)}")
+    return 0
+
+
 def listar_frases(gold: dict, split: str = "todos") -> list[str]:
     """Linhas para o diagnostico.py --arquivo: um comentário com a chave e o tipo, depois a frase."""
     linhas = []
@@ -1101,6 +1197,15 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--salvar", action="store_true", help="grava eval/resultados/evidencias_<data>.json")
     p.set_defaults(func=cmd_avaliar)
 
+    p = sub.add_parser("calibrar", help="compara limiares no split de calibração")
+    comum(p)
+    p.add_argument("--split", choices=("todos", *SPLITS), default="calibracao")
+    p.add_argument("--nli", type=float, nargs="+", default=[0.5, 0.6, 0.7, 0.8],
+                   help="valores de CLAIM_MATCH_MIN_PROB")
+    p.add_argument("--sim", type=float, nargs="+", default=None, help="valores de SIM_THRESHOLD (padrão: o atual)")
+    p.add_argument("--salvar", action="store_true", help="grava eval/resultados/calibracao_<data>.json")
+    p.set_defaults(func=cmd_calibrar)
+
     p = sub.add_parser("frases", help="grava as frases do conjunto para o diagnostico.py --arquivo")
     comum(p)
     p.add_argument("--split", choices=("todos", *SPLITS), default="todos")
@@ -1108,6 +1213,8 @@ def main(argv: list[str] | None = None) -> int:
     p.set_defaults(func=cmd_frases)
 
     args = parser.parse_args(argv)
+    if getattr(args, "sim", "x") is None:
+        args.sim = [config.SIM_THRESHOLD]
     return args.func(args)
 
 

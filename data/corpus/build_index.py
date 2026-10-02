@@ -14,9 +14,15 @@ Metadados de cada trecho: source_url, source_name, agency_verdict,
 review_date, claim_reviewed, review_title, chunk_index, chunk_kind.
 IDs determinísticos: rodar de novo atualiza em vez de duplicar.
 
+Também grava data/corpus/nomes_proprios.txt: as palavras que o corpus usa como
+nome próprio (com maiúscula no meio de uma alegação ou título). O agente usa a
+lista para decidir se a primeira palavra de uma frase é nome. O arquivo é
+versionado no Git; regenere-o sempre que o corpus mudar.
+
 Uso, a partir da raiz do repositório:
     python data/corpus/build_index.py
     python data/corpus/build_index.py --reset
+    python data/corpus/build_index.py --so-nomes      (só regenera nomes_proprios.txt, sem índice)
 """
 
 from __future__ import annotations
@@ -113,6 +119,17 @@ def build_records(claims: list[dict], articles: list[dict]) -> list[dict]:
     return records
 
 
+def write_name_vocabulary(claims: list[dict], path: Path | None = None) -> int:
+    """Grava o vocabulário de nomes próprios das alegações e títulos (uma palavra por linha)."""
+    from src.retrieval.etapa2 import NAME_VOCABULARY_PATH, build_name_vocabulary
+
+    path = path or NAME_VOCABULARY_PATH
+    texts = [t for c in claims for t in (c.get("claim_reviewed"), c.get("review_title")) if t]
+    vocabulary = sorted(build_name_vocabulary(texts))
+    path.write_text("\n".join(vocabulary) + "\n", encoding="utf-8")
+    return len(vocabulary)
+
+
 def index_records(records: list[dict], reset: bool = False, batch_size: int = 64) -> int:
     from src.retrieval.indice import embed_passages, get_collection
 
@@ -134,12 +151,19 @@ def main() -> None:
     parser.add_argument("--claims", type=Path, default=config.RAW_DIR / "factcheck_api.jsonl")
     parser.add_argument("--articles", type=Path, default=config.RAW_DIR / "articles.jsonl")
     parser.add_argument("--reset", action="store_true", help="apaga a coleção antes de indexar")
+    parser.add_argument("--so-nomes", action="store_true",
+                        help="só regenera data/corpus/nomes_proprios.txt, sem mexer no índice")
     args = parser.parse_args()
 
     claims = load_jsonl(args.claims)
     articles = load_jsonl(args.articles)
     if not claims and not articles:
         sys.exit(f"Nada em {args.claims} nem em {args.articles}. Rode antes collect_factcheck_api.py.")
+
+    n_nomes = write_name_vocabulary(claims)
+    print(f"Vocabulário de nomes próprios: {n_nomes} palavras em data/corpus/nomes_proprios.txt")
+    if args.so_nomes:
+        return
 
     records = build_records(claims, articles)
     urls = {r["metadata"]["source_url"] for r in records}

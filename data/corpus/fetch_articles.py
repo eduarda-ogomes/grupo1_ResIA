@@ -13,6 +13,11 @@ Uso, a partir da raiz do repositório:
     python data/corpus/fetch_articles.py
     python data/corpus/fetch_articles.py --limit 50 --delay 2
     python data/corpus/fetch_articles.py --pular-sites checamos.afp.com
+    python data/corpus/fetch_articles.py --apenas-sites noticias.uol.com.br --limit 5 --delay 3
+
+Para saber se um site bloqueou ou só limitou a taxa, teste poucas URLs só dele
+(--apenas-sites ... --limit 5) com uma pausa maior. Se baixarem, rode o resto com
+a mesma pausa; se falharem todas, é bloqueio, e ele não é contornado (ADR 2).
 """
 
 from __future__ import annotations
@@ -78,6 +83,8 @@ def main() -> None:
     parser.add_argument("--max-falhas-seguidas", type=int, default=20,
                         help="desiste de um site depois de N falhas seguidas (0 = nunca)")
     parser.add_argument("--pular-sites", nargs="+", default=[], help="domínios a não tentar baixar")
+    parser.add_argument("--apenas-sites", nargs="+", default=[],
+                        help="só baixa destes domínios (ex.: noticias.uol.com.br)")
     args = parser.parse_args()
 
     claims = load_jsonl(args.claims)
@@ -86,10 +93,13 @@ def main() -> None:
 
     done = {a["source_url"] for a in load_jsonl(args.out)}
     skip_sites = set(args.pular_sites)
+    only_sites = {s.lower().removeprefix("www.") for s in args.apenas_sites}
     pending, queued = [], set()
     for claim in claims:
         url = claim["source_url"]
         if url in done or url in queued or _site(url) in skip_sites:
+            continue
+        if only_sites and _site(url) not in only_sites:
             continue
         queued.add(url)
         pending.append(claim)

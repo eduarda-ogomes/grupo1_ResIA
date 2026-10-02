@@ -118,6 +118,8 @@ Análise dos erros:
 | Saída em dicts, não em objetos `Evidence` | O Pydantic v2 rejeita instâncias de outra classe com os mesmos campos |
 | Índice ausente = falha (`evidence: None`), e não lista vazia | Sem índice, o sistema não pode afirmar que procurou |
 | Stub lê a fixture `02_evidencias_saida.json` e expõe `run` e `evidence_node` | Uma fonte só para a saída da Seção 4.6; os dois nomes atendem o nosso contrato (`run`, Seção 9.4) e o `graph.py` do grupo (`evidence_node`) |
+| Primeira palavra da frase só é nome se o corpus a usa como nome (`data/corpus/nomes_proprios.txt`: palavras com maiúscula no meio de alegações e títulos mais vezes do que em minúscula; siglas curtas contam, palavras longas em caixa alta não). Pontuação separa nomes; nomes colados a números ficam inteiros ("COP30") | Na primeira rodada, "Aviões…" e "Arrependida, Cármen Lúcia…" viraram nomes e a checagem certa foi rejeitada como troca, e "COP30" nunca batia. Medido sem os modelos: das 48 URLs aceitas do conjunto, passam 47 (antes, 41); nos 37 pares, as mesmas 18/18 paráfrases passam e as mesmas 11/12 trocas são barradas. Custo: um nome nunca visto no corpus, no início da frase, não conta |
+| NLI em fp16 opcional (`EVIDENCE_NLI_FP16`), desligado por padrão | Corta a memória do NLI pela metade, mas o DeBERTa-v3 pode ter overflow em fp16; só liga depois do `medir_recursos.py --comparar-fp16` |
 | Coleta dividida em ~38 buscas por palavra-chave | A API dá erro 503 depois de ~500–600 resultados de uma mesma busca |
 | Dados brutos e índice fora do Git | Seção 5.5 |
 
@@ -128,12 +130,13 @@ Análise dos erros:
 | **Aprovar o ADR 1 e o ADR 2** | Reunião do grupo |
 | Revisão das 36 frases de `data/gold/evidencias.json` (escritas pelo Claude), preenchendo `revisor` | R1 |
 | Decidir casos de anotação: ev01/s02 (aceitar a checagem do Temer?), ev08/s02 (o "Lula comunista" é outro episódio?), ev11/s01 (F-15: as duas URLs aceitas têm stances diferentes) e trocar frases `sem_checagem` neutras por boatos sem checagem | R2, com a revisão do R1 |
-| Termos-chave: primeira palavra em maiúscula só conta como nome se aparecer em maiúscula de novo ou na checagem; normalizar nomes colados a números (COP30) | — |
-| Testar `CLAIM_MATCH_MIN_PROB` perto de 0,7, só no split `calibracao` | — |
+| Rodar o `avaliar` de novo para medir o efeito da correção dos termos-chave | — |
+| Calibrar `CLAIM_MATCH_MIN_PROB` (0,5 a 0,8) com o `calibrar`, só no split `calibracao`; medir a escolha uma vez no `teste` | — |
+| Rodar o `medir_recursos.py --comparar-fp16` e decidir o `EVIDENCE_NLI_FP16` | — |
 | Converter `data/gold/evidencias.json` para o formato do gold set | R3 |
-| Calibrar `SIM_THRESHOLD` e `CLAIM_MATCH_MIN_PROB`; comparar BGE-M3 × e5-large | Gold set |
-| Medir latência e memória na máquina da demo (orçamento < 2 GB, Seção 5.2) | — |
-| Terminar o download do UOL (`--delay 3`) e reindexar | — |
+| Comparar BGE-M3 × e5-large pelo Recall@5 | — |
+| Medir latência e memória também na máquina da demo (orçamento < 2 GB, Seção 5.2) | Máquina da demo |
+| Testar o UOL com `fetch_articles.py --apenas-sites noticias.uol.com.br --limit 5 --delay 3`; se baixar, terminar e reindexar | — |
 | Cobrir frases que desmentem o boato | Resultados do gold set |
 | Avisar o R5 (erro de sintaxe na linha 11 do `synthesizer.py`) | — |
 | Plugar o agente real no `graph.py` e simular busca e NLI no teste do grafo inteiro (o CI não tem torch nem chromadb) | R1 (integração) |
@@ -151,3 +154,4 @@ Análise dos erros:
 | 01/10 | Comandos `esqueleto` (12 entradas com as checagens sorteadas e as frases em branco) e `completar` (monta o texto das entradas). Filtro de checagens utilizáveis: sem guias, alegações negativas, perguntas, links, textos longos e espelhos (BOL e Acervo Estadão). |
 | 01/10 | Conjunto preenchido: 36 frases escritas pelo Claude (rascunho, a revisar), URLs aceitas extras achadas por busca no corpus; `validar` sem erros. |
 | 01/10 | Primeira rodada do `avaliar` (Recall@5 0,95; macro-F1 0,61; inventada 0,00; 7 casamentos errados) e análise de erros. Nova métrica "stance nas cobertas" (14/14) e comando `frases`, que gera a entrada do `diagnostico.py`. |
+| 01/10 | Sprint 3: termos-chave com vocabulário de nomes do corpus (`nomes_proprios.txt`), pontuação separando nomes e "COP30" inteiro; comando `calibrar`; `eval/medir_recursos.py` e NLI em fp16 opcional; `fetch_articles.py --apenas-sites`. |

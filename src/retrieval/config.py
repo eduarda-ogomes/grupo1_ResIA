@@ -32,6 +32,9 @@ MAX_EVIDENCE_PER_SEGMENT = int(os.getenv("EVIDENCE_MAX_PER_SEGMENT", 3))
 COLLECTION_PREFIX = "checagens"
 BATCH_SIZE = 16
 EMBEDDING_FP16 = True        # embeddings em fp16 quando houver GPU (orçamento de memória, Seção 5.2)
+# NLI em fp16 na GPU (cuda/mps): metade da memória. Desligado até o eval/medir_recursos.py
+# confirmar que as decisões do NLI não mudam (o DeBERTa-v3 pode ter overflow em fp16).
+NLI_FP16 = os.getenv("EVIDENCE_NLI_FP16", "0") == "1"
 EXCERPT_MAX_CHARS = 300
 CHUNK_MAX_CHARS = 800        # trechos do índice: parágrafos agrupados até este tamanho
 CHUNK_OVERLAP_PARAGRAPHS = 1

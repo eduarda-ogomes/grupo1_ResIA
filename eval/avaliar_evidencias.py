@@ -122,13 +122,20 @@ def carregar_json(caminho: Path) -> dict:
 
 
 def carregar_corpus(caminho: Path) -> dict[str, dict]:
-    """Checagens da API (factcheck_api.jsonl), uma por URL."""
+    """Checagens do corpus, uma por URL: a API (factcheck_api.jsonl) e, se existir na
+    mesma pasta, o FACTCK.BR (factckbr_claims.jsonl, gerado pelo import_factckbr.py)."""
     corpus: dict[str, dict] = {}
-    with Path(caminho).open(encoding="utf-8") as f:
-        for linha in f:
-            if linha.strip():
-                registro = json.loads(linha)
-                corpus.setdefault(registro["source_url"], registro)
+    caminho = Path(caminho)
+    arquivos = [caminho]
+    extra = caminho.with_name("factckbr_claims.jsonl")
+    if caminho.name == "factcheck_api.jsonl" and extra.exists():
+        arquivos.append(extra)
+    for arquivo in arquivos:
+        with arquivo.open(encoding="utf-8") as f:
+            for linha in f:
+                if linha.strip():
+                    registro = json.loads(linha)
+                    corpus.setdefault(registro["source_url"], registro)
     return corpus
 
 
@@ -661,7 +668,8 @@ def sortear(corpus: dict[str, dict], n: int, excluir: Iterable[str] = (), veredi
         s = stance_from_verdict(r.get("agency_verdict"))
         if url in excluir or (stance and s != stance) or any(d in url for d in ESPELHOS):
             continue  # espelhos repetem a checagem original
-        if agencia and agencia.lower() not in f"{r.get('source_name', '')} {url}".lower():
+        # Nome ou domínio, não a URL inteira: "lupa" casaria com o caminho /lupa/ de outros sites.
+        if agencia and agencia.lower() not in f"{r.get('source_name', '')} {_host(url)}".lower():
             continue
         estratos[(r.get("source_name") or "", s)].append(r)
 

@@ -23,6 +23,11 @@ Uso, a partir da raiz do repositório:
     python data/corpus/build_index.py
     python data/corpus/build_index.py --reset
     python data/corpus/build_index.py --so-nomes      (só regenera nomes_proprios.txt, sem índice)
+    python data/corpus/build_index.py --apenas-novos  (só calcula embeddings dos trechos que faltam)
+
+Fontes: factcheck_api.jsonl + articles.jsonl (Fact Check Tools API) e, se existirem,
+factckbr_claims.jsonl + factckbr_articles.jsonl (FACTCK.BR, gerados pelo
+import_factckbr.py). O metadado "corpus" diz de qual fonte veio cada trecho.
 """
 
 from __future__ import annotations
@@ -103,6 +108,7 @@ def build_records(claims: list[dict], articles: list[dict]) -> list[dict]:
             "review_date": meta.get("review_date") or "",
             "claim_reviewed": meta.get("claim_reviewed") or "",
             "review_title": title,
+            "corpus": meta.get("corpus") or "factcheck_api",
         }
         if title:
             records.append({
@@ -130,10 +136,20 @@ def write_name_vocabulary(claims: list[dict], path: Path | None = None) -> int:
     return len(vocabulary)
 
 
-def index_records(records: list[dict], reset: bool = False, batch_size: int = 64) -> int:
+def only_new(records: list[dict], existing_ids: set[str]) -> list[dict]:
+    """Trechos cujo id ainda não está no índice (os ids são determinísticos)."""
+    return [r for r in records if r["id"] not in existing_ids]
+
+
+def index_records(records: list[dict], reset: bool = False, batch_size: int = 64,
+                  apenas_novos: bool = False) -> int:
     from src.retrieval.indice import embed_passages, get_collection
 
     collection = get_collection(create=True, reset=reset)
+    if apenas_novos and not reset:
+        existing = set(collection.get(include=[])["ids"])
+        records = only_new(records, existing)
+        print(f"  {len(existing)} trechos já no índice; {len(records)} novos para indexar.")
     for start in range(0, len(records), batch_size):
         batch = records[start : start + batch_size]
         collection.upsert(
@@ -151,12 +167,22 @@ def main() -> None:
     parser.add_argument("--claims", type=Path, default=config.RAW_DIR / "factcheck_api.jsonl")
     parser.add_argument("--articles", type=Path, default=config.RAW_DIR / "articles.jsonl")
     parser.add_argument("--reset", action="store_true", help="apaga a coleção antes de indexar")
+    parser.add_argument("--factckbr-claims", type=Path, default=config.RAW_DIR / "factckbr_claims.jsonl")
+    parser.add_argument("--factckbr-articles", type=Path, default=config.RAW_DIR / "factckbr_articles.jsonl")
+    parser.add_argument("--sem-factckbr", action="store_true", help="não inclui o FACTCK.BR, mesmo que exista")
+    parser.add_argument("--apenas-novos", action="store_true",
+                        help="só calcula embeddings dos trechos que ainda não estão no índice")
     parser.add_argument("--so-nomes", action="store_true",
                         help="só regenera data/corpus/nomes_proprios.txt, sem mexer no índice")
     args = parser.parse_args()
 
     claims = load_jsonl(args.claims)
     articles = load_jsonl(args.articles)
+    if not args.sem_factckbr:
+        fk_claims, fk_articles = load_jsonl(args.factckbr_claims), load_jsonl(args.factckbr_articles)
+        if fk_claims:
+            print(f"FACTCK.BR: {len(fk_claims)} checagens ({len(fk_articles)} com texto).")
+        claims, articles = claims + fk_claims, articles + fk_articles
     if not claims and not articles:
         sys.exit(f"Nada em {args.claims} nem em {args.articles}. Rode antes collect_factcheck_api.py.")
 
@@ -176,7 +202,7 @@ def main() -> None:
     )
     print("Checagens por agência:", dict(by_agency.most_common()))
     print(f"Modelo: {config.EMBEDDING_MODEL} | coleção: {config.collection_name()} | caminho: {config.CHROMA_PATH}")
-    total = index_records(records, reset=args.reset)
+    total = index_records(records, reset=args.reset, apenas_novos=args.apenas_novos)
     print(f"Coleção com {total} trechos.")
 
 

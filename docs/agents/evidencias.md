@@ -1,6 +1,6 @@
 # Agente de Evidências
 
-Dono: R2 (Túlio Celeri) · Branch: `AgenteEvidencias` · Atualizado em 01/10/2026
+Dono: R2 (Túlio Celeri) · Branch: `AgenteEvidencias` · Atualizado em 03/10/2026
 Decisões e números: [`evidencias_decisoes.md`](evidencias_decisoes.md)
 
 ## O que faz
@@ -47,7 +47,7 @@ frase ─► 1. busca: 10 trechos mais parecidos (similaridade ≥ 0,55), agrupa
 | `src/retrieval/nli.py` | Modelo de NLI (mDeBERTa) |
 | `src/retrieval/etapa2.py` | "Mesma alegação": normalização da alegação, termos-chave, veredito → stance |
 | `src/stubs/evidence_stub.py` | Stub para os outros agentes testarem sem modelos: devolve a fixture `02_evidencias_saida.json` (Seção 4.6) |
-| `data/corpus/` | Coleta (`collect_factcheck_api.py`), download (`fetch_articles.py`), índice (`build_index.py`), diagnóstico e experimento |
+| `data/corpus/` | Coleta (`collect_factcheck_api.py`), download (`fetch_articles.py`), FACTCK.BR (`import_factckbr.py`), índice (`build_index.py`), diagnóstico e experimento |
 | `data/corpus/nomes_proprios.txt` | Palavras que o corpus usa como nome próprio (gerado pelo `build_index.py`; versionado) |
 | `eval/avaliar_evidencias.py` | Avaliação: `sortear`, `validar`, `avaliar` (Recall@5, stance, evidência inventada) e `calibrar` (limiares); ver [Avaliação](#avaliação) |
 | `eval/medir_recursos.py` | Tempo de carga, memória dos modelos (orçamento da Seção 5.2) e tempo por notícia |
@@ -71,6 +71,9 @@ python data/corpus/collect_factcheck_api.py
 python data/corpus/fetch_articles.py
 python data/corpus/build_index.py --reset
 
+python data/corpus/import_factckbr.py                   # FACTCK.BR (o CSV fica em data/corpus/raw/)
+python data/corpus/build_index.py --apenas-novos        # só os trechos que faltam no índice
+
 python data/corpus/diagnostico.py --frases "Fachin apontou o dedo para Moraes no STF."
 python data/corpus/experimento_etapa2.py                 # etapa 2 nos 37 pares (NLI real)
 
@@ -89,6 +92,9 @@ export FACTCHECK_API_KEY="sua-chave"                     # corpus (retomável)
 python data/corpus/collect_factcheck_api.py
 python data/corpus/fetch_articles.py
 python data/corpus/build_index.py --reset
+
+python data/corpus/import_factckbr.py                   # FACTCK.BR (o CSV fica em data/corpus/raw/)
+python data/corpus/build_index.py --apenas-novos        # só os trechos que faltam no índice
 
 python data/corpus/diagnostico.py --frases "Fachin apontou o dedo para Moraes no STF."
 python data/corpus/experimento_etapa2.py                 # etapa 2 nos 37 pares (NLI real)
@@ -128,7 +134,7 @@ A variável vale só para a janela do terminal em que foi definida. Fora do ambi
 
 ## Limitações conhecidas
 
-- Só acha o que está no corpus (5.826 checagens de 24 meses; sem Lupa). Checagens da AFP e da maior parte do UOL entram só pelo título e pela alegação: os dois sites recusam o download (o UOL foi testado de novo em 01/10), e o bloqueio não é contornado.
+- Só acha o que está no corpus: 5.826 checagens da API (últimos 24 meses) e 727 do FACTCK.BR (Lupa e Aos Fatos, 2018–2019). A Lupa só aparece em checagens antigas, e o Truco ainda não entrou. Checagens do FACTCK.BR saem com o ano no nome da agência ("Agência Lupa (2019)"), porque podem estar desatualizadas. Checagens da AFP e da maior parte do UOL entram só pelo título e pela alegação: os dois sites recusam o download (o UOL foi testado de novo em 01/10), e o bloqueio não é contornado.
 - Memória medida só na CPU do Windows: 2,63 GB de pesos, acima do orçamento de 2 GB. Na GPU da máquina da demo a estimativa é de ~1,6 GB, ainda sem medida (ver o ADR).
 - Frases que **desmentem** o boato ("a foto é falsa") ficam sem evidência.
 - Paráfrases muito diferentes da alegação podem ser perdidas (ex.: "com dedo em riste", NLI 0,07). O agente prefere perder a citar a checagem errada.
@@ -136,13 +142,18 @@ A variável vale só para a janela do terminal em que foi definida. Fora do ambi
 - Termos-chave dependem de maiúsculas corretas; limiares ainda não calibrados no gold set.
 - Um nome que nunca apareceu no corpus não conta como nome quando abre a frase ("Fulano disse…"): uma troca desse nome por outro só é barrada pelo NLI. Regenere o `nomes_proprios.txt` quando o corpus mudar (`build_index.py --so-nomes`).
 
+## Fontes
+
+- Google Fact Check Tools API (Aos Fatos, Comprova, AFP Checamos, Estadão Verifica, UOL Confere).
+- FACTCK.BR, https://github.com/jghm-f/FACTCK.BR (licença MIT). Os autores pedem a citação do artigo: WebMedia '19, https://doi.org/10.1145/3323503.3361698. Versão tratada e com texto completo: `factckbr_com_texto.csv` (R2), convertida pelo `import_factckbr.py`; regras no ADR 2.
+
 ## Avaliação
 
 Mede as três métricas da Seção 7.1 sem esperar o harness do R3. Definições e motivos no ADR 3 de [`evidencias_decisoes.md`](evidencias_decisoes.md).
 
 ### Conjunto: `data/gold/evidencias.json`
 
-12 entradas (~36 frases). Cada entrada é um texto curto de notícia; cada frase tem tipo, URLs aceitas e stance esperada. Quando o R3 definir o formato do gold set, um conversor leva os dados para lá.
+14 entradas (42 frases; ev13 e ev14 usam checagens do FACTCK.BR). Cada entrada é um texto curto de notícia; cada frase tem tipo, URLs aceitas e stance esperada. Quando o R3 definir o formato do gold set, um conversor leva os dados para lá.
 
 ```json
 {"versao": 1, "entradas": [{
@@ -197,7 +208,7 @@ O `validar` confere tudo isso que é verificável: JSON e ids, tipo × URLs × s
 
 O relatório mostra números absolutos ao lado de cada taxa, a matriz de confusão e cada erro com a frase. Com `--salvar`, grava `eval/resultados/evidencias_<data>.json` com métricas, detalhe por frase, tempos, configuração (modelos, limiares, coleção, trechos no índice, versão do `chromadb`) e o commit.
 
-Para comparar modelos de embedding (item 5): defina `EVIDENCE_EMBEDDING_MODEL`, rode `build_index.py --reset` e depois `avaliar`. Compare o Recall@5, que não depende do limiar.
+Para comparar modelos de embedding (item 5): defina `EVIDENCE_EMBEDDING_MODEL`, rode `build_index.py --reset` e depois `avaliar`. Compare o Recall@5, que não depende do limiar, e os casamentos errados, que dependem do que a busca entrega à etapa 2.
 
 ### Resultados
 
@@ -210,19 +221,29 @@ Para comparar modelos de embedding (item 5): defina `EVIDENCE_EMBEDDING_MODEL`, 
 | 01/10 (termos-chave) | teste | 10/10 | 8/10 | 0,69 | 8/8 | 0/5 | 3 | (mesmo arquivo) |
 | 01/10 (termos-chave) | calibração | 8/9 | 7/9 | 0,75 | 7/7 | 0/6 | 4 | (mesmo arquivo) |
 | 01/10 (NLI 0,8) | teste | 10/10 | 8/10 | 0,69 ✅ | 8/8 | 0/5 | **2** | `evidencias_2026-10-01_3.json` |
+| 03/10 (FACTCK.BR) | todos | 18/19 | 15/19 | 0,72 | 15/15 | 0/11 | 4 | `evidencias_2026-10-03_2.json` |
+| 03/10 (e5-large) | todos | 16/19 | 13/19 | 0,69 | 13/13 | 0/11 | **1** | `evidencias_2026-10-03_3.json` |
+| 03/10 (42 frases) | todos | 22/23 = **0,96** | 19/23 = **0,83** | **0,77** ✅ | 19/19 | 0/12 | 4 | `evidencias_2026-10-03_4.json` |
+| 03/10 (42 frases) | teste | 12/12 | 10/12 | — | 10/10 | — | 2 | (mesmo arquivo) |
+| 03/10 (42 frases) | calibração | 10/11 | 9/11 | — | 9/9 | — | 2 | (mesmo arquivo) |
+| 03/10 (e5-large, 42 frases) | todos | 17/23 = 0,74 | 14/23 = 0,61 | 0,56 ❌ | 14/14 | 0/12 | 1 | `evidencias_2026-10-03_5.json` |
 
-Configuração: BGE-M3, mDeBERTa, `SIM_THRESHOLD` 0,55, índice com 32.094 trechos. Primeira rodada: `CLAIM_MATCH_MIN_PROB` 0,5, Mac (`mps`), commit `9eba0f7`; a "stance nas cobertas" foi criada depois dela e calculada a partir do detalhe por frase salvo no arquivo. Rodadas "termos-chave" e "NLI 0,8": Windows (CPU), commit `fc2cce2`, com a correção dos termos-chave; a primeira com NLI 0,5, a segunda com 0,8 (o valor calibrado, medido uma única vez no teste).
+Configuração: BGE-M3, mDeBERTa, `SIM_THRESHOLD` 0,55, índice com 32.094 trechos. Primeira rodada: `CLAIM_MATCH_MIN_PROB` 0,5, Mac (`mps`), commit `9eba0f7`; a "stance nas cobertas" foi criada depois dela e calculada a partir do detalhe por frase salvo no arquivo. Rodadas "termos-chave" e "NLI 0,8": Windows (CPU), commit `fc2cce2`, com a correção dos termos-chave; a primeira com NLI 0,5, a segunda com 0,8 (o valor calibrado, medido uma única vez no teste). Rodadas de 03/10: NLI 0,8, commit `ee88110` com alterações locais. As de 36 frases usam o índice com o FACTCK.BR antes do descarte (36.099 trechos); a do BGE-M3 rodou na CPU e a do e5-large na GPU. As de 42 frases usam o índice depois do descarte (36.071 trechos), as duas na CPU; os splits não têm macro-F1 próprio no relatório.
 
 Leitura:
 - **Quando o agente acha a checagem certa, a stance sai certa (14/14).** O macro-F1 abaixo da meta vem de checagens perdidas (5 de 19) e das 2 frases que desmentem o boato, não de erro de stance.
 - A revocação de `insuficiente` (1,00) está inflada: em ev08/s02 o agente perdeu a checagem e citou outra, e a frase contou como acerto. A "stance nas cobertas" existe para isso.
 - A correção dos termos-chave recuperou o F-15 (`apoia`) e levou o macro-F1 acima da meta; Cármen Lúcia continua perdida, agora pelo NLI.
 - **Calibração do NLI** (`calibracao_2026-10-01.json`, só no split de calibração): a cobertura ficou em 7/9 com 0,5, 0,6, 0,7 e 0,8, e os casamentos errados caíram de 4 para 2 com 0,8. No teste, 0,8 manteve a cobertura (8/10) e tirou 1 dos 3 casamentos errados. Os 2 que sobram no conjunto todo com nota alta (Kamala 0,98, Bolsonaro na UTI 0,93) passam de qualquer limiar.
+- **FACTCK.BR** (03/10): nas 36 frases antigas nada mudou, porque nenhuma usava checagens dele. Nas 6 de ev13 e ev14, tudo certo: as 4 checagens vieram em 1º lugar na busca e foram citadas com a stance certa (duas `apoia`), o fato parecido (Moro × Cunha) foi barrado e a frase sem checagem ficou sem evidência. Os 4 casamentos errados são os de antes: Kamala, Bolsonaro na UTI, Silvio Almeida e Marçal.
+- **BGE-M3 × e5-large** (03/10): **fica o BGE-M3.** De igual para igual (42 frases, mesmo índice, CPU), o e5 acha 5 checagens a menos na busca (17 × 22), entre elas as 4 do FACTCK.BR, e fica com macro-F1 0,56, abaixo da meta. Ele cita só 1 checagem errada, contra 4 do BGE-M3, mas porque acha menos em geral; os erros do BGE-M3 ficam para a etapa 2. Detalhes em `evidencias_decisoes.md`.
 - A análise dos erros e os próximos passos estão no ADR 3.
 
 Estado do conjunto (01/10): 12 entradas e 36 frases, `validar` sem erros, URLs aceitas conferidas com o `diagnostico.py` (que acrescentou mais duas; saída em `eval/resultados/diagnostico_gold.txt`). **As frases foram escritas pelo Claude**, a pedido do R2, o que contraria a regra 6 acima. Antes de os números entrarem no relatório:
 - o R1 revisa as frases e preenche `revisor`;
 - o relatório declara a origem das paráfrases.
+
+As entradas ev13 (calibração) e ev14 (teste), acrescentadas em 03/10, têm checagens do FACTCK.BR (Lupa, 2018–2019; duas com veredito verdadeiro) e as frases escritas pelo R2. O `validar` sai sem erros. Os avisos que restam são o veredito de ev11/s01, a falta de revisor e 15 frases `contradiz` para uma faixa de 10 a 14, que foi pensada para 36 frases.
 
 ### Como reproduzir
 
@@ -253,7 +274,8 @@ export EVIDENCE_CLAIM_MATCH_MIN_PROB=0.8
 python eval/avaliar_evidencias.py avaliar --split teste --salvar
 
 # 3. Tempo e memória; com GPU, compara o NLI em fp32 e fp16
-#    (feito no Windows/CPU em 01/10: recursos_2026-10-01.json, 2,63 GB;
+#    (feito no Windows: CPU em 01/10, recursos_2026-10-01.json, 2,63 GB;
+#     GPU NVIDIA em 03/10, recursos_2026-10-03.json, 1,58 GB, fp16 sem diferença;
 #     falta na máquina da demo, com o R1)
 pip install psutil                              # opcional: memória do processo (no Windows, necessário)
 python eval/medir_recursos.py --comparar-fp16 --salvar
@@ -264,9 +286,10 @@ python eval/medir_recursos.py --salvar
 python data/corpus/fetch_articles.py --apenas-sites noticias.uol.com.br --limit 5 --delay 3
 
 # 5. BGE-M3 x e5-large (outra coleção; 30-60 min na GPU, algumas horas na CPU: deixe rodar à noite)
+#                                     (feito em 03/10: evidencias_2026-10-03_3.json e _5.json; fica o BGE-M3)
 export EVIDENCE_EMBEDDING_MODEL=intfloat/multilingual-e5-large
 python data/corpus/build_index.py
-python eval/avaliar_evidencias.py avaliar --salvar   # compare só o Recall@5
+python eval/avaliar_evidencias.py avaliar --salvar   # compare o Recall@5 e os casamentos errados
 ```
 
 ## Integração

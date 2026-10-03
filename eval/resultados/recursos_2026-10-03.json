@@ -1,0 +1,65 @@
+{
+  "data": "2026-10-03T14:59:46",
+  "configuracao": {
+    "embedding_model": "BAAI/bge-m3",
+    "nli_model": "MoritzLaurer/mDeBERTa-v3-base-mnli-xnli",
+    "device": "cuda",
+    "sim_threshold": 0.55,
+    "claim_match_min_prob": 0.8,
+    "search_k": 10,
+    "claim_candidates": 6,
+    "max_evidence_per_segment": 3,
+    "recall_k": 5,
+    "recall_k_busca": 30,
+    "colecao": "checagens__baai-bge-m3",
+    "trechos_no_indice": 36099,
+    "chromadb": "1.5.9",
+    "python": "3.14.7",
+    "git_commit": "ee88110e360f033488027463abbaa5e836901a9f",
+    "git_alteracoes_locais": true
+  },
+  "modelos": {
+    "dispositivo": "cuda",
+    "nli_fp16": false,
+    "carregar_embeddings_s": 11.64,
+    "carregar_nli_s": 2.56,
+    "pesos_embeddings_gb": 1.06,
+    "pesos_nli_gb": 0.52,
+    "pesos_total_gb": 1.58,
+    "orcamento_gb": 2.0
+  },
+  "memoria_apos_carregar": {
+    "rss_gb": 2.34,
+    "pico_rss_gb": null,
+    "gpu_gb": 2.59,
+    "fonte": "psutil"
+  },
+  "latencia": {
+    "noticia_3_frases_s": {
+      "n": 36,
+      "p50": 0.106,
+      "p95": 0.147,
+      "max": 0.751
+    },
+    "noticia_36_frases_s": {
+      "n": 3,
+      "p50": 0.793,
+      "p95": 0.803,
+      "max": 0.803
+    }
+  },
+  "memoria_apos_rodar": {
+    "rss_gb": 2.67,
+    "pico_rss_gb": null,
+    "gpu_gb": 2.59,
+    "fonte": "psutil"
+  },
+  "fp32_x_fp16": {
+    "pares": 74,
+    "dif_max": 0.0,
+    "dif_media": 0.0,
+    "decisoes_que_mudam": 0,
+    "indices": [],
+    "valores_nan": 0
+  }
+}

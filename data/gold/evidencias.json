@@ -525,7 +525,92 @@
           "_veredito": "AFP Checamos: Falso"
         }
       ]
+    },
+    {
+      "id": "ev13",
+      "split": "calibracao",
+      "anotador": "Tulio",
+      "revisor": null,
+      "texto": "Um grupo de pessoas espancou em Osasco o segurança do Carrefour responsável pela morte do cachorro. Deltan Dallagnol fez elogios a Glenn Greenwald em postagem nas redes sociais. O Conselho Nacional do Ministério Público publicou novas regras sobre a conduta de procuradores nas redes sociais.",
+      "frases": [
+        {
+          "id": "s01",
+          "texto": "Um grupo de pessoas espancou em Osasco o segurança do Carrefour responsável pela morte do cachorro.",
+          "tipo": "com_checagem",
+          "checagens_aceitas": [
+            "https://www.agencialupa.org/jornalismo/2018/12/07/verificamos-seguranca-carrefour-agredido-osasco/"
+          ],
+          "stance_esperada": "contradiz",
+          "alegacao_original": "Segurança que matou cachorro no Carrefour é espancado por populares em Osasco",
+          "obs": "",
+          "_veredito": "Agência Lupa (2018): Falso"
+        },
+        {
+          "id": "s02",
+          "texto": "Deltan Dallagnol fez elogios a Glenn Greenwald em postagem nas redes sociais.",
+          "tipo": "com_checagem",
+          "checagens_aceitas": [
+            "https://www.agencialupa.org/jornalismo/2019/06/13/verificamos-dallagnol-post-glenn/"
+          ],
+          "stance_esperada": "apoia",
+          "alegacao_original": "Deltan elogia Glenn Greenwald",
+          "obs": "",
+          "_veredito": "Agência Lupa (2019): Verdadeiro"
+        },
+        {
+          "id": "s03",
+          "texto": "O Conselho Nacional do Ministério Público publicou novas regras sobre a conduta de procuradores nas redes sociais.",
+          "tipo": "sem_checagem",
+          "checagens_aceitas": [],
+          "stance_esperada": null,
+          "obs": ""
+        }
+      ]
+    },
+    {
+      "id": "ev14",
+      "split": "teste",
+      "anotador": "Tulio",
+      "revisor": null,
+      "texto": "Agentes federais encontraram um saldo de R$ 200 milhões mantido por Bolsonaro no sistema bancário da Suíça. Por causa da realização do Enem, a interdição da Avenida Paulista para carros começará mais tarde neste domingo. O Telegram confirmou que hackers manipularam as conversas vazadas entre Sergio Moro e Eduardo Cunha.",
+      "frases": [
+        {
+          "id": "s01",
+          "texto": "Agentes federais encontraram um saldo de R$ 200 milhões mantido por Bolsonaro no sistema bancário da Suíça.",
+          "tipo": "com_checagem",
+          "checagens_aceitas": [
+            "https://www.agencialupa.org/jornalismo/2019/01/10/verificamos-bolsonaro-suica/"
+          ],
+          "stance_esperada": "contradiz",
+          "alegacao_original": "Polícia Federal descobre que Bolsonaro tem R$ 200 milhões em conta na Suíça",
+          "obs": "",
+          "_veredito": "Agência Lupa (2019): Falso"
+        },
+        {
+          "id": "s02",
+          "texto": "Por causa da realização do Enem, a interdição da Avenida Paulista para carros começará mais tarde neste domingo.",
+          "tipo": "com_checagem",
+          "checagens_aceitas": [
+            "https://www.agencialupa.org/jornalismo/2018/11/04/verificamos-enem-paulista-fecha-13h/"
+          ],
+          "stance_esperada": "apoia",
+          "alegacao_original": "Avenida Paulista será fechada mais tarde hoje por causa do Enem",
+          "obs": "",
+          "_veredito": "Agência Lupa (2018): Verdadeiro"
+        },
+        {
+          "id": "s03",
+          "texto": "O Telegram confirmou que hackers manipularam as conversas vazadas entre Sergio Moro e Eduardo Cunha.",
+          "tipo": "fato_parecido",
+          "checagens_aceitas": [],
+          "stance_esperada": null,
+          "alegacao_original": "A invasão já seria crime, agora o Telegram confirma que o texto divulgado foi manipulado.",
+          "obs": "Troca de nome: a checagem-base fala das conversas entre Moro e Dallagnol.",
+          "_veredito": "Agência Lupa (2019): Falso",
+          "_base": "https://www.agencialupa.org/jornalismo/2019/06/13/verificamos-telegram-hacker-manipulou-conversas-moro-dallagnol/"
+        }
+      ]
     }
   ],
-  "_anotacao": "Frases escritas pelo Claude em 01/10/2026 e revisadas pelo R2. As URLs aceitas extras foram achadas por busca de palavras no corpus e conferidas com o diagnostico.py, que acrescentou mais duas (eval/resultados/diagnostico_gold.txt). Falta a revisão do R1 (campo revisor)."
+  "_anotacao": "Frases escritas pelo Claude em 01/10/2026 e revisadas pelo R2. As URLs aceitas extras foram achadas por busca de palavras no corpus e conferidas com o diagnostico.py, que acrescentou mais duas (eval/resultados/diagnostico_gold.txt). Falta a revisão do R1 (campo revisor). As entradas ev13 e ev14 (03/10/2026) usam checagens do FACTCK.BR (Lupa, 2018-2019) e as frases são escritas pelo R2; servem para medir o ganho do FACTCK.BR e acrescentam duas checagens com veredito verdadeiro."
 }

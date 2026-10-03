@@ -334,6 +334,20 @@ def test_sortear_reproduzivel_exclui_e_filtra():
     assert {r["source_name"] for r in av.sortear(CORPUS, 10, agencia="afp")} == {"AFP Checamos"}
 
 
+def test_sortear_agencia_olha_nome_e_dominio_nao_o_caminho():
+    url_uol = "https://noticias.uol.com.br/lupa/2019/01/01/checagem/"
+    url_lupa = "https://www.agencialupa.org/jornalismo/2019/01/01/checagem/"
+    corpus = {
+        url_uol: {"source_url": url_uol, "source_name": "UOL Notícias", "agency_verdict": "Falso",
+                  "claim_reviewed": "a", "review_title": "a"},
+        url_lupa: {"source_url": url_lupa, "source_name": "Agência Lupa (2019)", "agency_verdict": "Falso",
+                   "claim_reviewed": "b", "review_title": "b"},
+    }
+    assert [r["source_url"] for r in av.sortear(corpus, 10, agencia="Lupa")] == [url_lupa]
+    assert [r["source_url"] for r in av.sortear(corpus, 10, agencia="agencialupa")] == [url_lupa]
+    assert [r["source_url"] for r in av.sortear(corpus, 10, agencia="uol.com.br")] == [url_uol]
+
+
 def test_sortear_estratifica_por_agencia_e_stance():
     # 4 estratos (agência x stance): AFP/contradiz, Aos Fatos/contradiz, Estadão/insuficiente, Estadão/apoia.
     # Com n = 4, sai um de cada: a stance rara (apoia) não fica de fora.
@@ -551,3 +565,10 @@ def test_agente_com_limiares_restaura_a_configuracao(monkeypatch):
 
 def test_caminho_resultado_com_prefixo(tmp_path):
     assert av.caminho_resultado(tmp_path, "2026-10-02", prefixo="calibracao").name == "calibracao_2026-10-02.json"
+
+
+def test_corpus_inclui_o_factckbr_quando_existe(tmp_path):
+    (tmp_path / "factcheck_api.jsonl").write_text(json.dumps({"source_url": "https://a"}) + "\n", encoding="utf-8")
+    assert set(av.carregar_corpus(tmp_path / "factcheck_api.jsonl")) == {"https://a"}
+    (tmp_path / "factckbr_claims.jsonl").write_text(json.dumps({"source_url": "https://b"}) + "\n", encoding="utf-8")
+    assert set(av.carregar_corpus(tmp_path / "factcheck_api.jsonl")) == {"https://a", "https://b"}

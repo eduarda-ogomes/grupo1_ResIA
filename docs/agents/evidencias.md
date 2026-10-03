@@ -128,7 +128,8 @@ A variável vale só para a janela do terminal em que foi definida. Fora do ambi
 
 ## Limitações conhecidas
 
-- Só acha o que está no corpus (5.826 checagens de 24 meses; sem Lupa). Checagens da AFP entram só pelo título.
+- Só acha o que está no corpus (5.826 checagens de 24 meses; sem Lupa). Checagens da AFP e da maior parte do UOL entram só pelo título e pela alegação: os dois sites recusam o download (o UOL foi testado de novo em 01/10), e o bloqueio não é contornado.
+- Memória medida só na CPU do Windows: 2,63 GB de pesos, acima do orçamento de 2 GB. Na GPU da máquina da demo a estimativa é de ~1,6 GB, ainda sem medida (ver o ADR).
 - Frases que **desmentem** o boato ("a foto é falsa") ficam sem evidência.
 - Paráfrases muito diferentes da alegação podem ser perdidas (ex.: "com dedo em riste", NLI 0,07). O agente prefere perder a citar a checagem errada.
 - `apoia` é raro: das 5.826 checagens, 36 viram `apoia`, e 21 delas são guias do Comprova ("Como funciona o golpe do SMS"), não alegações. Uma ("Não é Moraes no avião de Vorcaro", Comprovado) daria a stance invertida, porque o comprovado é que a imagem é real.
@@ -252,19 +253,17 @@ export EVIDENCE_CLAIM_MATCH_MIN_PROB=0.8
 python eval/avaliar_evidencias.py avaliar --split teste --salvar
 
 # 3. Tempo e memória; com GPU, compara o NLI em fp32 e fp16
-#    (feito no Windows/CPU em 01/10: recursos_2026-10-01.json; falta no Mac, a máquina da demo)
+#    (feito no Windows/CPU em 01/10: recursos_2026-10-01.json, 2,63 GB;
+#     falta na máquina da demo, com o R1)
 pip install psutil                              # opcional: memória do processo (no Windows, necessário)
 python eval/medir_recursos.py --comparar-fp16 --salvar
 export EVIDENCE_NLI_FP16=1                      # se nenhuma decisão mudou
 python eval/medir_recursos.py --salvar
 
-# 4. UOL: bloqueio ou limite de taxa?
+# 4. UOL: bloqueio ou limite de taxa?         (feito em 01/10: 5/5 falhas, é bloqueio; não contornamos)
 python data/corpus/fetch_articles.py --apenas-sites noticias.uol.com.br --limit 5 --delay 3
-# se baixar: o resto com a mesma pausa e reindexar
-python data/corpus/fetch_articles.py --apenas-sites noticias.uol.com.br --delay 3
-python data/corpus/build_index.py
 
-# 5. BGE-M3 x e5-large (outra coleção; 30-60 min para indexar)
+# 5. BGE-M3 x e5-large (outra coleção; 30-60 min na GPU, algumas horas na CPU: deixe rodar à noite)
 export EVIDENCE_EMBEDDING_MODEL=intfloat/multilingual-e5-large
 python data/corpus/build_index.py
 python eval/avaliar_evidencias.py avaliar --salvar   # compare só o Recall@5

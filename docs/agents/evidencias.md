@@ -59,6 +59,37 @@ frase ─► 1. busca: 10 trechos mais parecidos (similaridade ≥ 0,55), agrupa
 
 Sempre a partir da raiz do repositório, com o ambiente virtual ativado. Os comandos `python` são iguais nos dois sistemas; muda só a ativação do ambiente e a forma de definir variáveis de ambiente.
 
+### Índice e dados prontos (sem refazer o corpus)
+
+Para rodar o agente, não é preciso coletar o corpus nem indexar. A pasta do Google Drive (https://drive.google.com/drive/folders/1FrQBt0Q34wez1ZnvsIkLEvClwSNjQuGQ?usp=sharing) tem dois arquivos:
+
+| Arquivo | Pasta criada ao extrair | Para quê |
+| --- | --- | --- |
+| `chroma_data.zip` | `chroma_data/` | Índice que o agente consulta: coleção `checagens__baai-bge-m3` (BGE-M3), com 36.071 trechos (API + FACTCK.BR), gerada em 03/10/2026 com `chromadb` 1.5.9. Basta ele para rodar o agente. |
+| `raw.zip` | `data/corpus/raw/` | Dados brutos: checagens da API, textos baixados e FACTCK.BR (CSV e arquivos convertidos). Necessário para a avaliação (`sortear`, `validar` e `avaliar` leem o corpus daqui) e para refazer o índice sem a chave da API. |
+
+- O `requirements.txt` fixa o `chromadb` em 1.5.9: um índice criado numa versão pode não abrir em outra.
+- Se já existir uma pasta `chroma_data/`, apague-a antes de extrair; misturar índices deixa coleções órfãs.
+- Os dois arquivos são só para o grupo: trazem o texto integral das checagens das agências, que não é nosso para redistribuir (por isso também ficam fora do Git). Não publique o link.
+
+```powershell
+# Windows: baixe os dois zips para a raiz do repositório e extraia
+Expand-Archive chroma_data.zip -DestinationPath .            # cria ./chroma_data
+Expand-Archive raw.zip -DestinationPath data/corpus          # cria data/corpus/raw
+python data/corpus/diagnostico.py --frases "Fachin apontou o dedo para Moraes no STF."   # confere o índice
+```
+
+```bash
+# macOS
+unzip chroma_data.zip -d .
+unzip raw.zip -d data/corpus
+python data/corpus/diagnostico.py --frases "Fachin apontou o dedo para Moraes no STF."
+```
+
+Cada zip já traz a própria pasta (`chroma_data/` e `raw/`), por isso a extração é na pasta de cima. Depois de extrair, `chroma_data/` deve ter o `chroma.sqlite3` e uma pasta com nome de código (o índice vetorial da coleção), e `data/corpus/raw/` deve ter o `factcheck_api.jsonl`, o `articles.jsonl` e os arquivos `factckbr_*`, sem uma pasta a mais no meio. Os modelos (BGE-M3 e mDeBERTa) são baixados do Hugging Face na primeira execução. Para usar o índice em outra pasta, defina `EVIDENCE_CHROMA_PATH`. Os comandos de corpus abaixo só servem para refazer o índice.
+
+### Comandos
+
 **Windows (PowerShell)**
 
 ```powershell

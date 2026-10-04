@@ -37,7 +37,7 @@
           ],
           "stance_esperada": "insuficiente",
           "alegacao_original": "Governo excluiu o texto para tentar esconder que Lula sancionou a Lei das Bets",
-          "obs": "",
+          "obs": "Decisão (04/10): a checagem do Aos Fatos sobre Temer ('Foi Temer, não Lula, quem permitiu bets', falso) não é aceita. Ela desmente que a lei de Lula permitiu as bets; a frase só diz que Lula assinou a lei, o que é verdade (ele sancionou a regulamentação de 2023).",
           "_veredito": "Aos Fatos: Não é bem assim"
         },
         {
@@ -332,7 +332,7 @@
           ],
           "stance_esperada": "insuficiente",
           "alegacao_original": "Lula assume que quer implantar o socialismo e a CNN corta na hora",
-          "obs": "AFP classificou como Enganoso; a stance é insuficiente nas duas.",
+          "obs": "AFP classificou como Enganoso; a stance é insuficiente nas duas. Decisão (04/10): 'Não é verdade que Lula assumiu ser comunista' (Aos Fatos, 2024) é outro episódio (montagem de discursos de 2023) e não é aceita; as aceitas são sobre a posse de Edinho Silva no PT (2025).",
           "_veredito": "UOL Notícias: Distorcido"
         },
         {
@@ -454,7 +454,7 @@
           ],
           "stance_esperada": "apoia",
           "alegacao_original": "Caças F-15 dos EUA pousaram na Base Aérea de Natal, no Rio Grande do Norte, como parte do exercício multinacional \"CRUZEX 2024\"",
-          "obs": "O Comprova checou a mesma alegação com o rótulo 'Contextualizando' (stance insuficiente); a esperada segue o Estadão (Verdadeiro).",
+          "obs": "O Comprova checou a mesma alegação com o rótulo 'Contextualizando' (stance insuficiente); a esperada segue o Estadão (Verdadeiro). Decisão (04/10): mantida, porque 'Contextualizando' acrescenta contexto e não contradiz o Estadão; as duas URLs seguem aceitas.",
           "_veredito": "Estadão: Verdadeiro"
         },
         {

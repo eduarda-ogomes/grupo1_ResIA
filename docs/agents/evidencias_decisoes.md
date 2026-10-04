@@ -115,7 +115,7 @@ Análise dos erros:
 - **Casamentos errados (7):**
   - 2 em `troca_numero`: a alegação checada não tem o número trocado (2024 × 2026) ou o NLI aceitou outra alegação (0,98);
   - 5 em `com_checagem`: o NLI aceitou checagens de outro fato do mesmo tema. Três tinham entailment entre 0,52 e 0,67 (Lula comunista, tarifaço, Lei das Bets) e cairiam com um limiar perto de 0,7; Kamala (0,98) e Bolsonaro na UTI (0,93) não caem com nenhum limiar.
-  - Ev01/s02 (Lei das Bets) é provavelmente falha de anotação: a frase afirma que "foi Lula quem assinou a lei", e a checagem citada ("Foi Temer, não Lula, quem permitiu as bets") checa essa parte. Se entrar em `checagens_aceitas`, são 6.
+  - Ev01/s02 (Lei das Bets) parecia falha de anotação, mas não é (decisão de 04/10): a checagem citada ("Foi Temer, não Lula, quem permitiu as bets") desmente que a lei de Lula *permitiu* as bets, e a frase só diz que Lula assinou a lei, o que é verdade (ele sancionou a regulamentação de 2023). Com o NLI em 0,8, o agente deixou de citá-la.
 - **"COP30":** vira `cop` nos nomes e `cop30` nos termos, e os dois nunca batem.
 - **Abstenção (0/11) otimista:** 10 das 11 frases `sem_checagem` são notícias neutras, que nem parecem boato; só ev06/s03 testa a abstenção num tema próximo de checagens.
 - **Ressalva:** a análise olhou frases dos dois splits. Corrigir falhas de regra geral (maiúscula, COP30) é legítimo; os limiares devem ser calibrados só no split `calibracao`.
@@ -145,7 +145,7 @@ Análise dos erros:
 | --- | --- |
 | **Aprovar o ADR 1 e o ADR 2** | Reunião do grupo |
 | Revisão das 42 frases de `data/gold/evidencias.json` (36 escritas pelo Claude; as 6 de ev13 e ev14, pelo R2), preenchendo `revisor` | R1 |
-| Decidir casos de anotação: ev01/s02 (aceitar a checagem do Temer?), ev08/s02 (o "Lula comunista" é outro episódio?), ev11/s01 (F-15: as duas URLs aceitas têm stances diferentes) e trocar frases `sem_checagem` neutras por boatos sem checagem | R2, com a revisão do R1 |
+| Trocar parte das frases `sem_checagem` neutras por boatos sem checagem no corpus (sugestão: 6 de 12, 3 por split), para a "evidência inventada" testar a abstenção num tema próximo de checagens. Fica para depois do PR, se der tempo | R2, com a revisão do R1 |
 | Recalibrar `CLAIM_MATCH_MIN_PROB` quando o conjunto for revisado ou ampliado | Revisão do R1 |
 | **Medir memória e tempo na máquina da demo** (Mac M4, Seção 5.2): `python eval/medir_recursos.py --comparar-fp16 --salvar`, e decidir o `EVIDENCE_NLI_FP16` pela comparação fp32 × fp16. O R2 não tem acesso a um Mac nesta etapa e mediu no Windows, na CPU e numa GPU NVIDIA (1,58 GB de pesos); a medida no Mac fica com quem tiver a máquina da demo (o R1 mede a latência nela, Seção 9.3). Ver "Memória e tempo" nas decisões menores | R1 / máquina da demo |
 | Converter `data/gold/evidencias.json` para o formato do gold set | R3 |
@@ -175,3 +175,4 @@ Análise dos erros:
 | 03/10 | Índice reconstruído com o FACTCK.BR (36.099 trechos): métricas iguais às de 01/10. Primeira comparação BGE-M3 × e5-large (36 frases). Memória e tempo numa GPU NVIDIA: 1,58 GB de pesos, e o fp16 do NLI não muda nada. |
 | 03/10 | FACTCK.BR: descartadas as 4 checagens "verdadeiro" com título que desmente (ficam 727). O filtro `--agencia` do `sortear` passa a olhar só o nome e o domínio da agência. Entradas ev13 e ev14 no conjunto, com as frases a escrever pelo R2. |
 | 03/10 | Reindexação depois do descarte (36.071 trechos) e conjunto com 42 frases: Recall@5 22/23, macro-F1 0,77, as 4 checagens do FACTCK.BR citadas com a stance certa. BGE-M3 × e5-large de igual para igual: **fica o BGE-M3** (e5: Recall@5 17/23, macro-F1 0,56). |
+| 04/10 | Casos de anotação decididos, sem mudar URLs nem stances: ev01/s02 não aceita a checagem do Temer (outra alegação), ev08/s02 não aceita "Lula comunista" (outro episódio) e ev11/s01 mantém `apoia` com as duas URLs. Motivos no `obs` de cada frase. Índice e dados brutos no Google Drive; `chromadb` fixado em 1.5.9. |

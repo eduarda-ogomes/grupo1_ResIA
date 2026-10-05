@@ -43,7 +43,7 @@ def _run_one(monkeypatch, sentence, hits, probs=None, default=ENTAILMENT, leads=
 # --- Configuração ---------------------------------------------------------------
 
 def test_padroes_da_configuracao():
-    assert config.SIM_THRESHOLD == 0.55 and config.CLAIM_MATCH_MIN_PROB == 0.5
+    assert config.SIM_THRESHOLD == 0.55 and config.CLAIM_MATCH_MIN_PROB == 0.8
     assert config.CLAIM_CANDIDATES == 6 and config.MAX_EVIDENCE_PER_SEGMENT == 3
 
 

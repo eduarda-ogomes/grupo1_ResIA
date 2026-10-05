@@ -4,7 +4,7 @@ langchain-ollama
 langchain-core
 streamlit
 trafilatura
-chromadb
+chromadb==1.5.9
 transformers
 torch
 sentence-transformers

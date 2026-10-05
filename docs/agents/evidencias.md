@@ -166,11 +166,17 @@ A variável vale só para a janela do terminal em que foi definida. Fora do ambi
 ## Limitações conhecidas
 
 - Só acha o que está no corpus: 5.826 checagens da API (últimos 24 meses) e 727 do FACTCK.BR (Lupa e Aos Fatos, 2018–2019). A Lupa só aparece em checagens antigas, e o Truco ainda não entrou. Checagens do FACTCK.BR saem com o ano no nome da agência ("Agência Lupa (2019)"), porque podem estar desatualizadas. Checagens da AFP e da maior parte do UOL entram só pelo título e pela alegação: os dois sites recusam o download (o UOL foi testado de novo em 01/10), e o bloqueio não é contornado.
-- Memória medida só na CPU do Windows: 2,63 GB de pesos, acima do orçamento de 2 GB. Na GPU da máquina da demo a estimativa é de ~1,6 GB, ainda sem medida (ver o ADR).
+- Memória: numa GPU NVIDIA, 1,58 GB de pesos, dentro do orçamento de 2 GB; na CPU, 2,63 GB (o BGE-M3 fica em fp32), acima dele. Falta a medida no Mac da demo (ver o ADR).
+- **Casamento errado: 4 nas 42 frases do conjunto (meta 0).** Nos quatro, o NLI aceitou uma checagem de outro fato, com o mesmo personagem e o mesmo tema, e os termos-chave não tinham o que barrar:
+  - Kamala ("urnas do Arkansas trocavam votos de Trump por Kamala" × "Kamala Harris forjou ligação com eleitores", NLI 0,98) e Bolsonaro ("envenenado na cela da Papudinha" × "Vídeo mostra Bolsonaro deixando UTI", 0,93): mesma pessoa, outro episódio. Nenhum limiar separa esses casos;
+  - Silvio Almeida (apoio a Boulos em 2026 × "Guilherme Boulos recebe apoio de Silvio Almeida"): a alegação checada não traz o ano, então a troca de 2024 para 2026 não aparece;
+  - Marçal ("3 horas e 20 minutos sem votos" × "Porcentagem de votos dos candidatos não acompanha a porcentagem de urnas apuradas"): outra alegação sobre a apuração, sem o número.
+
+  No dossiê, isso aparece como uma checagem vizinha do assunto; o título citado (`excerpt`) mostra de que fato ela trata. Uma regra que compare o episódio, e não só os termos, fica para depois do PR.
 - Frases que **desmentem** o boato ("a foto é falsa") ficam sem evidência.
 - Paráfrases muito diferentes da alegação podem ser perdidas (ex.: "com dedo em riste", NLI 0,07). O agente prefere perder a citar a checagem errada.
 - `apoia` é raro: das 5.826 checagens, 36 viram `apoia`, e 21 delas são guias do Comprova ("Como funciona o golpe do SMS"), não alegações. Uma ("Não é Moraes no avião de Vorcaro", Comprovado) daria a stance invertida, porque o comprovado é que a imagem é real.
-- Termos-chave dependem de maiúsculas corretas; limiares ainda não calibrados no gold set.
+- Termos-chave dependem de maiúsculas corretas. O limiar do NLI (0,8) foi calibrado num conjunto pequeno, ainda sem a revisão do R1: recalibrar quando ele for revisado.
 - Um nome que nunca apareceu no corpus não conta como nome quando abre a frase ("Fulano disse…"): uma troca desse nome por outro só é barrada pelo NLI. Regenere o `nomes_proprios.txt` quando o corpus mudar (`build_index.py --so-nomes`).
 
 ## Fontes

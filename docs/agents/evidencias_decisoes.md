@@ -149,7 +149,7 @@ Análise dos erros:
 | Recalibrar `CLAIM_MATCH_MIN_PROB` quando o conjunto for revisado ou ampliado | Revisão do R1 |
 | **Medir memória e tempo na máquina da demo** (Mac M4, Seção 5.2): `python eval/medir_recursos.py --comparar-fp16 --salvar`, e decidir o `EVIDENCE_NLI_FP16` pela comparação fp32 × fp16. O R2 não tem acesso a um Mac nesta etapa e mediu no Windows, na CPU e numa GPU NVIDIA (1,58 GB de pesos); a medida no Mac fica com quem tiver a máquina da demo (o R1 mede a latência nela, Seção 9.3). Ver "Memória e tempo" nas decisões menores | R1 / máquina da demo |
 | Converter `data/gold/evidencias.json` para o formato do gold set | R3 |
-| Casamentos errados que sobram (Kamala, Bolsonaro na UTI, Silvio Almeida e Marçal; NLI de 0,93 a 0,98 nos dois primeiros): regra na etapa 2 para fato parecido e troca de ano | R2 |
+| Casamentos errados que sobram (Kamala, Bolsonaro na UTI, Silvio Almeida e Marçal; NLI de 0,93 a 0,98 nos dois primeiros): registrados em 04/10 como limitação conhecida no card. Uma regra na etapa 2 que compare o episódio, e não só os termos, fica para depois do PR | Depois |
 | FACTCK.BR: Truco e páginas com várias alegações (exige uma chave por alegação, e não por URL) | Depois |
 | Cobrir frases que desmentem o boato | Resultados do gold set |
 | Avisar o R5 (erro de sintaxe na linha 11 do `synthesizer.py`) | — |
@@ -175,4 +175,4 @@ Análise dos erros:
 | 03/10 | Índice reconstruído com o FACTCK.BR (36.099 trechos): métricas iguais às de 01/10. Primeira comparação BGE-M3 × e5-large (36 frases). Memória e tempo numa GPU NVIDIA: 1,58 GB de pesos, e o fp16 do NLI não muda nada. |
 | 03/10 | FACTCK.BR: descartadas as 4 checagens "verdadeiro" com título que desmente (ficam 727). O filtro `--agencia` do `sortear` passa a olhar só o nome e o domínio da agência. Entradas ev13 e ev14 no conjunto, com as frases a escrever pelo R2. |
 | 03/10 | Reindexação depois do descarte (36.071 trechos) e conjunto com 42 frases: Recall@5 22/23, macro-F1 0,77, as 4 checagens do FACTCK.BR citadas com a stance certa. BGE-M3 × e5-large de igual para igual: **fica o BGE-M3** (e5: Recall@5 17/23, macro-F1 0,56). |
-| 04/10 | Casos de anotação decididos, sem mudar URLs nem stances: ev01/s02 não aceita a checagem do Temer (outra alegação), ev08/s02 não aceita "Lula comunista" (outro episódio) e ev11/s01 mantém `apoia` com as duas URLs. Motivos no `obs` de cada frase. Índice e dados brutos no Google Drive; `chromadb` fixado em 1.5.9. |
+| 04/10 | Casos de anotação decididos, sem mudar URLs nem stances: ev01/s02 não aceita a checagem do Temer (outra alegação), ev08/s02 não aceita "Lula comunista" (outro episódio) e ev11/s01 mantém `apoia` com as duas URLs. Motivos no `obs` de cada frase. Índice e dados brutos no Google Drive; `chromadb` fixado em 1.5.9. Os 4 casamentos errados que sobram ficam como limitação conhecida (meta 0 não atingida). |

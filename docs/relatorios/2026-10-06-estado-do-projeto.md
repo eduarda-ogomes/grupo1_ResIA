@@ -34,7 +34,7 @@ Sistema multiagente de avaliação de confiabilidade da informação (Grupo 1, R
 | `main` | Grafo com stubs; só o Ingestor é real (último merge: PR #2) |
 | `origin/develop` | Os cinco agentes reais orquestrados (`aa9045e`). PR `develop → main` preparado com a descrição da primeira versão orquestrada |
 | `develop` (local) | 2 commits à frente da `origin/develop`, sem push: perguntas socráticas aparecem uma vez só no app; correção de data no card do Agente de Texto |
-| `feat/observabilidade` e `Observabilidade` | Observabilidade (Phoenix, tempos, latência) e este relatório, sobre a `develop` local. Ainda não integrada |
+| `feat/observabilidade` | Observabilidade (Phoenix, tempos, latência) e este relatório, sobre a `develop` local. Ainda não integrada |
 
 Histórico das entregas desta etapa, na ordem:
 

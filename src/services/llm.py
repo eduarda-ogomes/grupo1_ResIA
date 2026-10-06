@@ -1,6 +1,15 @@
+import os
+
 from langchain_openai import ChatOpenAI
 
-LOCAL_MODEL = "qwen2.5-7b"
+
+def modelo_local() -> str:
+    """Nome do modelo no LM Studio. LLM_MODEL sobrescreve, porque cada máquina baixa o
+    modelo com um nome (ex.: "qwen/qwen2.5-7b-instruct"); o LM Studio recusa nome desconhecido."""
+    return os.getenv("LLM_MODEL", "").strip() or "qwen2.5-7b"
+
+
+LOCAL_MODEL = modelo_local()  # lido ao importar: defina LLM_MODEL antes de subir o Streamlit
 BASE_URL = "http://localhost:1234/v1"
 
 # Todos os clientes: timeout de 120 s e sem retry do cliente HTTP. Os agentes fazem o

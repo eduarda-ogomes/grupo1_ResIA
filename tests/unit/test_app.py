@@ -58,3 +58,18 @@ def test_app_cita_o_lm_studio_e_nao_o_ollama():
     textos = " ".join(m.value for m in at.markdown)
     assert "LM Studio" in textos
     assert "Ollama" not in textos
+
+
+def test_perguntas_aparecem_uma_vez_so_dentro_do_dossie(monkeypatch):
+    from tests import modelos_falsos as falsos
+
+    falsos.ligar_falsos(monkeypatch)
+
+    at = analisar(falsos.TEXTO_LIVRE)
+
+    assert not at.exception
+    for pergunta in falsos.PERGUNTAS_TEXTO_LIVRE:
+        onde = [m.value for m in at.markdown if pergunta in m.value]
+        assert len(onde) == 1, f"a pergunta aparece {len(onde)} vezes na tela"
+        assert "## Perguntas para pensar antes de decidir" in onde[0]
+    assert not any(s.value == "Perguntas Socráticas" for s in at.subheader)

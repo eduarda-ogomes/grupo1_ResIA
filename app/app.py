@@ -77,12 +77,9 @@ if st.button("Analisar", type="primary"):
                 st.subheader("Dossiê Sintetizado")
                 dossier = final_state.get('dossier')
                 if dossier:
+                    # As perguntas do Agente Socrático já vêm dentro do dossiê
+                    # ("Perguntas para pensar antes de decidir"); não repetir aqui.
                     st.write(dossier)
-                
-                st.subheader("Perguntas Socráticas")
-                perguntas = final_state.get('socratic_questions') or []
-                for q in perguntas:
-                    st.markdown(f"- {q}")
             
             with col2:
                 st.subheader("Evidências Analisadas")

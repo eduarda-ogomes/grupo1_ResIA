@@ -9,6 +9,8 @@
    próprio, número ou doença da frase não aparece na checagem E a alegação tem
    um termo da mesma classe que a frase não tem, é uma troca: a checagem é
    descartada. Um termo ausente sem par ("no STF") é só contexto e não reprova.
+   A primeira palavra da frase só conta como nome se o corpus a usa como nome
+   (com maiúscula no meio de uma frase): "Lula" conta, "Aviões" não.
 
 3. stance_from_verdict / display_verdict: o veredito da agência vira a stance
    (conservador: só "falso" e "verdadeiro" e equivalentes são conclusivos).
@@ -21,7 +23,11 @@ from __future__ import annotations
 
 import re
 import unicodedata
+from pathlib import Path
 from typing import Iterable, NamedTuple
+
+# Vocabulário de nomes próprios do corpus, gerado pelo data/corpus/build_index.py.
+NAME_VOCABULARY_PATH = Path(__file__).resolve().parents[2] / "data" / "corpus" / "nomes_proprios.txt"
 
 # --- 1. Normalização da alegação ------------------------------------------------
 
@@ -110,6 +116,52 @@ _COMMON_STARTERS = set(
 # Ligam partes de um mesmo nome: "Alexandre de Moraes".
 _NAME_CONNECTORS = {"de", "da", "do", "dos", "das"}
 
+# Palavra que começa com letra e pode ter dígitos colados ("COP30", "G20"), ou um
+# sinal de pontuação, que separa dois nomes ("Arrependida, Cármen Lúcia").
+_WORD_OR_PUNCT = re.compile(r"[^\W\d_][^\W_]*|[.,;:!?()\[\]\"“”'‘’«»…–—]")
+_SENTENCE_SPLIT = re.compile(r"(?<=[.!?:;])\s+")
+
+_name_vocabulary: set[str] | None = None
+_name_vocabulary_loaded = False
+
+
+def _is_shouting(word: str) -> bool:
+    """Palavra comum escrita em caixa alta ("URGENTE"), e não sigla ("STF", "COP30")."""
+    return word.isupper() and len(word) > 5 and not any(c.isdigit() for c in word)
+
+
+def build_name_vocabulary(texts: Iterable[str]) -> set[str]:
+    """Palavras que o corpus usa como nome próprio (sem acentos, minúsculas).
+
+    Uma palavra entra se aparece com maiúscula FORA do início de uma frase mais
+    vezes do que em minúscula. Palavras longas todas em maiúscula ("URGENTE") não
+    contam, porque são grito; siglas curtas ("STF", "EUA", "COP30") contam. Gerado a partir das alegações e títulos do corpus. Serve
+    para decidir se a primeira palavra de uma frase é nome: ali a maiúscula não
+    indica nada.
+    """
+    capitalized: dict[str, int] = {}
+    lowercase: dict[str, int] = {}
+    for text in texts:
+        for sentence in _SENTENCE_SPLIT.split(text or ""):
+            words = [w for w in _WORD_OR_PUNCT.findall(sentence) if w[0].isalpha()]
+            for position, word in enumerate(words):
+                plain = _strip_accents(word.lower())
+                if word[0].islower():
+                    lowercase[plain] = lowercase.get(plain, 0) + 1
+                elif position > 0 and not _is_shouting(word):
+                    capitalized[plain] = capitalized.get(plain, 0) + 1
+    return {w for w, n in capitalized.items() if n > lowercase.get(w, 0) and w not in _STOPWORDS}
+
+
+def load_name_vocabulary(path: Path = NAME_VOCABULARY_PATH) -> set[str] | None:
+    """Vocabulário salvo pelo build_index.py; None se o arquivo não existir (vale a regra antiga)."""
+    global _name_vocabulary, _name_vocabulary_loaded
+    if not _name_vocabulary_loaded:
+        _name_vocabulary_loaded = True
+        if path.exists():
+            _name_vocabulary = {w.strip() for w in path.read_text(encoding="utf-8").splitlines() if w.strip()}
+    return _name_vocabulary
+
 
 class KeyTermResult(NamedTuple):
     ok: bool                 # a checagem pode ser a mesma alegação?
@@ -121,16 +173,27 @@ def name_groups(sentence: str) -> list[list[str]]:
     """Nomes próprios da frase, agrupados ("Alexandre de Moraes" -> ["alexandre", "moraes"]).
 
     Nome = palavra com maiúscula. A primeira palavra só conta se não for uma
-    palavra comum de início de frase ("Governo", "Vídeo", "O"...).
+    palavra comum de início de frase ("Governo", "Vídeo", "O"...) e, quando há
+    vocabulário do corpus, se o corpus a usa como nome ("Lula" sim, "Aviões" não).
+    Pontuação encerra o grupo: "Arrependida, Cármen Lúcia" são dois grupos.
     """
-    words = re.findall(r"[^\W\d_]+", sentence or "")
+    vocabulary = load_name_vocabulary()
     groups: list[list[str]] = []
     current: list[str] = []
-    for i, word in enumerate(words):
+    i = -1
+    for word in _WORD_OR_PUNCT.findall(sentence or ""):
+        if not word[0].isalpha():   # pontuação
+            if current:
+                groups.append(current)
+                current = []
+            continue
+        i += 1
         plain = _strip_accents(word.lower())
         is_name = word[0].isupper() and plain not in _STOPWORDS
         if i == 0:
             is_name = is_name and plain not in _COMMON_STARTERS
+            if vocabulary is not None:
+                is_name = is_name and plain in vocabulary
         tokens = [t for t in tokenize(word) if not t.isdigit() and t not in DISEASES]  # doença tem classe própria
         if is_name and tokens:
             current += tokens

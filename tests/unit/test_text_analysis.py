@@ -296,8 +296,6 @@ def test_timeout_do_modelo_vira_aviso(monkeypatch):
     resultado = texto_node(estado_mamao())
 
     assert resultado == {"text_report": None, "warnings": [WARN_MODELO_INDISPONIVEL]}
-<<<<<<< Updated upstream
-=======
 
 
 # --- falha por lote: mantém o que foi classificado (decisão do grupo, 07/10) ---
@@ -422,4 +420,3 @@ def test_aviso_corta_frase_longa_para_caber_na_tela(monkeypatch):
     assert aviso.startswith('texto: 1 frase sem classificação (as demais foram analisadas): s02 "Palavra Palavra')
     assert aviso.endswith('…"')
     assert len(aviso) < 160
->>>>>>> Stashed changes

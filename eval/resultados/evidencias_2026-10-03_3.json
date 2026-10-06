@@ -1,0 +1,1042 @@
+{
+  "data": "2026-10-03T15:04:11",
+  "split": "todos",
+  "gold": "data\\gold\\evidencias.json",
+  "gold_versao": 1,
+  "configuracao": {
+    "embedding_model": "intfloat/multilingual-e5-large",
+    "nli_model": "MoritzLaurer/mDeBERTa-v3-base-mnli-xnli",
+    "device": "cuda",
+    "sim_threshold": 0.55,
+    "claim_match_min_prob": 0.8,
+    "search_k": 10,
+    "claim_candidates": 6,
+    "max_evidence_per_segment": 3,
+    "recall_k": 5,
+    "recall_k_busca": 30,
+    "colecao": "checagens__intfloat-multilingual-e5-large",
+    "trechos_no_indice": 36099,
+    "chromadb": "1.5.9",
+    "python": "3.14.7",
+    "git_commit": "ee88110e360f033488027463abbaa5e836901a9f",
+    "git_alteracoes_locais": true
+  },
+  "tempos": {
+    "busca_s": 12.971,
+    "agente_primeira_entrada_s": 2.629,
+    "agente_demais_entradas_s": [
+      0.138,
+      0.19,
+      0.253,
+      0.112,
+      0.128,
+      0.109,
+      0.131,
+      0.127,
+      0.137,
+      0.108,
+      0.114
+    ],
+    "observacao": "a busca inclui o carregamento do modelo de embeddings; a primeira entrada do agente, o do NLI"
+  },
+  "metricas": {
+    "n_frases": 36,
+    "n_por_tipo": {
+      "com_checagem": 19,
+      "sem_checagem": 11,
+      "desmente": 2,
+      "fato_parecido": 2,
+      "troca_numero": 2
+    },
+    "recall_at_5": {
+      "acertos": 16,
+      "total": 19,
+      "valor": 0.8421052631578947
+    },
+    "cobertura": {
+      "acertos": 13,
+      "total": 19,
+      "valor": 0.6842105263157895
+    },
+    "macro_f1": {
+      "valor": 0.6854256854256855,
+      "classes_na_media": [
+        "apoia",
+        "contradiz",
+        "insuficiente"
+      ],
+      "por_classe": {
+        "apoia": {
+          "precisao": 1.0,
+          "revocacao": 0.5,
+          "f1": 0.6666666666666666,
+          "suporte": 4,
+          "previstas": 2
+        },
+        "contradiz": {
+          "precisao": 1.0,
+          "revocacao": 0.6923076923076923,
+          "f1": 0.8181818181818181,
+          "suporte": 13,
+          "previstas": 9
+        },
+        "insuficiente": {
+          "precisao": 0.4,
+          "revocacao": 1.0,
+          "f1": 0.5714285714285715,
+          "suporte": 4,
+          "previstas": 10
+        }
+      },
+      "n": 21,
+      "avisos": []
+    },
+    "stance_cobertas": {
+      "acertos": 13,
+      "total": 13,
+      "valor": 1.0
+    },
+    "matriz_confusao": {
+      "apoia": {
+        "apoia": 2,
+        "contradiz": 0,
+        "insuficiente": 2
+      },
+      "contradiz": {
+        "apoia": 0,
+        "contradiz": 9,
+        "insuficiente": 4
+      },
+      "insuficiente": {
+        "apoia": 0,
+        "contradiz": 0,
+        "insuficiente": 4
+      }
+    },
+    "evidencia_inventada": {
+      "acertos": 0,
+      "total": 11,
+      "valor": 0.0
+    },
+    "casamento_errado": {
+      "evidencias": 1,
+      "frases": 1,
+      "por_tipo": {
+        "troca_numero": 1
+      }
+    },
+    "por_frase": [
+      {
+        "chave": "ev01/s01",
+        "tipo": "com_checagem",
+        "texto": "Durante os quatro anos de mandato, Jair Bolsonaro não moveu uma pedra na ponte do Rio Araguaia, que ficou abandonada.",
+        "aceitas": [
+          "https://noticias.uol.com.br/comprova/ultimas-noticias/2025/11/27/ponte-que-liga-para-e-tocantins-comecou-no-governo-bolsonaro.htm",
+          "https://projetocomprova.com.br/publica%C3%A7%C3%B5es/ponte-que-liga-para-e-tocantins-comecou-a-ser-construida-no-governo-bolsonaro/",
+          "https://www.aosfatos.org/noticias/direita-esquerda-compartilham-mentiras-ponte-entre-para-e-tocantins/"
+        ],
+        "stance_esperada": "contradiz",
+        "ranking_top5": [
+          "https://www.aosfatos.org/noticias/direita-esquerda-compartilham-mentiras-ponte-entre-para-e-tocantins/",
+          "https://www.estadao.com.br/estadao-verifica/governo-lula-ponte-araguaia-tocantins-para/",
+          "https://projetocomprova.com.br/publica%C3%A7%C3%B5es/governo-lula-tenta-resolver-impasse-na-justica-para-concluir-ponte-entre-tocantins-e-para/",
+          "https://projetocomprova.com.br/publica%C3%A7%C3%B5es/ponte-que-liga-para-e-tocantins-comecou-a-ser-construida-no-governo-bolsonaro/",
+          "https://www.aosfatos.org/noticias/lei-bets-regra-eleitoral/"
+        ],
+        "posicao_aceita": 1,
+        "evidencias": [
+          {
+            "source_url": "https://www.aosfatos.org/noticias/direita-esquerda-compartilham-mentiras-ponte-entre-para-e-tocantins/",
+            "stance": "contradiz",
+            "agency_verdict": "Falso"
+          },
+          {
+            "source_url": "https://projetocomprova.com.br/publica%C3%A7%C3%B5es/ponte-que-liga-para-e-tocantins-comecou-a-ser-construida-no-governo-bolsonaro/",
+            "stance": "contradiz",
+            "agency_verdict": "Falso"
+          }
+        ],
+        "urls_nao_aceitas": [],
+        "no_top5": true,
+        "coberta": true,
+        "stance_prevista": "contradiz",
+        "citou_aceita": true
+      },
+      {
+        "chave": "ev01/s02",
+        "tipo": "com_checagem",
+        "texto": "O governo apagou a página oficial sobre a Lei das Bets para que ninguém lembre que foi Lula quem assinou a lei.",
+        "aceitas": [
+          "https://www.aosfatos.org/noticias/lei-bets-regra-eleitoral/"
+        ],
+        "stance_esperada": "insuficiente",
+        "ranking_top5": [
+          "https://www.aosfatos.org/noticias/lei-bets-regra-eleitoral/",
+          "https://www.aosfatos.org/noticias/posts-mentem-lula-mandou-retirar-publico-arquibancada-carnaval-medo-de-vaias/",
+          "https://www.bol.uol.com.br/noticias/2026/05/11/e-falso-suposto-comunicado-da-ype-agradecendo-recorde-de-vendas.ghtm",
+          "https://noticias.uol.com.br/confere/ultimas-noticias/2026/05/11/e-falso-suposto-comunicado-da-ype-agradecendo-recorde-de-vendas.ghtm",
+          "https://www.aosfatos.org/noticias/falso-governo-lula-cancelou-bpc/"
+        ],
+        "posicao_aceita": 1,
+        "evidencias": [
+          {
+            "source_url": "https://www.aosfatos.org/noticias/lei-bets-regra-eleitoral/",
+            "stance": "insuficiente",
+            "agency_verdict": "Não é bem assim"
+          }
+        ],
+        "urls_nao_aceitas": [],
+        "no_top5": true,
+        "coberta": true,
+        "stance_prevista": "insuficiente",
+        "citou_aceita": true
+      },
+      {
+        "chave": "ev01/s03",
+        "tipo": "com_checagem",
+        "texto": "No Arkansas, as urnas eletrônicas trocavam sozinhas os votos dados a Donald Trump por votos em Kamala Harris.",
+        "aceitas": [
+          "https://checamos.afp.com/doc.afp.com.36LM6ZQ",
+          "https://www.aosfatos.org/noticias/falso-urnas-arkansas-impediram-voto-trump/"
+        ],
+        "stance_esperada": "contradiz",
+        "ranking_top5": [
+          "https://www.aosfatos.org/noticias/falso-voto-para-trump-foi-computado-kamala/",
+          "https://www.aosfatos.org/noticias/falso-urnas-arkansas-impediram-voto-trump/",
+          "https://www.estadao.com.br/estadao-verifica/tarifas-de-trump-seguem-em-vigor-video-no-x-espalha-informacao-desatualizada/",
+          "https://www.aosfatos.org/noticias/onu-trump-desinforma-guerras-impostos-popularidade/",
+          "https://www.estadao.com.br/estadao-verifica/primeira-urna-eua-vitoria-trump-kamala-enganoso/"
+        ],
+        "posicao_aceita": 2,
+        "evidencias": [],
+        "urls_nao_aceitas": [],
+        "no_top5": true,
+        "coberta": false,
+        "stance_prevista": "insuficiente",
+        "citou_aceita": false
+      },
+      {
+        "chave": "ev02/s01",
+        "tipo": "com_checagem",
+        "texto": "Em Roma, a primeira-dama Janja saiu escondida, no meio da noite, do hotel em que Macron se hospedava.",
+        "aceitas": [
+          "https://noticias.uol.com.br/comprova/ultimas-noticias/2025/05/06/post-inventa-encontro-noturno-entre-janja-e-macron-em-roma.htm",
+          "https://projetocomprova.com.br/publica%C3%A7%C3%B5es/post-inventa-encontro-noturno-entre-janja-e-macron-em-roma/",
+          "https://www.bol.uol.com.br/noticias/2025/05/06/post-inventa-encontro-noturno-entre-janja-e-macron-em-roma.ghtm",
+          "https://www.estadao.com.br/estadao-verifica/falso-encontro-noturno-janja-macron-roma/"
+        ],
+        "stance_esperada": "contradiz",
+        "ranking_top5": [
+          "https://www.bol.uol.com.br/noticias/2025/05/06/post-inventa-encontro-noturno-entre-janja-e-macron-em-roma.ghtm",
+          "https://noticias.uol.com.br/comprova/ultimas-noticias/2025/05/06/post-inventa-encontro-noturno-entre-janja-e-macron-em-roma.htm",
+          "https://projetocomprova.com.br/publica%C3%A7%C3%B5es/post-inventa-encontro-noturno-entre-janja-e-macron-em-roma/",
+          "https://www.estadao.com.br/estadao-verifica/falso-encontro-noturno-janja-macron-roma/",
+          "https://projetocomprova.com.br/publica%C3%A7%C3%B5es/video-engana-ao-utilizar-ia-para-simular-janja-ostentando-compras-com-dinheiro-publico/"
+        ],
+        "posicao_aceita": 1,
+        "evidencias": [],
+        "urls_nao_aceitas": [],
+        "no_top5": true,
+        "coberta": false,
+        "stance_prevista": "insuficiente",
+        "citou_aceita": false
+      },
+      {
+        "chave": "ev02/s02",
+        "tipo": "com_checagem",
+        "texto": "Basta um aplicativo e um cabo USB para turbinar a internet de casa sem pagar nada a mais.",
+        "aceitas": [
+          "https://www.estadao.com.br/estadao-verifica/aumentar-velocidade-internet-gratis-falso/"
+        ],
+        "stance_esperada": "contradiz",
+        "ranking_top5": [
+          "https://noticias.uol.com.br/comprova/ultimas-noticias/2025/04/29/entenda-a-proposta-para-ampliar-tarifa-social-da-conta-de-luz.htm",
+          "https://www.estadao.com.br/estadao-verifica/apos-ingresso-no-brics-etiopia-amplia-producao-de-trigo/",
+          "https://www.estadao.com.br/estadao-verifica/video-de-curto-circuito-postado-por-boulos-foi-gravado-em-sao-bernardo-do-campo-e-nao-em-sao-paulo/",
+          "https://projetocomprova.com.br/publica%C3%A7%C3%B5es/regras-para-motoristas-de-aplicativo-e-entregadores-seguem-inalteradas/",
+          "https://noticias.uol.com.br/comprova/ultimas-noticias/2025/07/04/regras-para-motoristas-de-aplicativo-e-entregadores-seguem-inalteradas.htm"
+        ],
+        "posicao_aceita": null,
+        "evidencias": [],
+        "urls_nao_aceitas": [],
+        "no_top5": false,
+        "coberta": false,
+        "stance_prevista": "insuficiente",
+        "citou_aceita": false
+      },
+      {
+        "chave": "ev02/s03",
+        "tipo": "sem_checagem",
+        "texto": "O Ministério das Comunicações abriu consulta pública sobre o leilão de novas faixas de 5G para cidades do interior.",
+        "aceitas": [],
+        "stance_esperada": null,
+        "ranking_top5": [
+          "https://noticias.uol.com.br/comprova/ultimas-noticias/2025/04/29/entenda-a-proposta-para-ampliar-tarifa-social-da-conta-de-luz.htm",
+          "https://noticias.uol.com.br/confere/ultimas-noticias/2025/05/20/promessa-cnh-social-digital-gratuita-falso-golpe.htm",
+          "https://noticias.uol.com.br/comprova/ultimas-noticias/2025/12/11/audio-de-moraes-sobre-proibir-linguajar-evangelico-foi-feito-por-ia.htm",
+          "https://projetocomprova.com.br/publica%C3%A7%C3%B5es/audio-de-moraes-sobre-proibir-linguajar-evangelico-foi-feito-por-ia/",
+          "https://noticias.uol.com.br/confere/ultimas-noticias/2026/01/16/falso-celular-vorcaro-adelio-bispo.amp.htm"
+        ],
+        "posicao_aceita": null,
+        "evidencias": [],
+        "urls_nao_aceitas": [],
+        "inventada": false
+      },
+      {
+        "chave": "ev03/s01",
+        "tipo": "desmente",
+        "texto": "Ao contrário do que circula nas redes, Lula não virou réu em nenhuma corte internacional.",
+        "aceitas": [
+          "https://noticias.uol.com.br/comprova/ultimas-noticias/2024/10/14/lula-nao-e-reu-em-tribunal-internacional-post-usa-audio-fora-de-contexto.htm",
+          "https://projetocomprova.com.br/publica%C3%A7%C3%B5es/lula-nao-e-reu-em-tribunal-internacional-post-usa-audio-fora-de-contexto/",
+          "https://www.estadao.com.br/estadao-verifica/lula-reu-supremo-tribunal-internacional-falso/"
+        ],
+        "stance_esperada": "apoia",
+        "ranking_top5": [
+          "https://projetocomprova.com.br/publica%C3%A7%C3%B5es/lula-nao-e-reu-em-tribunal-internacional-post-usa-audio-fora-de-contexto/",
+          "https://www.estadao.com.br/estadao-verifica/lula-reu-supremo-tribunal-internacional-falso/",
+          "https://noticias.uol.com.br/comprova/ultimas-noticias/2024/10/14/lula-nao-e-reu-em-tribunal-internacional-post-usa-audio-fora-de-contexto.htm",
+          "https://www.aosfatos.org/noticias/foto-nao-mostra-lula-embriagado-levando-um-tombo-em-paris/",
+          "https://www.aosfatos.org/noticias/decreto-nao-confere-a-janja-os-mesmos-poderes-que-lula/"
+        ],
+        "posicao_aceita": 1,
+        "evidencias": [],
+        "urls_nao_aceitas": [],
+        "stance_prevista": "insuficiente",
+        "citou_aceita": false
+      },
+      {
+        "chave": "ev03/s02",
+        "tipo": "sem_checagem",
+        "texto": "O Parlamento português aprovou nesta semana novas regras para a renovação de vistos de trabalho de brasileiros.",
+        "aceitas": [],
+        "stance_esperada": null,
+        "ranking_top5": [
+          "https://noticias.uol.com.br/comprova/ultimas-noticias/2025/04/29/entenda-a-proposta-para-ampliar-tarifa-social-da-conta-de-luz.htm",
+          "https://www.estadao.com.br/estadao-verifica/tarifas-de-trump-seguem-em-vigor-video-no-x-espalha-informacao-desatualizada/",
+          "https://www.agencialupa.org/jornalismo/2019/02/01/verificamos-gargalhada-gleisi/",
+          "https://www.agencialupa.org/jornalismo/2019/07/10/verificamos-empresario-revista-veja/",
+          "https://www.estadao.com.br/estadao-verifica/apos-ingresso-no-brics-etiopia-amplia-producao-de-trigo/"
+        ],
+        "posicao_aceita": null,
+        "evidencias": [],
+        "urls_nao_aceitas": [],
+        "inventada": false
+      },
+      {
+        "chave": "ev03/s03",
+        "tipo": "com_checagem",
+        "texto": "Militantes de esquerda colocaram veneno na água de André Ventura durante um comício em Portugal.",
+        "aceitas": [
+          "https://www.estadao.com.br/estadao-verifica/andre-ventura-portugal-passou-mal-beber-agua/"
+        ],
+        "stance_esperada": "insuficiente",
+        "ranking_top5": [
+          "https://noticias.uol.com.br/confere/ultimas-noticias/2025/01/10/protesto-venezuela-maduro-panama-falso.htm",
+          "https://projetocomprova.com.br/publica%C3%A7%C3%B5es/audio-de-moraes-sobre-proibir-linguajar-evangelico-foi-feito-por-ia/",
+          "https://noticias.uol.com.br/confere/ultimas-noticias/2025/09/16/distorcido-moraes-negou-minuta-golpista.htm",
+          "https://noticias.uol.com.br/comprova/ultimas-noticias/2025/12/11/audio-de-moraes-sobre-proibir-linguajar-evangelico-foi-feito-por-ia.htm",
+          "https://www.aosfatos.org/noticias/video-engana-mauro-vieira-fala-editada/"
+        ],
+        "posicao_aceita": null,
+        "evidencias": [],
+        "urls_nao_aceitas": [],
+        "no_top5": false,
+        "coberta": false,
+        "stance_prevista": "insuficiente",
+        "citou_aceita": false
+      },
+      {
+        "chave": "ev04/s01",
+        "tipo": "com_checagem",
+        "texto": "A Justiça americana derrubou o tarifaço de Donald Trump, numa derrota dura para o presidente.",
+        "aceitas": [
+          "https://projetocomprova.com.br/publica%C3%A7%C3%B5es/tarifas-de-trump-seguem-em-vigor-video-no-x-espalha-informacao-desatualizada/",
+          "https://www.estadao.com.br/estadao-verifica/tarifas-de-trump-seguem-em-vigor-video-no-x-espalha-informacao-desatualizada/"
+        ],
+        "stance_esperada": "insuficiente",
+        "ranking_top5": [
+          "https://www.estadao.com.br/estadao-verifica/tarifas-de-trump-seguem-em-vigor-video-no-x-espalha-informacao-desatualizada/",
+          "https://www.aosfatos.org/noticias/onu-trump-desinforma-guerras-impostos-popularidade/",
+          "https://www.aosfatos.org/noticias/falso-michael-jordan-declarou-apoio-a-trump/",
+          "https://noticias.uol.com.br/confere/ultimas-noticias/2025/09/26/falso-trump-corte-verba-emissora-entrevista-lula.htm",
+          "https://noticias.uol.com.br/confere/ultimas-noticias/2026/01/06/falso-trump-nomeou-maria-corina-presidente-venezuela.htm"
+        ],
+        "posicao_aceita": 1,
+        "evidencias": [
+          {
+            "source_url": "https://www.estadao.com.br/estadao-verifica/tarifas-de-trump-seguem-em-vigor-video-no-x-espalha-informacao-desatualizada/",
+            "stance": "insuficiente",
+            "agency_verdict": "Enganoso"
+          }
+        ],
+        "urls_nao_aceitas": [],
+        "no_top5": true,
+        "coberta": true,
+        "stance_prevista": "insuficiente",
+        "citou_aceita": true
+      },
+      {
+        "chave": "ev04/s02",
+        "tipo": "sem_checagem",
+        "texto": "A Neo Química Arena vai receber em dezembro a final da Copa do Brasil feminina.",
+        "aceitas": [],
+        "stance_esperada": null,
+        "ranking_top5": [
+          "https://www.aosfatos.org/noticias/janja-usou-sim-veu-durante-funeral-do-papa-francisco/",
+          "https://noticias.uol.com.br/comprova/ultimas-noticias/2025/04/29/entenda-a-proposta-para-ampliar-tarifa-social-da-conta-de-luz.htm",
+          "https://noticias.uol.com.br/confere/ultimas-noticias/2025/04/30/janja-nao-usou-veu-funeral-papa-francisco-falso.htm",
+          "https://www.bol.uol.com.br/noticias/2026/05/11/e-falso-suposto-comunicado-da-ype-agradecendo-recorde-de-vendas.ghtm",
+          "https://noticias.uol.com.br/confere/ultimas-noticias/2026/05/11/e-falso-suposto-comunicado-da-ype-agradecendo-recorde-de-vendas.ghtm"
+        ],
+        "posicao_aceita": null,
+        "evidencias": [],
+        "urls_nao_aceitas": [],
+        "inventada": false
+      },
+      {
+        "chave": "ev04/s03",
+        "tipo": "com_checagem",
+        "texto": "Moraes respondeu a torcedores com um gesto obsceno quando estava no estádio vendo o Corinthians.",
+        "aceitas": [
+          "https://noticias.uol.com.br/confere/ultimas-noticias/2025/08/01/moraes-fez-sim-gesto-obsceno-durante-jogo-do-corinthians.htm"
+        ],
+        "stance_esperada": "apoia",
+        "ranking_top5": [
+          "https://noticias.uol.com.br/confere/ultimas-noticias/2025/08/01/moraes-fez-sim-gesto-obsceno-durante-jogo-do-corinthians.htm",
+          "https://noticias.uol.com.br/confere/ultimas-noticias/2025/09/16/distorcido-moraes-negou-minuta-golpista.htm",
+          "https://checamos.afp.com/doc.afp.com.68UF4KE",
+          "https://noticias.uol.com.br/confere/ultimas-noticias/2025/08/05/torcida-do-corinthians-nao-se-manifestou-contra-alexandre-de-moraes-em-jogo.htm",
+          "https://projetocomprova.com.br/publica%C3%A7%C3%B5es/audio-de-moraes-sobre-proibir-linguajar-evangelico-foi-feito-por-ia/"
+        ],
+        "posicao_aceita": 1,
+        "evidencias": [
+          {
+            "source_url": "https://noticias.uol.com.br/confere/ultimas-noticias/2025/08/01/moraes-fez-sim-gesto-obsceno-durante-jogo-do-corinthians.htm",
+            "stance": "apoia",
+            "agency_verdict": "Verdadeiro"
+          }
+        ],
+        "urls_nao_aceitas": [],
+        "no_top5": true,
+        "coberta": true,
+        "stance_prevista": "apoia",
+        "citou_aceita": true
+      },
+      {
+        "chave": "ev05/s01",
+        "tipo": "fato_parecido",
+        "texto": "O Itamaraty avisou que fecharia a embaixada dos Estados Unidos caso Flávio Dino fosse punido por Washington.",
+        "aceitas": [],
+        "stance_esperada": null,
+        "ranking_top5": [
+          "https://projetocomprova.com.br/publica%C3%A7%C3%B5es/audio-de-moraes-sobre-proibir-linguajar-evangelico-foi-feito-por-ia/",
+          "https://noticias.uol.com.br/comprova/ultimas-noticias/2025/12/11/audio-de-moraes-sobre-proibir-linguajar-evangelico-foi-feito-por-ia.htm",
+          "https://www.estadao.com.br/estadao-verifica/corte-emissora-pbs-entrevista-lula/",
+          "https://www.estadao.com.br/estadao-verifica/flavio-dino-distribuiu-cloroquina-maranhao-enganoso/",
+          "https://www.aosfatos.org/noticias/falso-dicaprio-desculpas-festas-diddy/"
+        ],
+        "posicao_aceita": null,
+        "evidencias": [],
+        "urls_nao_aceitas": []
+      },
+      {
+        "chave": "ev05/s02",
+        "tipo": "com_checagem",
+        "texto": "O colegiado de ética dos deputados correu para cassar Glauber Braga, mas engavetou até agora o caso de Chiquinho Brazão.",
+        "aceitas": [
+          "https://www.aosfatos.org/noticias/falso-conselho-de-etica-nao-recomendou-cassacao-brazao/"
+        ],
+        "stance_esperada": "contradiz",
+        "ranking_top5": [
+          "https://www.aosfatos.org/noticias/falso-conselho-de-etica-nao-recomendou-cassacao-brazao/",
+          "https://www.aosfatos.org/noticias/lei-bets-regra-eleitoral/",
+          "https://noticias.uol.com.br/confere/ultimas-noticias/2026/05/18/glauber-braga-foi-suspenso-por-6-meses-e-janones-firmou-acordo.ghtm",
+          "https://noticias.uol.com.br/comprova/ultimas-noticias/2025/12/11/audio-de-moraes-sobre-proibir-linguajar-evangelico-foi-feito-por-ia.htm",
+          "https://projetocomprova.com.br/publica%C3%A7%C3%B5es/audio-de-moraes-sobre-proibir-linguajar-evangelico-foi-feito-por-ia/"
+        ],
+        "posicao_aceita": 1,
+        "evidencias": [
+          {
+            "source_url": "https://www.aosfatos.org/noticias/falso-conselho-de-etica-nao-recomendou-cassacao-brazao/",
+            "stance": "contradiz",
+            "agency_verdict": "Falso"
+          }
+        ],
+        "urls_nao_aceitas": [],
+        "no_top5": true,
+        "coberta": true,
+        "stance_prevista": "contradiz",
+        "citou_aceita": true
+      },
+      {
+        "chave": "ev05/s03",
+        "tipo": "sem_checagem",
+        "texto": "A Câmara criou uma frente parlamentar para acompanhar a qualidade da merenda nas escolas públicas.",
+        "aceitas": [],
+        "stance_esperada": null,
+        "ranking_top5": [
+          "https://projetocomprova.com.br/publica%C3%A7%C3%B5es/audio-de-moraes-sobre-proibir-linguajar-evangelico-foi-feito-por-ia/",
+          "https://noticias.uol.com.br/comprova/ultimas-noticias/2025/12/11/audio-de-moraes-sobre-proibir-linguajar-evangelico-foi-feito-por-ia.htm",
+          "https://www.estadao.com.br/estadao-verifica/alta-no-preco-do-cafe-esta-relacionada-a-fatores-climaticos-e-limitacao-de-areas-produtivas/",
+          "https://www.aosfatos.org/noticias/lei-bets-regra-eleitoral/",
+          "https://noticias.uol.com.br/comprova/ultimas-noticias/2025/04/29/entenda-a-proposta-para-ampliar-tarifa-social-da-conta-de-luz.htm"
+        ],
+        "posicao_aceita": null,
+        "evidencias": [],
+        "urls_nao_aceitas": [],
+        "inventada": false
+      },
+      {
+        "chave": "ev06/s01",
+        "tipo": "fato_parecido",
+        "texto": "Michelle Bolsonaro prometeu elevar o salário mínimo para mais de R$ 3.000 se chegar à Presidência.",
+        "aceitas": [],
+        "stance_esperada": null,
+        "ranking_top5": [
+          "https://projetocomprova.com.br/publica%C3%A7%C3%B5es/nao-e-verdade-que-lula-tenha-proposta-para-aumentar-salario-minimo-para-r-3-mil-videos-sao-feitos-com-ia/",
+          "https://projetocomprova.com.br/publica%C3%A7%C3%B5es/flavio-bolsonaro-nao-prometeu-salario-minimo-de-r-3-mil-informacao-circula-em-videos-com-ia/",
+          "https://noticias.uol.com.br/comprova/ultimas-noticias/2025/04/29/entenda-a-proposta-para-ampliar-tarifa-social-da-conta-de-luz.htm",
+          "https://noticias.uol.com.br/confere/ultimas-noticias/2025/05/20/promessa-cnh-social-digital-gratuita-falso-golpe.htm",
+          "https://www.estadao.com.br/estadao-verifica/tarifas-de-trump-seguem-em-vigor-video-no-x-espalha-informacao-desatualizada/"
+        ],
+        "posicao_aceita": null,
+        "evidencias": [],
+        "urls_nao_aceitas": []
+      },
+      {
+        "chave": "ev06/s02",
+        "tipo": "com_checagem",
+        "texto": "Bolsonaro foi parar no hospital depois de ser envenenado dentro da cela da Papudinha.",
+        "aceitas": [
+          "https://noticias.uol.com.br/confere/ultimas-noticias/2026/03/20/falso-bolsonaro-internado-envenenamento-chumbo-prisao.ghtm",
+          "https://www.estadao.com.br/estadao-verifica/bolsonaro-internado-envenenado-falso/"
+        ],
+        "stance_esperada": "contradiz",
+        "ranking_top5": [
+          "https://www.estadao.com.br/estadao-verifica/bolsonaro-internado-envenenado-falso/",
+          "https://www.aosfatos.org/noticias/foto-que-mostra-bolsonaro-em-pe-e-sorridente-no-hospital-nao-e-atual/",
+          "https://www.agencialupa.org/jornalismo/2019/02/01/verificamos-gargalhada-gleisi/",
+          "https://www.aosfatos.org/rascunho/noticias/video-de-lindbergh-sobre-ida-de-bolsonaro-a-papudinha-e-antigo/?utm_source=site&utm_campaign=leiamais&utm_medium=leiamais",
+          "https://www.agencialupa.org/jornalismo/2019/06/21/verificamos-video-vulcao-indonesia/"
+        ],
+        "posicao_aceita": 1,
+        "evidencias": [
+          {
+            "source_url": "https://www.estadao.com.br/estadao-verifica/bolsonaro-internado-envenenado-falso/",
+            "stance": "contradiz",
+            "agency_verdict": "Falso"
+          }
+        ],
+        "urls_nao_aceitas": [],
+        "no_top5": true,
+        "coberta": true,
+        "stance_prevista": "contradiz",
+        "citou_aceita": true
+      },
+      {
+        "chave": "ev06/s03",
+        "tipo": "sem_checagem",
+        "texto": "A equipe médica informou que o ex-presidente fará sessões diárias de fisioterapia respiratória.",
+        "aceitas": [],
+        "stance_esperada": null,
+        "ranking_top5": [
+          "https://noticias.uol.com.br/comprova/ultimas-noticias/2025/04/29/entenda-a-proposta-para-ampliar-tarifa-social-da-conta-de-luz.htm",
+          "https://www.bol.uol.com.br/noticias/2026/09/18/falso-laudo-pericial-inss-andre-janones-esquizofrenia.ghtm",
+          "https://noticias.uol.com.br/confere/ultimas-noticias/2026/09/18/falso-laudo-pericial-inss-andre-janones-esquizofrenia.ghtm",
+          "https://noticias.uol.com.br/confere/ultimas-noticias/2025/04/30/janja-nao-usou-veu-funeral-papa-francisco-falso.htm",
+          "https://noticias.uol.com.br/comprova/ultimas-noticias/2025/12/11/audio-de-moraes-sobre-proibir-linguajar-evangelico-foi-feito-por-ia.htm"
+        ],
+        "posicao_aceita": null,
+        "evidencias": [],
+        "urls_nao_aceitas": [],
+        "inventada": false
+      },
+      {
+        "chave": "ev07/s01",
+        "tipo": "troca_numero",
+        "texto": "Silvio Almeida, que deixou o ministério após denúncias de assédio, apareceu em gravação apoiando Guilherme Boulos na disputa de 2026.",
+        "aceitas": [],
+        "stance_esperada": null,
+        "ranking_top5": [
+          "https://noticias.uol.com.br/comprova/ultimas-noticias/2024/10/17/video-de-2022-editado-insinua-que-silvio-almeida-pede-votos-para-boulos.htm",
+          "https://www.aosfatos.org/noticias/video-nao-mostra-silvio-almeida-pedindo-voto-em-boulos-eleicoes-2024/",
+          "https://projetocomprova.com.br/publica%C3%A7%C3%B5es/video-de-2022-foi-editado-para-insinuar-que-silvio-almeida-pede-votos-para-boulos-nas-eleicoes-de-2024/",
+          "https://www.estadao.com.br/estadao-verifica/silvio-almeida-pede-votos-boulos-prefeitura-de-sp-falso-2022/",
+          "https://checamos.afp.com/doc.afp.com.36KB9VJ"
+        ],
+        "posicao_aceita": null,
+        "evidencias": [
+          {
+            "source_url": "https://projetocomprova.com.br/publica%C3%A7%C3%B5es/video-de-2022-foi-editado-para-insinuar-que-silvio-almeida-pede-votos-para-boulos-nas-eleicoes-de-2024/",
+            "stance": "contradiz",
+            "agency_verdict": "Falso"
+          }
+        ],
+        "urls_nao_aceitas": [
+          "https://projetocomprova.com.br/publica%C3%A7%C3%B5es/video-de-2022-foi-editado-para-insinuar-que-silvio-almeida-pede-votos-para-boulos-nas-eleicoes-de-2024/"
+        ]
+      },
+      {
+        "chave": "ev07/s02",
+        "tipo": "com_checagem",
+        "texto": "Um tremor de magnitude 6,7 sacudiu o Peru e foi sentido em diversas cidades do país.",
+        "aceitas": [
+          "https://checamos.afp.com/doc.afp.com.C6EP4T3",
+          "https://checamos.afp.com/doc.afp.com.C6R99CR",
+          "https://www.aosfatos.org/noticias/imagens-terremoto-colombia-peru/"
+        ],
+        "stance_esperada": "contradiz",
+        "ranking_top5": [
+          "https://checamos.afp.com/doc.afp.com.C6EP4T3",
+          "https://www.aosfatos.org/noticias/imagens-terremoto-colombia-peru/",
+          "https://noticias.uol.com.br/confere/ultimas-noticias/2024/11/19/post-distorce-declaracao-de-erika-hilton-sobre-pec-contra-escala-6x1.htm",
+          "https://noticias.uol.com.br/comprova/ultimas-noticias/2025/10/20/entenda-impacto-dos-juros-altos-no-financiamento-rural.htm",
+          "https://projetocomprova.com.br/publica%C3%A7%C3%B5es/entenda-impacto-dos-juros-altos-no-financiamento-rural/"
+        ],
+        "posicao_aceita": 1,
+        "evidencias": [
+          {
+            "source_url": "https://www.aosfatos.org/noticias/imagens-terremoto-colombia-peru/",
+            "stance": "contradiz",
+            "agency_verdict": "Falso"
+          }
+        ],
+        "urls_nao_aceitas": [],
+        "no_top5": true,
+        "coberta": true,
+        "stance_prevista": "contradiz",
+        "citou_aceita": true
+      },
+      {
+        "chave": "ev07/s03",
+        "tipo": "sem_checagem",
+        "texto": "O Instituto Geofísico do Peru registrou mais de 40 réplicas nas 24 horas seguintes ao tremor.",
+        "aceitas": [],
+        "stance_esperada": null,
+        "ranking_top5": [
+          "https://noticias.uol.com.br/confere/ultimas-noticias/2025/09/16/distorcido-moraes-negou-minuta-golpista.htm",
+          "https://noticias.uol.com.br/comprova/ultimas-noticias/2025/12/11/audio-de-moraes-sobre-proibir-linguajar-evangelico-foi-feito-por-ia.htm",
+          "https://projetocomprova.com.br/publica%C3%A7%C3%B5es/audio-de-moraes-sobre-proibir-linguajar-evangelico-foi-feito-por-ia/",
+          "https://www.aosfatos.org/noticias/foto-mostra-nave-artemis-ii-danificada-gerada-por-ia/",
+          "https://www.aosfatos.org/noticias/videos-gerados-ia-circulam-como-consequencias-chuvas-mg/"
+        ],
+        "posicao_aceita": null,
+        "evidencias": [],
+        "urls_nao_aceitas": [],
+        "inventada": false
+      },
+      {
+        "chave": "ev08/s01",
+        "tipo": "sem_checagem",
+        "texto": "O PT marcou para novembro o encontro nacional que vai definir as diretrizes do programa de governo.",
+        "aceitas": [],
+        "stance_esperada": null,
+        "ranking_top5": [
+          "https://noticias.uol.com.br/comprova/ultimas-noticias/2025/04/29/entenda-a-proposta-para-ampliar-tarifa-social-da-conta-de-luz.htm",
+          "https://www.estadao.com.br/estadao-verifica/corte-emissora-pbs-entrevista-lula/",
+          "https://www.aosfatos.org/noticias/onu-trump-desinforma-guerras-impostos-popularidade/",
+          "https://noticias.uol.com.br/confere/ultimas-noticias/2025/09/26/falso-trump-corte-verba-emissora-entrevista-lula.htm",
+          "https://www.aosfatos.org/noticias/lei-bets-regra-eleitoral/"
+        ],
+        "posicao_aceita": null,
+        "evidencias": [],
+        "urls_nao_aceitas": [],
+        "inventada": false
+      },
+      {
+        "chave": "ev08/s02",
+        "tipo": "com_checagem",
+        "texto": "Lula admitiu que pretende implantar o socialismo no Brasil, e a CNN cortou a transmissão no mesmo instante.",
+        "aceitas": [
+          "https://checamos.afp.com/doc.afp.com.68QG2G3",
+          "https://noticias.uol.com.br/confere/ultimas-noticias/2025/08/12/lula-nao-disse-que-quer-implementar-o-socialismo-no-brasil.htm"
+        ],
+        "stance_esperada": "insuficiente",
+        "ranking_top5": [
+          "https://noticias.uol.com.br/confere/ultimas-noticias/2025/09/26/falso-trump-corte-verba-emissora-entrevista-lula.htm",
+          "https://www.estadao.com.br/estadao-verifica/corte-emissora-pbs-entrevista-lula/",
+          "https://noticias.uol.com.br/confere/ultimas-noticias/2025/04/14/e-falso-que-lula-admitiu-que-roubou-em-video.htm",
+          "https://www.aosfatos.org/noticias/falso-elon-musk-comprou-cnn/",
+          "https://noticias.uol.com.br/confere/ultimas-noticias/2025/05/20/promessa-cnh-social-digital-gratuita-falso-golpe.htm"
+        ],
+        "posicao_aceita": null,
+        "evidencias": [],
+        "urls_nao_aceitas": [],
+        "no_top5": false,
+        "coberta": false,
+        "stance_prevista": "insuficiente",
+        "citou_aceita": false
+      },
+      {
+        "chave": "ev08/s03",
+        "tipo": "troca_numero",
+        "texto": "Pablo Marçal passou 3 horas e 20 minutos sem receber nenhum voto na apuração, algo matematicamente impossível.",
+        "aceitas": [],
+        "stance_esperada": null,
+        "ranking_top5": [
+          "https://noticias.uol.com.br/confere/ultimas-noticias/2024/10/31/falso-pablo-marcal-1h-sem-voto.htm",
+          "https://noticias.uol.com.br/confere/ultimas-noticias/2024/10/08/falso-que-campanha-de-pablo-marcal-teve-custo-zero.htm",
+          "https://www.aosfatos.org/noticias/falso-marcal-declarou-apoio-a-boulos/",
+          "https://www.estadao.com.br/estadao-verifica/pablo-marcal-zero-gasto-falso/",
+          "https://www.aosfatos.org/noticias/lei-bets-regra-eleitoral/"
+        ],
+        "posicao_aceita": null,
+        "evidencias": [],
+        "urls_nao_aceitas": []
+      },
+      {
+        "chave": "ev09/s01",
+        "tipo": "sem_checagem",
+        "texto": "A Primeira Turma do STF marcou para a próxima terça o julgamento de um recurso sobre a execução de emendas parlamentares.",
+        "aceitas": [],
+        "stance_esperada": null,
+        "ranking_top5": [
+          "https://www.bol.uol.com.br/noticias/2025/12/10/moraes-procurador-maranhao-flavio-dino.ghtm",
+          "https://noticias.uol.com.br/confere/ultimas-noticias/2025/12/10/moraes-procurador-maranhao-flavio-dino.htm",
+          "https://projetocomprova.com.br/publica%C3%A7%C3%B5es/entenda-impacto-dos-juros-altos-no-financiamento-rural/",
+          "https://noticias.uol.com.br/comprova/ultimas-noticias/2025/10/20/entenda-impacto-dos-juros-altos-no-financiamento-rural.htm",
+          "https://www.estadao.com.br/estadao-verifica/tarifas-de-trump-seguem-em-vigor-video-no-x-espalha-informacao-desatualizada/"
+        ],
+        "posicao_aceita": null,
+        "evidencias": [],
+        "urls_nao_aceitas": [],
+        "inventada": false
+      },
+      {
+        "chave": "ev09/s02",
+        "tipo": "com_checagem",
+        "texto": "Em postagem, o deputado Nikolas Ferreira garantiu que a oposição levará a moeda americana a R$ 7.",
+        "aceitas": [
+          "https://noticias.uol.com.br/confere/ultimas-noticias/2024/12/20/nao-ha-evidencias-de-que-nikolas-ferreira-falou-que-fara-dolar-subir-a-r-7.htm",
+          "https://www.aosfatos.org/noticias/falso-post-nikolas-ferreira-oposicao-dolar/",
+          "https://www.estadao.com.br/estadao-verifica/nikolas-ferreira-dolar-7-reais-governo-lula-falso/"
+        ],
+        "stance_esperada": "contradiz",
+        "ranking_top5": [
+          "https://www.estadao.com.br/estadao-verifica/nikolas-ferreira-dolar-7-reais-governo-lula-falso/",
+          "https://www.aosfatos.org/noticias/falso-post-nikolas-ferreira-oposicao-dolar/",
+          "https://noticias.uol.com.br/confere/ultimas-noticias/2024/12/20/nao-ha-evidencias-de-que-nikolas-ferreira-falou-que-fara-dolar-subir-a-r-7.htm",
+          "https://www.bol.uol.com.br/noticias/2025/06/26/nikolas-ferreira-voto-favor-aumento-conta-luz-falso.ghtm",
+          "https://noticias.uol.com.br/confere/ultimas-noticias/2025/06/26/nikolas-ferreira-voto-favor-aumento-conta-luz-falso.htm"
+        ],
+        "posicao_aceita": 1,
+        "evidencias": [
+          {
+            "source_url": "https://www.aosfatos.org/noticias/falso-post-nikolas-ferreira-oposicao-dolar/",
+            "stance": "contradiz",
+            "agency_verdict": "Falso"
+          },
+          {
+            "source_url": "https://noticias.uol.com.br/confere/ultimas-noticias/2024/12/20/nao-ha-evidencias-de-que-nikolas-ferreira-falou-que-fara-dolar-subir-a-r-7.htm",
+            "stance": "contradiz",
+            "agency_verdict": "Falso"
+          }
+        ],
+        "urls_nao_aceitas": [],
+        "no_top5": true,
+        "coberta": true,
+        "stance_prevista": "contradiz",
+        "citou_aceita": true
+      },
+      {
+        "chave": "ev09/s03",
+        "tipo": "com_checagem",
+        "texto": "Arrependida, Cármen Lúcia admitiu que agora defende a anistia para os condenados pela trama golpista.",
+        "aceitas": [
+          "https://noticias.uol.com.br/confere/ultimas-noticias/2025/10/01/falso-carmen-lucia-defende-anistia-trama-golpista.htm",
+          "https://www.estadao.com.br/estadao-verifica/carmen-lucia-apoiar-anistia-que-tramita-no-congresso-falso/"
+        ],
+        "stance_esperada": "contradiz",
+        "ranking_top5": [
+          "https://noticias.uol.com.br/confere/ultimas-noticias/2025/10/01/falso-carmen-lucia-defende-anistia-trama-golpista.htm",
+          "https://www.estadao.com.br/estadao-verifica/carmen-lucia-apoiar-anistia-que-tramita-no-congresso-falso/",
+          "https://www.aosfatos.org/noticias/falso-dicaprio-desculpas-festas-diddy/",
+          "https://noticias.uol.com.br/confere/ultimas-noticias/2025/09/16/distorcido-moraes-negou-minuta-golpista.htm",
+          "https://noticias.uol.com.br/comprova/ultimas-noticias/2025/04/29/entenda-a-proposta-para-ampliar-tarifa-social-da-conta-de-luz.htm"
+        ],
+        "posicao_aceita": 1,
+        "evidencias": [],
+        "urls_nao_aceitas": [],
+        "no_top5": true,
+        "coberta": false,
+        "stance_prevista": "insuficiente",
+        "citou_aceita": false
+      },
+      {
+        "chave": "ev10/s01",
+        "tipo": "com_checagem",
+        "texto": "Quem nasceu entre 1960 e 2006 pode pedir uma indenização do governo como forma de desculpas oficiais.",
+        "aceitas": [
+          "https://noticias.uol.com.br/confere/ultimas-noticias/2025/02/20/nao-existe-indenizacao-para-quem-nasceu-entre-1960-e-2006-e-golpe.htm",
+          "https://www.estadao.com.br/estadao-verifica/cleitinho-golpe-indenizacao-nascidos-entre-1960-e-2006/",
+          "https://www.estadao.com.br/estadao-verifica/indenizacao-pessoas-nascidas-1960-2006-falso/",
+          "https://www.estadao.com.br/estadao-verifica/restituicao-brasileiros-pedido-desculpas-nascidos-1960-2006-decreto-falso/"
+        ],
+        "stance_esperada": "contradiz",
+        "ranking_top5": [
+          "https://www.estadao.com.br/estadao-verifica/indenizacao-pessoas-nascidas-1960-2006-falso/",
+          "https://www.estadao.com.br/estadao-verifica/restituicao-brasileiros-pedido-desculpas-nascidos-1960-2006-decreto-falso/",
+          "https://www.aosfatos.org/noticias/falso-dicaprio-desculpas-festas-diddy/",
+          "https://www.estadao.com.br/estadao-verifica/cleitinho-golpe-indenizacao-nascidos-entre-1960-e-2006/",
+          "https://noticias.uol.com.br/confere/ultimas-noticias/2025/09/16/distorcido-moraes-negou-minuta-golpista.htm"
+        ],
+        "posicao_aceita": 1,
+        "evidencias": [
+          {
+            "source_url": "https://www.estadao.com.br/estadao-verifica/restituicao-brasileiros-pedido-desculpas-nascidos-1960-2006-decreto-falso/",
+            "stance": "contradiz",
+            "agency_verdict": "Falso"
+          }
+        ],
+        "urls_nao_aceitas": [],
+        "no_top5": true,
+        "coberta": true,
+        "stance_prevista": "contradiz",
+        "citou_aceita": true
+      },
+      {
+        "chave": "ev10/s02",
+        "tipo": "com_checagem",
+        "texto": "Donald Trump mandou um aviso ao governo brasileiro por causa da extradição de Carla Zambelli.",
+        "aceitas": [
+          "https://projetocomprova.com.br/publica%C3%A7%C3%B5es/trump-nao-enviou-recado-ao-brasil-sobre-extradicao-de-zambelli-ao-contrario-do-que-afirma-video-viral/",
+          "https://www.estadao.com.br/estadao-verifica/trump-mandou-recado-carla-zambelli-extradicao-falso/"
+        ],
+        "stance_esperada": "contradiz",
+        "ranking_top5": [
+          "https://projetocomprova.com.br/publica%C3%A7%C3%B5es/trump-nao-enviou-recado-ao-brasil-sobre-extradicao-de-zambelli-ao-contrario-do-que-afirma-video-viral/",
+          "https://www.estadao.com.br/estadao-verifica/trump-mandou-recado-carla-zambelli-extradicao-falso/",
+          "https://noticias.uol.com.br/confere/ultimas-noticias/2026/01/06/falso-trump-nomeou-maria-corina-presidente-venezuela.htm",
+          "https://www.aosfatos.org/noticias/interpol-incluiu-sim-carla-zambelli-na-lista-de-procurados-internacionais/",
+          "https://www.estadao.com.br/estadao-verifica/tarifas-de-trump-seguem-em-vigor-video-no-x-espalha-informacao-desatualizada/"
+        ],
+        "posicao_aceita": 1,
+        "evidencias": [
+          {
+            "source_url": "https://projetocomprova.com.br/publica%C3%A7%C3%B5es/trump-nao-enviou-recado-ao-brasil-sobre-extradicao-de-zambelli-ao-contrario-do-que-afirma-video-viral/",
+            "stance": "contradiz",
+            "agency_verdict": "Falso"
+          },
+          {
+            "source_url": "https://www.estadao.com.br/estadao-verifica/trump-mandou-recado-carla-zambelli-extradicao-falso/",
+            "stance": "contradiz",
+            "agency_verdict": "Falso"
+          }
+        ],
+        "urls_nao_aceitas": [],
+        "no_top5": true,
+        "coberta": true,
+        "stance_prevista": "contradiz",
+        "citou_aceita": true
+      },
+      {
+        "chave": "ev10/s03",
+        "tipo": "sem_checagem",
+        "texto": "A Polícia Federal prendeu em Goiânia um grupo suspeito de desviar dinheiro de aposentados com empréstimos consignados.",
+        "aceitas": [],
+        "stance_esperada": null,
+        "ranking_top5": [
+          "https://www.estadao.com.br/estadao-verifica/emprestimos-consignados-menores-de-idade-inss-fraude-enganoso/",
+          "https://checamos.afp.com/doc.afp.com.74QM2ZR",
+          "https://noticias.uol.com.br/confere/ultimas-noticias/2026/07/14/e-falso-que-foto-mostre-financiamento-da-usaid-a-terroristas.ghtm",
+          "https://projetocomprova.com.br/publica%C3%A7%C3%B5es/entenda-impacto-dos-juros-altos-no-financiamento-rural/",
+          "https://noticias.uol.com.br/comprova/ultimas-noticias/2025/10/20/entenda-impacto-dos-juros-altos-no-financiamento-rural.htm"
+        ],
+        "posicao_aceita": null,
+        "evidencias": [],
+        "urls_nao_aceitas": [],
+        "inventada": false
+      },
+      {
+        "chave": "ev11/s01",
+        "tipo": "com_checagem",
+        "texto": "Aviões de caça F-15 americanos aterrissaram na base da FAB em Natal para participar do exercício CRUZEX 2024.",
+        "aceitas": [
+          "https://projetocomprova.com.br/publica%C3%A7%C3%B5es/aeronaves-estrangeiras-mostradas-em-video-participavam-de-simulacao-da-fab-entenda/",
+          "https://www.estadao.com.br/estadao-verifica/fab-cacas-f-15-eua-treinamento/"
+        ],
+        "stance_esperada": "apoia",
+        "ranking_top5": [
+          "https://www.estadao.com.br/estadao-verifica/fab-cacas-f-15-eua-treinamento/",
+          "https://projetocomprova.com.br/publica%C3%A7%C3%B5es/aeronaves-estrangeiras-mostradas-em-video-participavam-de-simulacao-da-fab-entenda/",
+          "https://noticias.uol.com.br/comprova/ultimas-noticias/2024/11/18/aeronaves-estrangeiras-mostradas-em-video-participavam-de-simulacao-da-fab.htm",
+          "https://noticias.uol.com.br/confere/ultimas-noticias/2026/05/13/falso-porta-avioes-eua-invasao-brasil.ghtm",
+          "https://www.estadao.com.br/estadao-verifica/tapio-2025-exercicio-militar-americano-ocorre-desde-2018-sob-comando-da-fab/"
+        ],
+        "posicao_aceita": 1,
+        "evidencias": [
+          {
+            "source_url": "https://www.estadao.com.br/estadao-verifica/fab-cacas-f-15-eua-treinamento/",
+            "stance": "apoia",
+            "agency_verdict": "Verdadeiro"
+          },
+          {
+            "source_url": "https://projetocomprova.com.br/publica%C3%A7%C3%B5es/aeronaves-estrangeiras-mostradas-em-video-participavam-de-simulacao-da-fab-entenda/",
+            "stance": "insuficiente",
+            "agency_verdict": "Contextualizando"
+          }
+        ],
+        "urls_nao_aceitas": [],
+        "no_top5": true,
+        "coberta": true,
+        "stance_prevista": "apoia",
+        "citou_aceita": true
+      },
+      {
+        "chave": "ev11/s02",
+        "tipo": "com_checagem",
+        "texto": "Indígenas protestaram na COP30 exigindo um barco como o de Janja em vez de caminhonetes Hilux.",
+        "aceitas": [
+          "https://checamos.afp.com/doc.afp.com.83YB3WE",
+          "https://noticias.uol.com.br/confere/ultimas-noticias/2025/11/14/e-ia-video-de-indigenas-pedindo-navio-igual-ao-de-janja-na-cop30.amp.htm",
+          "https://noticias.uol.com.br/confere/ultimas-noticias/2025/11/14/e-ia-video-de-indigenas-pedindo-navio-igual-ao-de-janja-na-cop30.htm",
+          "https://www.aosfatos.org/noticias/video-que-mostra-protesto-de-indigenas-pedindo-um-navio-igual-ao-da-janja-foi-gerado-por-ia/"
+        ],
+        "stance_esperada": "contradiz",
+        "ranking_top5": [
+          "https://noticias.uol.com.br/confere/ultimas-noticias/2025/11/14/e-ia-video-de-indigenas-pedindo-navio-igual-ao-de-janja-na-cop30.htm",
+          "https://noticias.uol.com.br/confere/ultimas-noticias/2025/11/14/e-ia-video-de-indigenas-pedindo-navio-igual-ao-de-janja-na-cop30.amp.htm",
+          "https://www.aosfatos.org/noticias/video-que-mostra-protesto-de-indigenas-pedindo-um-navio-igual-ao-da-janja-foi-gerado-por-ia/",
+          "https://www.estadao.com.br/estadao-verifica/indigena-chama-governo-de-enfraquecido-cop30-enganoso/",
+          "https://checamos.afp.com/doc.afp.com.83YB3WE"
+        ],
+        "posicao_aceita": 1,
+        "evidencias": [
+          {
+            "source_url": "https://noticias.uol.com.br/confere/ultimas-noticias/2025/11/14/e-ia-video-de-indigenas-pedindo-navio-igual-ao-de-janja-na-cop30.htm",
+            "stance": "contradiz",
+            "agency_verdict": "Falso"
+          },
+          {
+            "source_url": "https://www.aosfatos.org/noticias/video-que-mostra-protesto-de-indigenas-pedindo-um-navio-igual-ao-da-janja-foi-gerado-por-ia/",
+            "stance": "contradiz",
+            "agency_verdict": "Falso"
+          },
+          {
+            "source_url": "https://checamos.afp.com/doc.afp.com.83YB3WE",
+            "stance": "contradiz",
+            "agency_verdict": "Falso"
+          }
+        ],
+        "urls_nao_aceitas": [],
+        "no_top5": true,
+        "coberta": true,
+        "stance_prevista": "contradiz",
+        "citou_aceita": true
+      },
+      {
+        "chave": "ev11/s03",
+        "tipo": "sem_checagem",
+        "texto": "A Prefeitura de Belém anunciou a ampliação das linhas de ônibus que ligam o centro aos bairros da periferia.",
+        "aceitas": [],
+        "stance_esperada": null,
+        "ranking_top5": [
+          "https://noticias.uol.com.br/comprova/ultimas-noticias/2025/04/29/entenda-a-proposta-para-ampliar-tarifa-social-da-conta-de-luz.htm",
+          "https://www.estadao.com.br/estadao-verifica/video-de-2022-de-lula-em-belo-horizonte-circula-como-se-fosse-atual/",
+          "https://www.aosfatos.org/noticias/falsa-foto-posto-gasolina-para/",
+          "https://noticias.uol.com.br/comprova/ultimas-noticias/2025/06/06/fake-news-sobre-marido-de-marina-silva-e-serrarias-ilegais-volta-a-circular.htm",
+          "https://www.aosfatos.org/noticias/lei-bets-regra-eleitoral/"
+        ],
+        "posicao_aceita": null,
+        "evidencias": [],
+        "urls_nao_aceitas": [],
+        "inventada": false
+      },
+      {
+        "chave": "ev12/s01",
+        "tipo": "desmente",
+        "texto": "É mentira que Haddad, num encontro do BTG, tenha atribuído ao governo Bolsonaro todos os problemas do país.",
+        "aceitas": [
+          "https://noticias.uol.com.br/comprova/ultimas-noticias/2025/09/29/post-inventa-declaracao-de-haddad-culpando-a-gestao-anterior-por-economia.htm",
+          "https://projetocomprova.com.br/publica%C3%A7%C3%B5es/post-inventa-declaracao-de-haddad-culpando-exclusivamente-a-gestao-anterior-por-problemas-economicos/"
+        ],
+        "stance_esperada": "apoia",
+        "ranking_top5": [
+          "https://noticias.uol.com.br/comprova/ultimas-noticias/2025/10/17/audio-que-cita-compra-de-apoio-e-e-atribuido-a-haddad-nao-e-verdade.htm",
+          "https://www.aosfatos.org/noticias/falso-marcal-declarou-apoio-a-boulos/",
+          "https://noticias.uol.com.br/confere/ultimas-noticias/2026/01/06/falso-trump-nomeou-maria-corina-presidente-venezuela.htm",
+          "https://www.aosfatos.org/noticias/falso-dicaprio-desculpas-festas-diddy/",
+          "https://www.aosfatos.org/noticias/falso-michael-jordan-declarou-apoio-a-trump/"
+        ],
+        "posicao_aceita": null,
+        "evidencias": [],
+        "urls_nao_aceitas": [],
+        "stance_prevista": "insuficiente",
+        "citou_aceita": false
+      },
+      {
+        "chave": "ev12/s02",
+        "tipo": "sem_checagem",
+        "texto": "O Ministério da Fazenda prevê que a receita com impostos federais cresça 3% acima da inflação no próximo ano.",
+        "aceitas": [],
+        "stance_esperada": null,
+        "ranking_top5": [
+          "https://noticias.uol.com.br/comprova/ultimas-noticias/2025/04/29/entenda-a-proposta-para-ampliar-tarifa-social-da-conta-de-luz.htm",
+          "https://noticias.uol.com.br/comprova/ultimas-noticias/2024/12/11/post-mente-ao-afirmar-que-governo-vai-cobrar-imposto-de-donos-de-pets.htm",
+          "https://noticias.uol.com.br/comprova/ultimas-noticias/2025/10/20/entenda-impacto-dos-juros-altos-no-financiamento-rural.htm",
+          "https://projetocomprova.com.br/publica%C3%A7%C3%B5es/post-mente-ao-afirmar-que-governo-vai-cobrar-imposto-de-donos-de-pets/",
+          "https://projetocomprova.com.br/publica%C3%A7%C3%B5es/entenda-impacto-dos-juros-altos-no-financiamento-rural/"
+        ],
+        "posicao_aceita": null,
+        "evidencias": [],
+        "urls_nao_aceitas": [],
+        "inventada": false
+      },
+      {
+        "chave": "ev12/s03",
+        "tipo": "com_checagem",
+        "texto": "Flávio Bolsonaro apareceu usando uma camiseta que insulta os nordestinos.",
+        "aceitas": [
+          "https://checamos.afp.com/doc.afp.com.C9AE4G3",
+          "https://noticias.uol.com.br/confere/ultimas-noticias/2026/09/25/falso-imagem-flavio-bolsonaro-camisa-ofensa-nordestinos.ghtm",
+          "https://www.bol.uol.com.br/noticias/2026/09/25/falso-imagem-flavio-bolsonaro-camisa-ofensa-nordestinos.ghtm"
+        ],
+        "stance_esperada": "contradiz",
+        "ranking_top5": [
+          "https://www.agencialupa.org/jornalismo/2018/10/06/verificamos-flavio-bolsonaro-nordestinos/",
+          "https://www.bol.uol.com.br/noticias/2026/09/25/falso-imagem-flavio-bolsonaro-camisa-ofensa-nordestinos.ghtm",
+          "https://noticias.uol.com.br/confere/ultimas-noticias/2026/09/25/falso-imagem-flavio-bolsonaro-camisa-ofensa-nordestinos.ghtm",
+          "https://checamos.afp.com/doc.afp.com.C9AE4G3",
+          "https://www.aosfatos.org/noticias/flavio-bolsonaro-nao-usou-camiseta-com-frases-contra-nordestinos-imagem-e-falsa/"
+        ],
+        "posicao_aceita": 2,
+        "evidencias": [
+          {
+            "source_url": "https://noticias.uol.com.br/confere/ultimas-noticias/2026/09/25/falso-imagem-flavio-bolsonaro-camisa-ofensa-nordestinos.ghtm",
+            "stance": "contradiz",
+            "agency_verdict": "Falso"
+          },
+          {
+            "source_url": "https://checamos.afp.com/doc.afp.com.C9AE4G3",
+            "stance": "contradiz",
+            "agency_verdict": "Falso"
+          }
+        ],
+        "urls_nao_aceitas": [],
+        "no_top5": true,
+        "coberta": true,
+        "stance_prevista": "contradiz",
+        "citou_aceita": true
+      }
+    ],
+    "erros": [
+      "[ev01/s03] No Arkansas, as urnas eletrônicas trocavam sozinhas os votos dados a Donald Trump por voto\n    Cobertura: o agente não emitiu a checagem esperada",
+      "[ev01/s03] No Arkansas, as urnas eletrônicas trocavam sozinhas os votos dados a Donald Trump por voto\n    Stance: esperada contradiz, prevista insuficiente",
+      "[ev02/s01] Em Roma, a primeira-dama Janja saiu escondida, no meio da noite, do hotel em que Macron se\n    Cobertura: o agente não emitiu a checagem esperada",
+      "[ev02/s01] Em Roma, a primeira-dama Janja saiu escondida, no meio da noite, do hotel em que Macron se\n    Stance: esperada contradiz, prevista insuficiente",
+      "[ev02/s02] Basta um aplicativo e um cabo USB para turbinar a internet de casa sem pagar nada a mais.\n    Recall@5: nenhuma URL aceita no top 5",
+      "[ev02/s02] Basta um aplicativo e um cabo USB para turbinar a internet de casa sem pagar nada a mais.\n    Cobertura: o agente não emitiu a checagem esperada",
+      "[ev02/s02] Basta um aplicativo e um cabo USB para turbinar a internet de casa sem pagar nada a mais.\n    Stance: esperada contradiz, prevista insuficiente",
+      "[ev03/s01] Ao contrário do que circula nas redes, Lula não virou réu em nenhuma corte internacional.\n    Stance: esperada apoia, prevista insuficiente",
+      "[ev03/s03] Militantes de esquerda colocaram veneno na água de André Ventura durante um comício em Por\n    Recall@5: nenhuma URL aceita no top 5",
+      "[ev03/s03] Militantes de esquerda colocaram veneno na água de André Ventura durante um comício em Por\n    Cobertura: o agente não emitiu a checagem esperada",
+      "[ev07/s01] Silvio Almeida, que deixou o ministério após denúncias de assédio, apareceu em gravação ap\n    Casamento errado: https://projetocomprova.com.br/publica%C3%A7%C3%B5es/video-de-2022-foi-editado-para-insinuar-que-silvio-almeida-pede-votos-para-boulos-nas-eleicoes-de-2024/",
+      "[ev08/s02] Lula admitiu que pretende implantar o socialismo no Brasil, e a CNN cortou a transmissão n\n    Recall@5: nenhuma URL aceita no top 5",
+      "[ev08/s02] Lula admitiu que pretende implantar o socialismo no Brasil, e a CNN cortou a transmissão n\n    Cobertura: o agente não emitiu a checagem esperada",
+      "[ev09/s03] Arrependida, Cármen Lúcia admitiu que agora defende a anistia para os condenados pela tram\n    Cobertura: o agente não emitiu a checagem esperada",
+      "[ev09/s03] Arrependida, Cármen Lúcia admitiu que agora defende a anistia para os condenados pela tram\n    Stance: esperada contradiz, prevista insuficiente",
+      "[ev12/s01] É mentira que Haddad, num encontro do BTG, tenha atribuído ao governo Bolsonaro todos os p\n    Stance: esperada apoia, prevista insuficiente"
+    ]
+  }
+}

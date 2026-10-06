@@ -140,3 +140,72 @@ def test_stance_from_verdict(raw, stance):
 )
 def test_display_verdict(raw, shown):
     assert display_verdict(raw) == shown
+
+
+# --- Vocabulário de nomes do corpus (primeira palavra, pontuação, siglas) ---------------------
+
+from src.retrieval import etapa2  # noqa: E402
+
+
+@pytest.fixture
+def vocabulario(monkeypatch):
+    """Vocabulário fixo, para o teste não depender do data/corpus/nomes_proprios.txt."""
+    voc = {"lula", "bolsonaro", "moraes", "janja", "stf", "cop30", "natal", "carmen", "lucia"}
+    monkeypatch.setattr(etapa2, "_name_vocabulary", voc)
+    monkeypatch.setattr(etapa2, "_name_vocabulary_loaded", True)
+    return voc
+
+
+def test_vocabulario_usa_so_maiuscula_fora_do_inicio_e_ignora_grito():
+    textos = [
+        "Vídeo mostra Lula em Natal com a Janja",            # Vídeo: início de frase, não conta
+        "Foto de Lula. Vacina causa autismo",                 # Vacina: início da 2ª frase
+        "Post diz que a vacina mata e que o STF votou",       # vacina em minúscula; STF é sigla
+        "Indígenas fazem protesto na COP30 sobre Indígenas",  # 2 maiúsculas no meio...
+        "os indígenas e os indígenas e os indígenas",         # ...mas 3 minúsculas: fica de fora
+        "É URGENTE: compartilhe",                             # grito, não nome
+    ]
+    voc = etapa2.build_name_vocabulary(textos)
+    assert {"lula", "natal", "janja", "stf", "cop30"} <= voc
+    assert not {"video", "vacina", "indigenas", "urgente", "a", "de"} & voc
+
+
+def test_primeira_palavra_so_e_nome_se_o_corpus_usa_como_nome(vocabulario):
+    assert etapa2.name_groups("Aviões americanos pousaram em Natal.") == [["natal"]]
+    assert etapa2.name_groups("Lula disse que vai taxar o Pix.") == [["lula"], ["pix"]]
+
+
+def test_pontuacao_separa_grupos_e_sigla_com_numero_fica_inteira(vocabulario):
+    assert etapa2.name_groups("Arrependida, Cármen Lúcia defende a anistia.") == [["carmen", "lucia"]]
+    assert etapa2.name_groups("Indígenas protestaram na COP30 contra a Janja.") == [["cop30"], ["janja"]]
+
+
+def test_casos_da_avaliacao_passam_e_troca_no_inicio_continua_barrada(vocabulario):
+    # F-15: "Aviões" não é nome, então a checagem certa não é rejeitada como troca
+    assert key_terms_present("Aviões de caça F-15 pousaram em Natal.",
+                             ["Caças F-15 dos EUA pousaram em Natal"], "Caças F-15 dos EUA pousaram em Natal").ok
+    # Cármen Lúcia: "Arrependida" não é nome nem gruda no nome dela
+    assert key_terms_present("Arrependida, Cármen Lúcia admitiu que apoia a anistia.",
+                             ["Ministra Cármen Lúcia admite apoiar anistia no Congresso"],
+                             "Ministra Cármen Lúcia admite apoiar anistia no Congresso").ok
+    # COP30 bate com COP30
+    assert key_terms_present("Indígenas protestaram na COP30 por um barco igual ao da Janja.",
+                             ["índios protestam na COP30 querendo navio igual da Janja"],
+                             "índios protestam na COP30 querendo navio igual da Janja").ok
+    # Troca de nome na primeira palavra continua barrada: "Lula" está no vocabulário
+    resultado = key_terms_present("Lula prometeu taxar o Pix.", ["Bolsonaro prometeu taxar o Pix"],
+                                  "Bolsonaro prometeu taxar o Pix")
+    assert not resultado.ok and resultado.missing == ["lula"]
+
+
+def test_sem_vocabulario_vale_a_regra_antiga(monkeypatch, tmp_path):
+    monkeypatch.setattr(etapa2, "_name_vocabulary_loaded", False)
+    monkeypatch.setattr(etapa2, "_name_vocabulary", None)
+    assert etapa2.load_name_vocabulary(tmp_path / "nao_existe.txt") is None
+    assert etapa2.name_groups("Aviões pousaram em Natal.") == [["avioes"], ["natal"]]
+
+
+def test_vocabulario_versionado_existe_e_tem_os_nomes_principais():
+    voc = set(etapa2.NAME_VOCABULARY_PATH.read_text(encoding="utf-8").split())
+    assert {"lula", "bolsonaro", "moraes", "stf"} <= voc
+    assert not {"avioes", "arrependida", "vacina", "governo"} & voc

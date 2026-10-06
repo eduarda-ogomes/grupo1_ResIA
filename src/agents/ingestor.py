@@ -93,12 +93,21 @@ def truncate_words(text: str, max_words: int = MAX_WORDS) -> tuple[str, bool]:
 
 
 def segment_text(text: str) -> list[Segment]:
-    segments = []
+    """Frases numeradas (s01, s02...).
+
+    Fragmento só de pontuação ("URGENTE!!!" vira "URGENTE!!" e "!" no spaCy) volta para a
+    frase anterior, pelo trecho original; antes da primeira frase, é descartado.
+    """
+    trechos: list[tuple[int, int]] = []  # (início, fim) de cada frase em `text`
     for sent in get_nlp()(text).sents:
-        sentence = sent.text.strip()
-        if sentence:
-            segments.append(Segment(id=f"s{len(segments) + 1:02d}", text=sentence))
-    return segments
+        if not sent.text.strip():
+            continue
+        if not any(c.isalnum() for c in sent.text):
+            if trechos:
+                trechos[-1] = (trechos[-1][0], sent.end_char)
+            continue
+        trechos.append((sent.start_char, sent.end_char))
+    return [Segment(id=f"s{i:02d}", text=text[inicio:fim].strip()) for i, (inicio, fim) in enumerate(trechos, start=1)]
 
 
 def _empty_result(warning: str) -> dict:

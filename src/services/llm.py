@@ -1,27 +1,35 @@
+import os
+
 from langchain_openai import ChatOpenAI
 
-LOCAL_MODEL = "qwen2.5-7b"
-llm = ChatOpenAI(
-    base_url="http://localhost:1234/v1",
-    api_key="lm-studio",
-    model=LOCAL_MODEL,
-    temperature=0
-)
 
-llm_socratico = ChatOpenAI(
-    base_url="http://localhost:1234/v1",
-    api_key="lm-studio",
-    model=LOCAL_MODEL,
-    temperature=0.7
-)
+def modelo_local() -> str:
+    """Nome do modelo no LM Studio. LLM_MODEL sobrescreve, porque cada máquina baixa o
+    modelo com um nome (ex.: "qwen/qwen2.5-7b-instruct"); o LM Studio recusa nome desconhecido."""
+    return os.getenv("LLM_MODEL", "").strip() or "qwen2.5-7b"
 
-# Agente de Texto: determinístico e sem retry do cliente HTTP.
-# O próprio agente faz 1 retry quando o JSON vem inválido (Manual §4.7).
-llm_texto = ChatOpenAI(
-    base_url="http://localhost:1234/v1",
-    api_key="lm-studio",
-    model=LOCAL_MODEL,
-    temperature=0,
-    timeout=120,
-    max_retries=0,
-)
+
+LOCAL_MODEL = modelo_local()  # lido ao importar: defina LLM_MODEL antes de subir o Streamlit
+BASE_URL = "http://localhost:1234/v1"
+
+# Todos os clientes: timeout de 120 s e sem retry do cliente HTTP. Os agentes fazem o
+# próprio retry quando a saída vem inválida (Manual §4.7), e o grafo limita o tempo de
+# cada nó (src/protecao.py); sem timeout aqui, uma chamada abandonada pelo grafo
+# continuaria ocupando o LM Studio indefinidamente.
+TIMEOUT_S = 120
+
+
+def _cliente(temperatura: float) -> ChatOpenAI:
+    return ChatOpenAI(
+        base_url=BASE_URL,
+        api_key="lm-studio",
+        model=LOCAL_MODEL,
+        temperature=temperatura,
+        timeout=TIMEOUT_S,
+        max_retries=0,
+    )
+
+
+llm_sintetizador = _cliente(0)  # Sintetizador
+llm_socratico = _cliente(0.7)   # Agente Socrático
+llm_texto = _cliente(0)         # Agente de Texto

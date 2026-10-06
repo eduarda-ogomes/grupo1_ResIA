@@ -20,9 +20,10 @@ DEVICE = os.getenv("EVIDENCE_DEVICE", "")            # "cpu", "cuda", "mps"; vaz
 CHROMA_PATH = Path(os.getenv("EVIDENCE_CHROMA_PATH", str(REPO_ROOT / "chroma_data")))
 RAW_DIR = Path(os.getenv("EVIDENCE_RAW_DIR", str(REPO_ROOT / "data" / "corpus" / "raw")))
 
-# Limiares provisórios, a calibrar com o gold set.
+# Limiares. O do NLI foi calibrado em 01/10 (eval/avaliar_evidencias.py calibrar, split de
+# calibração) e confirmado no split de teste; ver o ADR em docs/agents/evidencias_decisoes.md.
 SIM_THRESHOLD = float(os.getenv("EVIDENCE_SIM_THRESHOLD", 0.55))              # similaridade mínima na busca
-CLAIM_MATCH_MIN_PROB = float(os.getenv("EVIDENCE_CLAIM_MATCH_MIN_PROB", 0.5))  # entailment mínimo na etapa 2
+CLAIM_MATCH_MIN_PROB = float(os.getenv("EVIDENCE_CLAIM_MATCH_MIN_PROB", 0.8))  # entailment mínimo na etapa 2
 
 SEARCH_K = int(os.getenv("EVIDENCE_SEARCH_K", 10))                   # trechos buscados por frase
 CLAIM_CANDIDATES = int(os.getenv("EVIDENCE_CLAIM_CANDIDATES", 6))    # checagens avaliadas na etapa 2
@@ -32,6 +33,9 @@ MAX_EVIDENCE_PER_SEGMENT = int(os.getenv("EVIDENCE_MAX_PER_SEGMENT", 3))
 COLLECTION_PREFIX = "checagens"
 BATCH_SIZE = 16
 EMBEDDING_FP16 = True        # embeddings em fp16 quando houver GPU (orçamento de memória, Seção 5.2)
+# NLI em fp16 na GPU (cuda/mps): metade da memória. Desligado até o eval/medir_recursos.py
+# confirmar que as decisões do NLI não mudam (o DeBERTa-v3 pode ter overflow em fp16).
+NLI_FP16 = os.getenv("EVIDENCE_NLI_FP16", "0") == "1"
 EXCERPT_MAX_CHARS = 300
 CHUNK_MAX_CHARS = 800        # trechos do índice: parágrafos agrupados até este tamanho
 CHUNK_OVERLAP_PARAGRAPHS = 1

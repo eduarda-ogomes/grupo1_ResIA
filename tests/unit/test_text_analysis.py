@@ -275,7 +275,7 @@ def test_timeout_do_modelo_vira_aviso(monkeypatch):
     assert resultado == {"text_report": None, "warnings": [WARN_MODELO_INDISPONIVEL]}
 
 
-# --- falha por lote: mantém o que foi classificado (decisão do grupo, 07/10) ---
+# --- falha por lote: mantém o que foi classificado (decisão do grupo, 06/10) ---
 
 def test_frases_faltando_apos_retry_mantem_as_classificadas_e_avisa(monkeypatch):
     # Achado com o 7B real: o modelo pula frases do lote mesmo depois do retry

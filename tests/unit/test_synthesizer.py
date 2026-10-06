@@ -202,3 +202,15 @@ def test_links_da_noticia_nao_chegam_ao_modelo(monkeypatch):
 
     assert "golpe.example" not in modelo.prompts[0]
     assert "veja [link]" in modelo.prompts[0]
+
+
+def test_rotulo_falsa_dicotomia_passa_nos_guardrails_sem_retry(monkeypatch):
+    # Achado com o 7B real: o rótulo de dossie.ROTULOS reprovava a síntese e o dossiê caía no fallback
+    resposta = '- Falsa dicotomia: "nada melhor do que a natureza" opõe o natural ao tratamento médico.'
+    modelo = falsos.SintetizadorFalso(resposta).instalar(monkeypatch)
+
+    resultado = synthesizer.sintetizador_node(estado_mamao())
+
+    assert len(modelo.prompts) == 1
+    assert "warnings" not in resultado
+    assert resposta in resultado["dossier"]

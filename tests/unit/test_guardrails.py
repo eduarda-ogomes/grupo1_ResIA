@@ -87,3 +87,17 @@ def test_texto_sem_url_nao_tem_url_invalida():
 
 def test_neutralizar_urls_mantem_a_pontuacao_em_volta():
     assert neutralizar_urls("Veja (https://a.org/x). E http://b.org") == "Veja ([link]). E [link]"
+
+
+@pytest.mark.parametrize("texto", [
+    '- Falsa dicotomia: "nada melhor do que a natureza" opõe natural a tratamento médico.',
+    "Há uma FALSA DICOTOMIA no texto.",
+    "Há uma falsa   dicotomia no texto.",
+])
+def test_nome_da_falacia_falsa_dicotomia_nao_e_veredito(texto):
+    # O rótulo que o próprio Sintetizador manda o modelo usar (dossie.ROTULOS) não pode reprová-lo
+    assert termos_de_veredito(texto) == []
+
+
+def test_falsa_fora_do_nome_da_falacia_continua_sendo_pega():
+    assert termos_de_veredito("Falsa dicotomia à parte, a notícia é falsa.") == ["falsa"]

@@ -552,7 +552,7 @@ Os nomes da tabela são candidatos, não decisões, exceto os marcados como esco
 | Segmentação | Segmentador de sentenças para português (ex.: spaCy) | Frases numeradas compartilhadas entre os ramos |
 | Repositório | GitHub, uma branch por agente, `main` protegida | Merge só por Pull Request aprovado |
 | Integração contínua | GitHub Actions rodando pytest e testes de contrato | Garante que cada agente encaixa no grafo antes do merge |
-| Observabilidade | Arize Phoenix (local) ou LangSmith (cota gratuita) | Trace por nó: entrada, saída, latência, tokens |
+| Observabilidade | Arize Phoenix (local) ou LangSmith (cota gratuita) | Trace por nó: entrada, saída, latência, tokens. *Implementado com Phoenix local:* `src/observabilidade.py` (liga com `PHOENIX_TRACING=1`), um span por nó em `src/protecao.py` e latência p50/p95 em `eval/medir_latencia.py` |
 | Interface | Streamlit | Protótipo rápido com streaming de progresso |
 
 ### 5.5 Estrutura do repositório

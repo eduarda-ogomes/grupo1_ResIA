@@ -120,3 +120,77 @@ def test_proteger_aceita_o_timeout_maximo():
     no = protecao.proteger("texto", lambda state: {"text_report": None}, threading.TIMEOUT_MAX, {"text_report": None})
 
     assert no(None) == {"text_report": None}
+
+
+# --- observabilidade: o contexto do trace atravessa a thread do nó ---
+
+def _por_nome(spans):
+    return {s.name: s for s in spans.get_finished_spans()}
+
+
+def test_span_criado_dentro_do_no_fica_debaixo_do_no_e_de_quem_chamou(spans):
+    from opentelemetry import trace
+
+    tracer = trace.get_tracer("teste")
+
+    def fn(state):
+        with tracer.start_as_current_span("dentro"):
+            return {"text_report": None}
+
+    no = protecao.proteger("texto", fn, 1, {"text_report": None})
+    with tracer.start_as_current_span("fora"):
+        no(None)
+
+    por_nome = _por_nome(spans)
+    assert por_nome["dentro"].parent.span_id == por_nome["no.texto"].context.span_id
+    assert por_nome["no.texto"].parent.span_id == por_nome["fora"].context.span_id
+
+
+def _quebra(state):
+    raise RuntimeError("bug")
+
+
+@pytest.mark.parametrize("fn, resultado", [(lambda state: {"evidence": []}, "ok"), (_quebra, "erro")])
+def test_span_do_no_registra_o_resultado(spans, fn, resultado):
+    protecao.proteger("evidencias", fn, 1, {"evidence": None})(None)
+
+    attrs = _por_nome(spans)["no.evidencias"].attributes
+    assert attrs["pipeline.no"] == "evidencias"
+    assert attrs["pipeline.resultado"] == resultado
+
+
+def test_span_do_no_registra_timeout_e_avisos(spans):
+    liberar = threading.Event()
+
+    def travado(state):
+        liberar.wait(5)
+        return {"socratic_questions": ["tarde demais"]}
+
+    try:
+        protecao.proteger("socratico", travado, 0.1, {"socratic_questions": None})(None)
+    finally:
+        liberar.set()
+
+    attrs = _por_nome(spans)["no.socratico"].attributes
+    assert attrs["pipeline.resultado"] == "timeout"
+    assert attrs["pipeline.avisos"] == ("socratico: timeout",)
+
+
+def test_span_da_thread_abandonada_continua_no_trace(spans):
+    from opentelemetry import trace
+
+    liberar, terminou = threading.Event(), threading.Event()
+
+    def travado(state):
+        liberar.wait(5)
+        with trace.get_tracer("teste").start_as_current_span("tarde"):
+            pass
+        terminou.set()
+        return {"socratic_questions": None}
+
+    protecao.proteger("socratico", travado, 0.1, {"socratic_questions": None})(None)
+    liberar.set()
+    assert terminou.wait(5)
+
+    por_nome = _por_nome(spans)
+    assert por_nome["tarde"].parent.span_id == por_nome["no.socratico"].context.span_id

@@ -50,6 +50,25 @@ def test_ids_continuos_mesmo_com_frases_vazias():
     assert all(s.text.strip() for s in segments)
 
 
+def test_pontuacao_solta_volta_para_a_frase_anterior():
+    # O spaCy corta "URGENTE!!!" em "URGENTE!!" e "!"; o "!" sozinho virava uma frase "factual" no dossiê
+    segments = segment_text("URGENTE!!! Justiça feita! Um grupo de pessoas espancou em Osasco o segurança.")
+
+    assert [s.text for s in segments] == [
+        "URGENTE!!!",
+        "Justiça feita!",
+        "Um grupo de pessoas espancou em Osasco o segurança.",
+    ]
+    assert [s.id for s in segments] == ["s01", "s02", "s03"]
+
+
+def test_pontuacao_solta_antes_da_primeira_frase_e_descartada():
+    segments = segment_text("!!! Texto normal aqui. E outro.")
+
+    assert [s.text for s in segments] == ["Texto normal aqui.", "E outro."]
+    assert [s.id for s in segments] == ["s01", "s02"]
+
+
 # --- truncamento ---
 
 def test_truncate_words_nao_altera_texto_curto():

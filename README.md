@@ -88,5 +88,28 @@ Para rodar os testes (também da raiz, sem precisar definir `PYTHONPATH`):
 pytest
 ```
 
+### 5. Orquestração: timeouts e avisos
+
+O grafo (`src/graph.py`) roda o Ingestor, depois Evidências, Texto e Socrático em paralelo, e por fim o Sintetizador. Cada nó tem um limite de tempo (`src/protecao.py`). Se um nó estoura o tempo ou quebra, o grafo segue sem ele, a interface mostra o aviso (por exemplo, `socratico: timeout`) e o dossiê sai assim mesmo.
+
+| Nó | Padrão | Variável de ambiente |
+| --- | --- | --- |
+| Ingestor | 60 s | `GRAFO_TIMEOUT_INGESTOR` |
+| Evidências, Texto, Socrático (cada um) | 240 s | `GRAFO_TIMEOUT_RAMO` |
+| Sintetizador | 180 s | `GRAFO_TIMEOUT_SINTETIZADOR` |
+
+Defina as variáveis antes de subir o Streamlit (ex.: `GRAFO_TIMEOUT_RAMO=400 streamlit run app/app.py`).
+
+O nome do modelo no LM Studio vem de `LLM_MODEL` (padrão `qwen2.5-7b`). Use o identificador que aparece em `curl http://localhost:1234/v1/models`, por exemplo `LLM_MODEL=qwen/qwen2.5-7b-instruct streamlit run app/app.py`; com um nome desconhecido, o LM Studio recusa a chamada e os agentes de LLM avisam "falha ao chamar o modelo".
+
+Na primeira execução, o Agente de Evidências baixa e carrega o BGE-M3 e o mDeBERTa, o que pode passar do limite e gerar `evidencias: timeout`. O carregamento continua em segundo plano (uma única vez, mesmo que outra análise comece no meio): espere um ou dois minutos antes de analisar de novo. Na demo, faça uma análise de aquecimento antes de apresentar.
+
+Um nó que estoura o tempo não é interrompido: ele segue rodando em segundo plano até terminar (o Agente de Texto, por exemplo, continua chamando o LM Studio para os lotes restantes), o que pode deixar a análise seguinte mais lenta. Se o Sintetizador estourar o tempo, o dossiê sai assim mesmo, montado sem o modelo.
+
+Para rodar o grafo inteiro com os modelos reais e ver o tempo de cada nó (fora do CI):
+```bash
+pytest tests/integration/test_grafo_lmstudio.py -v -s
+```
+
 ---
 *Este projeto foi arquitetado focado em escalabilidade, transparência explicável (XAI) e privacidade (inferência 100% local).*

@@ -1,0 +1,21 @@
+{
+  "_fonte": "Manual, Seção 4.6 (saída esperada do Agente de Evidências)",
+  "evidence": [
+    {
+      "segment_id": "s02",
+      "stance": "contradiz",
+      "excerpt": "Não existe um tratamento específico para a dengue e as formas graves da doença.",
+      "source_url": "https://www.agencialupa.org/jornalismo/2024/02/06/e-falso-que-cha-de-folha-de-mamao-cura-a-dengue-em-tres-dias/",
+      "source_name": "Agência Lupa",
+      "agency_verdict": "Falso"
+    },
+    {
+      "segment_id": "s03",
+      "stance": "contradiz",
+      "excerpt": "não comprovam que o tratamento seja eficaz em humanos",
+      "source_url": "https://www.aosfatos.org/noticias/falso-cha-folha-mamao-dengue/",
+      "source_name": "Aos Fatos",
+      "agency_verdict": "Falso"
+    }
+  ]
+}

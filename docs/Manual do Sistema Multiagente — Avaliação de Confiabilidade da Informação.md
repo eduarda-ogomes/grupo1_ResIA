@@ -52,7 +52,7 @@ O ganho é de prazo e simplicidade: cerca de 3 chamadas de LLM por entrada em ve
 | Agente de Fonte | Reportava sinais verificáveis sobre quem publicou | Fora do escopo desta versão | O dossiê não diz nada sobre a fonte da notícia |
 | Agente de Propagação | Opcional | Fora do escopo | — |
 | Agregador | Juntava e deduplicava evidências | Absorvido pelo Sintetizador, com deduplicação determinística antes da chamada ao LLM | — |
-| Grounding Verifier | Conferia se cada citação tinha lastro e tratava da mesma alegação | Citação obrigatória no Agente de Evidências + checagem determinística de URLs no Sintetizador | Nada confere se a checagem citada trata do mesmo fato ou de um fato parecido |
+| Grounding Verifier | Conferia se cada citação tinha lastro e tratava da mesma alegação | Citação obrigatória e etapa de "mesma alegação" (termos-chave + NLI) no Agente de Evidências + checagem determinística de URLs no Sintetizador | A etapa de mesma alegação barra a maior parte das checagens sobre fato parecido, mas não todas (4 casos em 42 frases do gold set; Seção 4.2) |
 | Socrático sequencial, após o dossiê | Perguntava sobre lacunas do dossiê | Roda em paralelo e pergunta sobre lacunas da própria notícia | Pode perguntar algo que o dossiê já responde |
 
 Os riscos residuais estão registrados na Seção 12 e são o foco da análise de erros do grupo.
@@ -139,7 +139,7 @@ Cada ramo paralelo escreve em um campo próprio, então não há conflito de esc
 
 - **Fan-out estático:** três arestas saem do Ingestor. O LangGraph executa os três ramos no mesmo superstep e só chama o Sintetizador quando todos terminam.
 - **Limite de entrada:** o Ingestor trunca textos acima de um limite fixo de tokens e marca `truncated = True`, que o dossiê informa ao usuário.
-- **Timeout por nó:** um ramo que estoura o tempo grava um aviso em `warnings` e devolve `None`; os outros seguem.
+- **Timeout por nó:** um ramo que estoura o tempo grava um aviso em `warnings` e devolve `None`; os outros seguem. Implementado em `src/protecao.py`: 60 s no Ingestor, 240 s em cada ramo e 180 s no Sintetizador, ajustáveis por `GRAFO_TIMEOUT_INGESTOR`, `GRAFO_TIMEOUT_RAMO` e `GRAFO_TIMEOUT_SINTETIZADOR`. A mesma camada transforma uma exceção não tratada de qualquer nó em aviso, e o Sintetizador protegido nunca devolve `dossier = None`.
 - **Degradação graciosa:** o Sintetizador trata `None` como ausência declarada ("não foi possível analisar a estrutura do texto"), nunca como silêncio.
 
 ### 3.5 Guardrails
@@ -172,18 +172,25 @@ Cada agente é um módulo Python isolado, testável sem o grafo, que recebe uma 
 
 ### 4.2 Agente de Evidências
 
-- **Técnica:** RAG vetorial sobre um ChromaDB local de checagens anteriores, combinado com um modelo de NLI multilíngue (`mDeBERTa-v3` treinado em XNLI) para classificar a stance.
+⚠️ *Seção atualizada para refletir a implementação. Na versão anterior, a stance vinha do NLI entre o trecho da checagem (premissa) e a frase (hipótese). Com os modelos reais, isso errou com confiança alta nos dois riscos mais graves da Seção 12.1: deu `contradiz` para uma checagem de dengue diante de uma frase sobre chikungunya e `apoia` para o parágrafo que reproduz o boato. A stance passou a vir do veredito da agência, depois de confirmar que a checagem trata da mesma alegação. Motivos e números no ADR 1 (`docs/agents/evidencias_decisoes.md`); detalhes no card do agente (`docs/agents/evidencias.md`).*
+
+- **Técnica:** RAG vetorial sobre um ChromaDB local de checagens anteriores, mais uma etapa que confirma se a checagem trata da **mesma alegação** da frase (termos-chave + NLI multilíngue). A stance vem do veredito da agência. Sem LLM gerador.
 - **Entrada:** `segments`.
-- **Saída:** `list[Evidence]`.
-- **Features:**
-  - **Fact-checking vetorial:** para cada frase, busca os trechos mais próximos no banco de checagens.
-  - **Classificação de stance:** o NLI recebe o trecho da checagem como premissa e a frase da notícia como hipótese. Entailment vira `apoia`, contradiction vira `contradiz`, neutral ou similaridade abaixo do limiar vira `insuficiente`.
-  - **Citação obrigatória:** uma evidência só é emitida se tiver o link exato da checagem de origem.
-- **Modelos:** embeddings multilíngues (ex.: BGE-M3 ou multilingual-e5) e mDeBERTa-v3 XNLI.
+- **Saída:** `list[Evidence]`. Se o agente falhar (índice ausente, modelo que não carrega), `evidence: None` e um aviso em `warnings`.
+- **Fluxo, por frase:**
+  1. **Busca:** os 10 trechos mais parecidos com a frase (similaridade de cosseno ≥ 0,55), agrupados por checagem; até 6 checagens candidatas. A mesma checagem publicada em dois sites (mesmo título) conta uma vez, e fica o site original.
+  2. **Termos-chave:** se a frase troca um nome próprio, número ou doença da alegação checada ("chikungunya" no lugar de "dengue", "50 mil" no lugar de "5 mil"), a checagem é descartada. O NLI sozinho não percebe esse tipo de troca.
+  3. **NLI:** a frase e a alegação checada (sem "Foto/Vídeo mostra" no início) precisam se implicar em pelo menos uma direção, com entailment ≥ 0,8 (limiar calibrado no gold set). Sem isso, a checagem é descartada.
+  4. **Evidência:** stance pelo veredito da agência (falso → `contradiz`; verdadeiro → `apoia`; enganoso, falta contexto e qualquer outro rótulo → `insuficiente`). O `excerpt` é o título da checagem, que é a conclusão escrita pela agência. No máximo 3 evidências por frase.
+- **Citação obrigatória:** uma evidência só é emitida com o link exato da checagem de origem.
+- **Modelos:** `BAAI/bge-m3` para os embeddings (escolhido contra o `multilingual-e5-large` no gold set de evidências: Recall@5 0,96 × 0,74) e `MoritzLaurer/mDeBERTa-v3-base-mnli-xnli` para o NLI.
+- **Resultados** (gold set de evidências, 42 frases, 03/10/2026): Recall@5 0,96; macro-F1 de stance 0,77; evidência inventada 0,00; 4 casamentos errados (checagem de outra alegação citada).
 - **Falhas conhecidas:**
-  - Checagem sobre um fato parecido, mas diferente (mesmo tema, número ou data distintos). É o erro mais perigoso do sistema, e nesta versão não há verificador dedicado.
+  - Checagem sobre um fato parecido, mas diferente: a etapa de mesma alegação barra a maior parte, mas não todas. Os 4 casos que passaram têm o mesmo personagem e outro episódio, ou uma alegação checada sem o número ou a data trocados. Continua sendo o erro mais perigoso do sistema.
+  - Frases que desmentem o boato ("a foto é falsa") ficam sem evidência.
+  - Checagens que só têm título no índice (a AFP e parte do UOL recusam o download) são mais difíceis de achar.
   - Frases longas ou compostas reduzem a precisão do NLI.
-  - Corpus desatualizado para fatos muito recentes, o que gera muitas respostas `insuficiente`.
+  - Corpus desatualizado para fatos muito recentes: a frase fica sem evidência.
 
 ### 4.3 Agente de Texto (análise sintática e semântica)
 
@@ -196,6 +203,40 @@ Cada agente é um módulo Python isolado, testável sem o grafo, que recebe uma 
   - **Separação estrutural:** classifica cada frase como afirmação factual ou juízo de valor.
 - **Modelo:** candidatos da família Llama 3.x 8B ou Qwen \~8B; a versão final sai do mini-benchmark da Seção 5.3.
 - **Falhas conhecidas:** ironia e sátira; confundir estilo editorial legítimo com manipulação; JSON inválido em modelos pequenos. Marcadores são apresentados como "padrões para observar", nunca como acusação.
+
+#### 4.3.1 Implementação: decisões e plano
+
+A implementação segue o design em [`docs/superpowers/specs/2026-09-29-agente-texto-design.md`](superpowers/specs/2026-09-29-agente-texto-design.md) e o passo a passo em [`docs/superpowers/plans/2026-09-29-agente-texto.md`](superpowers/plans/2026-09-29-agente-texto.md). O plano traz o código completo, os comandos e o resultado esperado de cada etapa.
+
+**Decisões fechadas**
+
+| Tema | Decisão |
+| --- | --- |
+| Modelo | `qwen2.5-7b` no LM Studio (`localhost:1234`), temperatura 0 |
+| Escopo | Fato/valor + os 5 marcadores do schema |
+| Chamadas | Lotes de 15 frases, com as 2 anteriores como contexto (só leitura) |
+| Saída | JSON Schema do `TextReport` no `response_format`, validado com Pydantic |
+| Retry | 1 por lote, com o erro anexado à nova mensagem |
+| Falha | Tudo ou nada: `text_report = None` + aviso `"texto: saída inválida após 1 retry"`; modelo fora do ar gera `"texto: falha ao chamar o modelo (o LM Studio está rodando?)"`, sem retry |
+| Sem frases | `text_report = None`, sem chamar o modelo (o Ingestor já avisou) |
+| Prompts | `src/prompts/texto_sistema.md` e `src/prompts/texto_exemplos.json`; o caso do mamão não entra como exemplo |
+| Imperativas | Classificadas como `valor` (Seção 4.8, item 3) |
+
+**Validação determinística (sem LLM).** Toda resposta do modelo passa por uma checagem em código antes de ser aceita: remove a cerca ```` ```json ````; valida no schema; descarta classificações de frases fora do lote; exige exatamente uma classificação por frase; descarta marcadores com `excerpt` vazio ou que não seja trecho literal da frase indicada.
+
+**Passo a passo**
+
+| Tarefa | Entrega |
+| --- | --- |
+| 0. Ambientação | Leitura (§1.1, §3.3, §3.5, §4.3, §4.7, §4.8, §7.1, §9.3, §10.5), venv, `pytest` verde, LM Studio com o Qwen 2.5 7B, branch `feat/agente-texto` |
+| 1. Prompts | Prompt de sistema e exemplos few-shot em `src/prompts/` |
+| 2. Lotes e mensagens | `dividir_em_lotes` e `montar_mensagens`, com a notícia delimitada como dado |
+| 3. Núcleo | `chamar_modelo`, `validar_lote`, retry e `texto_node` |
+| 4. Integração | Agente real no `graph.py`; `tests/unit/conftest.py` impede testes unitários de chamarem o LM Studio; `langchain-openai` no CI |
+| 5. Modelo real | `tests/integration/test_texto_lmstudio.py` (fora do CI), comparação com a anotação do caso do mamão e ajuste do prompt |
+| 6. Entrega | Card em `docs/agents/texto.md` e PR para a `develop`, revisado pelo R2 |
+
+**Fora deste plano:** gold set e harness de macro-F1, mini-benchmark de modelos, ironia e sátira, e exibir a classificação fato/valor no Streamlit.
 
 ### 4.4 Agente Socrático
 
@@ -221,6 +262,90 @@ Cada agente é um módulo Python isolado, testável sem o grafo, que recebe uma 
   - **Checagem de citações:** toda URL no texto final precisa estar entre as evidências recebidas.
   - **Formatação de andaime:** apresenta os dados de forma neutra, com linguagem de evidência ("duas checagens contradizem esta frase"), para que o usuário tome a decisão final.
 - **Sobre o Qwen 32B:** não cabe com folga em um MacBook Air M4 de 24GB. Um 32B quantizado ocupa \~19GB só em pesos, acima do que a GPU enxerga por padrão, e gera 4–6 tokens/s. Use a API ou, como fallback, o próprio 8B local (Seção 5.2).
+
+#### 4.5.1 Implementação: decisões e guia
+
+O design completo, com o porquê de cada decisão, está em [`docs/superpowers/specs/2026-10-01-agente-sintetizador-design.md`](superpowers/specs/2026-10-01-agente-sintetizador-design.md). Esta seção é o guia de implementação: o que usar, por quê, como funciona e em que ordem construir.
+
+**Abordagem: híbrida.** O código escreve tudo o que é fato; o LLM escreve só a análise do argumento. Um modelo de 7B copia mal URLs e citações literais. Com o código montando a seção de checagens a partir de `evidence`, a validade de citação (meta 1,00, Seção 7.1) é garantida por construção, o filtro de veredito só precisa olhar o texto do LLM, e uma falha do LLM não impede a entrega do dossiê.
+
+| Seção do dossiê | Quem escreve |
+| --- | --- |
+| `## O que as checagens dizem` | Código |
+| `## Como o texto argumenta` | `qwen2.5-7b`, com fallback em código |
+| `## Perguntas para pensar antes de decidir` | Código (copia as perguntas do Socrático, na ordem recebida) |
+| `## Limites desta análise` | Código, sempre presente |
+
+**Decisões fechadas**
+
+| Tema | Decisão | Por quê |
+| --- | --- | --- |
+| Modelo | `qwen2.5-7b` no LM Studio (`localhost:1234`), temperatura 0, timeout de 120 s, sem retry do cliente | Mesmo modelo do Agente de Texto: custo zero, sem chave no CI, um único modelo carregado na demo (Seção 5.2). Trocar por API depois muda só `src/services/llm.py` |
+| Contrato | `sintetizador_node(state) -> {"dossier": str}`; nunca devolve `dossier = None` | O dossiê sempre chega ao usuário, mesmo com ramos falhando |
+| Schema | `src/state.py` não muda; o `synthesizer.py` atual (que usa `Dossier` e `state.framing`, inexistentes) é reescrito do zero | O contrato da Seção 3.3 já basta |
+| Saída do LLM | Bullets em Markdown, sem JSON | Não há estrutura a validar; os guardrails olham o texto |
+| Retry | 1, nomeando o problema na nova mensagem ("Seu texto usou o termo 'falso'.") | Seções 3.5 e 4.7 |
+| Veredito da agência | Selo com atribuição montado pelo código (`Agência Lupa: Falso`), fora do texto do LLM | Seção 4.8, item 2 |
+| IDs de frase | Nunca aparecem no dossiê; a frase é citada pelo próprio texto | O usuário não conhece `s01` |
+| Prompt | `src/prompts/sintetizador_sistema.md`, com um exemplo few-shot inventado (o caso do mamão não entra) | Seção 5.5; o mamão é o caso de teste |
+
+**Como funciona**
+
+```text
+State ─► 1. Pré-processamento (código, sem LLM)
+           - deduplica evidências por (segment_id, source_url)
+           - descarta stance de frases marcadas como "valor" pelo Agente de Texto
+           - lista as frases factuais sem nenhuma evidência
+        ─► 2. "Como o texto argumenta" (qwen2.5-7b)
+           - entrada: frases com rótulo fato/valor em <frases> e marcadores em <marcadores>, como dado
+           - o LLM descreve os marcadores que já existem, em 2 a 6 bullets; não procura padrões novos
+           - guardrails sobre esse texto: filtro de veredito + qualquer URL reprova
+           - reprovou → 1 retry; reprovou de novo → fallback determinístico
+        ─► 3. Montagem (código): as 4 seções, na ordem da tabela
+        ─► 4. Checagem final de citações sobre o dossiê inteiro
+        ─► {"dossier": str} (+ "warnings" quando o problema é do próprio Sintetizador)
+```
+
+Na seção de checagens, cada frase com evidência vira uma linha com o resumo por stance ("duas checagens contradizem e uma apoia esta frase") e uma sublinha por evidência: `<source_name>: <agency_verdict> — "<excerpt>" (<source_url>)`. Sem `agency_verdict`, a sublinha sai sem selo. Se `text_report` é `None`, não há como saber o que é opinião, e todas as evidências são exibidas (Seção 4.7).
+
+**Guardrails (código, sem LLM)**
+
+- **Filtro de veredito** (`src/guardrails/veredito.py`): `falso/a/os/as`, `verdadeiro/a/os/as`, `fake news`, `mentira(s)`, `desinformação`; ignora maiúsculas e acentos, respeita fronteira de palavra (`falsificação` passa). Aplica-se só ao texto do LLM. Paráfrases ("não procede") passam: falso negativo conhecido, fixado em teste.
+- **Checagem de citações** (`src/guardrails/citacoes.py`): extrai as URLs (sem a pontuação final) e devolve as que não estão nas evidências. No texto do LLM, qualquer URL reprova. No dossiê final, a linha com URL inválida é removida.
+
+**Casos degradados.** O Sintetizador só grava aviso próprio quando o problema é dele; se um ramo anterior falhou, o dossiê declara a ausência em linguagem natural (Seção 3.4).
+
+| Situação | Chama o 7B? | Dossiê | Aviso próprio |
+| --- | --- | --- | --- |
+| `segments` vazio | Não | Só "Limites": a página não pôde ser analisada; sugere colar o texto | — |
+| `evidence is None` | Sim | "Não foi possível consultar o banco de checagens nesta análise." | — |
+| `evidence == []` | Sim | "Nenhuma checagem encontrada no nosso banco para as frases factuais. Isso não confirma nem descarta essas frases." | — |
+| `text_report is None` | Não | "Não foi possível analisar a estrutura do texto." | — |
+| Sem marcadores e sem frases de valor | Não | "Nenhum padrão de viés ou falácia foi apontado neste texto." | — |
+| `socratic_questions is None` | Sim | "As perguntas não puderam ser geradas nesta análise." | — |
+| LM Studio fora do ar ou timeout | Sim, sem retry | Fallback | `"sintetizador: falha ao chamar o modelo (o LM Studio está rodando?)"` |
+| Guardrails reprovam duas vezes | Sim, 1 retry | Fallback | `"sintetizador: síntese livre reprovada nos guardrails após 1 retry"` |
+| URL fora das evidências no dossiê final | — | Linha removida | `"sintetizador: citação removida (URL fora das evidências)"` |
+
+O **fallback** lista um bullet por marcador com rótulo e trecho literal (`- Urgência: "URGENTE"`) e uma linha "Juízo de valor: … é uma opinião e não foi checada" por frase de valor. Não copia o `explanation` do Agente de Texto, que também é texto de LLM e furaria o filtro de veredito.
+
+A seção **Limites** sai do State: texto truncado; sem data de publicação; sem link de origem (entrada não é URL); cada ramo que não rodou; e sempre "o banco de checagens pode não conter checagens mais recentes que a última coleta".
+
+**Passo a passo**
+
+Cada tarefa segue TDD (teste falhando → implementação → teste passando → commit). O CI roda Python 3.10. Nenhum teste unitário pode chamar o LM Studio.
+
+| Tarefa | Entrega |
+| --- | --- |
+| 0. Ambientação | Leitura (§1.1, §3.3–3.5, §4.5, §4.6, §4.7, §4.8, §7.1, §10.5) e do spec; venv, `pytest` verde; LM Studio com o Qwen 2.5 7B; branch `feat/agente-sintetizador` a partir da `develop` |
+| 1. Guardrails | `src/guardrails/veredito.py` e `src/guardrails/citacoes.py` com `tests/unit/test_guardrails.py`, usando as fixtures `bordas/sintetizador_*.json` |
+| 2. Pré-processamento e montagem | Deduplicação, descarte de stance de opinião, factuais sem checagem e as três seções escritas pelo código; testes com o caso do mamão (`05_sintetizador_entrada.json`) e com cada linha da tabela de casos degradados |
+| 3. Prompt e LLM | `src/prompts/sintetizador_sistema.md`; cliente `llm_sintetizador` em `src/services/llm.py`; chamada, retry e fallback, testados com um modelo falso que conta chamadas |
+| 4. Integração | `sintetizador_node` real no `graph.py` no lugar do stub; teste de contrato com o modelo falso; `tests/unit/conftest.py` bloqueando o LM Studio (se o Agente de Texto já criou, reaproveitar) |
+| 5. Modelo real | `tests/integration/test_sintetizador_lmstudio.py` (fora do CI): caso do mamão passa nos dois guardrails e tem as 4 seções; ajuste do prompt |
+| 6. Entrega | Card em `docs/agents/sintetizador.md` e PR para a `develop`, revisado pelo R4 |
+
+**Fora deste guia:** Sintetizador via API ou 14B local, reordenar as perguntas socráticas, LLM-as-judge e medição de vazamento de veredito no gold set, timeout por nó no grafo e mudanças na interface Streamlit (`st.write(dossier)` já renderiza Markdown).
 
 ### 4.6 Exemplo de ponta a ponta com um caso real
 
@@ -276,6 +401,8 @@ URGENTE: os médicos estão escondendo a cura natural da dengue! O chá da folha
   ]
 }
 ```
+
+>  Esta é a saída do stub do Agente de Evidências (`src/stubs/evidence_stub.py`, que lê a fixture `02_evidencias_saida.json`). Ela fica como está porque os testes do Sintetizador usam essa fixture. O agente real tem duas diferenças: o `excerpt` é o **título** da checagem (a conclusão escrita pela agência), e não uma frase do corpo do texto; e as duas checagens deste caso, de 2024, não estão no corpus atual, então o agente real não reproduziria esta saída. Um exemplo com a saída real está no card do agente (`docs/agents/evidencias.md`, seção "Exemplo completo").
 
 **3. Agente de Texto.** Entrada: `segments`. Saída (resumida; o arquivo completo tem 6 marcadores):
 
@@ -347,9 +474,10 @@ Cada linha tem um arquivo correspondente em `tests/fixtures/bordas/`.
 | Ingestor | URL atrás de paywall | `segments` vazio e aviso; o dossiê informa que a página não pôde ser analisada |
 | Ingestor | Texto acima do limite | `truncated: true`; o dossiê informa que só o início foi analisado |
 | Evidências | Nenhuma checagem acima do limiar | Nenhum objeto `Evidence` para a frase |
-| Evidências | Checagem recuperada, NLI neutro | `Evidence` com stance `insuficiente` e URL |
-| Evidências | Checagem sobre fato parecido ("cura a chikungunya" recuperando checagem de dengue) | Não emitir `contradiz`; no máximo `insuficiente`. Caso obrigatório no gold set |
-| Texto | JSON inválido após 1 retry | `text_report: null` e aviso; stance continua exibida |
+| Evidências | Checagem recuperada, mas NLI abaixo do limiar (outra alegação) | Nenhum objeto `Evidence` para a frase: a checagem é descartada |
+| Evidências | Checagem da mesma alegação com veredito inconclusivo ("Enganoso", "Falta contexto") | `Evidence` com stance `insuficiente` e URL |
+| Evidências | Checagem sobre fato parecido ("cura a chikungunya" recuperando checagem de dengue) | Nenhum objeto `Evidence`: os termos-chave ou o NLI descartam a checagem. Caso obrigatório no gold set |
+| Texto | Lote com frases sem classificação após 1 retry | O que foi classificado fica; aviso lista as frases sem classificação; os outros lotes seguem. Só sem nenhuma frase classificada: `text_report: null` e aviso; stance continua exibida |
 | Socrático | Pergunta indutiva ("Você não acha suspeito que…") | Rejeitada; conta como falha na rubrica |
 | Sintetizador | Rascunho com "falsa" | Filtro reprova; regenera uma vez |
 | Sintetizador | Paráfrase ("não procede") | Filtro aprova: falso negativo conhecido. Caso obrigatório no gold set |
@@ -360,7 +488,7 @@ Cada linha tem um arquivo correspondente em `tests/fixtures/bordas/`.
 
 Montar os exemplos expôs três pontos que o schema ainda não resolve. O grupo precisa decidir antes de fechar o `state.py`:
 
-1. **"Insuficiente" tem dois sentidos.** Ausência de checagem (nenhum objeto `Evidence`) é diferente de checagem encontrada mas neutra (`Evidence` com stance `insuficiente` e URL). Os exemplos seguem essa distinção; ela precisa estar documentada no `state.py`.
+1. **"Insuficiente" tem dois sentidos.** Ausência de checagem (nenhum objeto `Evidence`) é diferente de checagem encontrada mas inconclusiva (`Evidence` com stance `insuficiente` e URL). *Decidido no Agente de Evidências:* sem checagem da mesma alegação, nenhum objeto (uma checagem recuperada que trata de outra alegação também é descartada); checagem da mesma alegação com veredito inconclusivo ("Enganoso", "Falta contexto"), `Evidence` com stance `insuficiente` e URL. A regra está documentada no card do agente.
 2. **O filtro de veredito conflita com o veredito da agência.** O texto do Sintetizador não pode conter "falso", mas o veredito da Lupa e do Aos Fatos é exatamente "Falso". Recomendação: a interface exibe `agency_verdict` como um selo com atribuição ("Agência Lupa: Falso"), fora do texto gerado pelo LLM, e o filtro se aplica só ao texto livre.
 3. **Frases imperativas não são fato nem valor.** "Compartilhe com todos…" foi classificada como `valor` por falta de opção melhor. Alternativa: adicionar `outro` em `Statement.kind`.
 
@@ -390,7 +518,7 @@ Na demo, tudo precisa caber nos \~16–18GB que a GPU do M4 enxerga por padrão.
 | Componente | Memória aproximada | Observação |
 | --- | --- | --- |
 | Modelo 8B (Texto e Socrático) | \~5 GB + KV cache | Um único modelo carregado pelo Ollama atende os dois agentes |
-| Embeddings + NLI (Evidências) | < 2 GB | Modelos encoder pequenos via PyTorch/MPS |
+| Embeddings + NLI (Evidências) | < 2 GB | Modelos encoder pequenos via PyTorch/MPS. Medido em 03/10/2026: 1,58 GB de pesos numa GPU NVIDIA (BGE-M3 em fp16 + mDeBERTa); na CPU, 2,63 GB, porque o BGE-M3 fica em fp32. Falta medir no M4 |
 | ChromaDB, LangGraph, Streamlit | < 1 GB | Rodam na CPU |
 | Sintetizador via API | 0 GB local | Opção recomendada |
 | Sintetizador 14B local (fallback) | \~9 GB + KV cache | Cabe junto do 8B, mas no limite: o Ollama pode trocar modelos entre chamadas, o que custa segundos a cada troca |
@@ -405,10 +533,10 @@ A escolha final é feita no Sprint 1 por um mini-benchmark com 20 exemplos do go
 | --- | --- | --- | --- |
 | Agentes de Texto e Socrático | 7–9B, um único modelo compartilhado | JSON confiável, português, seguir restrições do system prompt | Família Llama 3.x 8B; Qwen \~8B |
 | Sintetizador | API; fallback no mesmo 8B local | Qualidade de escrita e fidelidade às citações | API paga de baixo custo |
-| Embeddings | <1B | Multilíngue, bom em português | BGE-M3; multilingual-e5-large |
-| NLI (stance) | <1B | XNLI com português | mDeBERTa-v3 XNLI multilíngue |
+| Embeddings | <1B | Multilíngue, bom em português | BGE-M3; multilingual-e5-large. **Escolhido: `BAAI/bge-m3`** (Recall@5 0,96 × 0,74 do e5-large no gold set de evidências, 03/10) |
+| NLI (mesma alegação) | <1B | XNLI com português | mDeBERTa-v3 XNLI multilíngue. **Escolhido: `MoritzLaurer/mDeBERTa-v3-base-mnli-xnli`** |
 
-Os nomes da tabela são candidatos, não decisões. Verifique a versão mais recente disponível no Ollama e no Hugging Face na semana do benchmark.
+Os nomes da tabela são candidatos, não decisões, exceto os marcados como escolhidos. Verifique a versão mais recente disponível no Ollama e no Hugging Face na semana do benchmark.
 
 ### 5.4 Stack
 
@@ -419,7 +547,7 @@ Os nomes da tabela são candidatos, não decisões. Verifique a versão mais rec
 | Serving de LLM | Ollama em `localhost` (API compatível com OpenAI) | Setup em minutos; um modelo carregado atende vários agentes |
 | Configuração | Módulo único `services/llm.py` + arquivo `.env` | Nome do modelo e endpoint num só lugar; nenhum agente fixa isso no código |
 | Modelos auxiliares | sentence-transformers, backend MPS | Embeddings e NLI rodam na GPU do Mac |
-| Banco vetorial | ChromaDB | Embutido, sem servidor, suficiente para alguns milhares de checagens |
+| Banco vetorial | ChromaDB (versão fixada em 1.5.9) | Embutido, sem servidor, suficiente para alguns milhares de checagens. A versão é fixada porque um índice criado numa versão pode não abrir em outra |
 | Extração de HTML | trafilatura, BeautifulSoup como fallback | Conteúdo principal de páginas de notícia |
 | Segmentação | Segmentador de sentenças para português (ex.: spaCy) | Frases numeradas compartilhadas entre os ramos |
 | Repositório | GitHub, uma branch por agente, `main` protegida | Merge só por Pull Request aprovado |
@@ -470,15 +598,17 @@ O sistema precisa de dois conjuntos de dados diferentes: um **corpus de conhecim
 
 | Fonte | Como coletar | Observação |
 | --- | --- | --- |
-| Google Fact Check Tools API | Endpoint `claims:search` com `languageCode=pt` e `reviewPublisherSiteFilter` por agência | O filtro por site dispensa `query`, então dá para listar tudo de uma agência ([documentação](https://developers.google.com/fact-check/tools/api/reference/rest/v1alpha1/claims/search)) |
-| Aos Fatos, Agência Lupa, Comprova | Seguir o link de cada resultado da API e extrair o texto completo com trafilatura | A API devolve alegação, veredito e URL; o texto integral da checagem é o que vai para o índice |
-| FACTCK.BR | Dataset público de checagens brasileiras ([repositório](https://github.com/tfs4/FACTCK.BR)) | Útil para volume inicial; verificar data de corte e licença antes de indexar |
+| Google Fact Check Tools API | Endpoint `claims:search` com `languageCode=pt` e `reviewPublisherSiteFilter` por agência | O filtro por site dispensa `query`, então dá para listar tudo de uma agência ([documentação](https://developers.google.com/fact-check/tools/api/reference/rest/v1alpha1/claims/search)). Na prática, a API dá erro 503 depois de ~500–600 resultados de uma mesma busca, então cada agência é coletada em ~38 buscas por palavra-chave |
+| Aos Fatos, Comprova, AFP Checamos, Estadão Verifica, UOL Confere | Seguir o link de cada resultado da API e extrair o texto completo com trafilatura | A API devolve alegação, veredito e URL; o texto integral da checagem é o que vai para o índice. A AFP e o UOL recusam o download, e o bloqueio não é contornado: essas checagens entram pelo título e pela alegação. A Agência Lupa não aparece na API |
+| FACTCK.BR | Dataset acadêmico de checagens brasileiras de 2016 a 2019 ([repositório](https://github.com/jghm-f/FACTCK.BR), licença MIT; os autores pedem a citação do artigo do WebMedia '19, https://doi.org/10.1145/3323503.3361698) | É a fonte da Agência Lupa. Entram as checagens da Lupa e do Aos Fatos (727, de 2018–2019), só as páginas com uma única alegação; o Truco fica de fora. O ano vai no nome da agência ("Agência Lupa (2019)"), porque o `Evidence` não tem campo de data |
 
-**Pipeline de ingestão:** coleta → deduplicação por URL → extração de texto → chunking por parágrafo com sobreposição → embeddings → índice vetorial no ChromaDB. Cada chunk guarda metadados: agência, URL, data da checagem e o veredito original da agência.
+**Pipeline de ingestão:** coleta → deduplicação por URL → extração de texto → chunking por parágrafo com sobreposição (blocos de até 800 caracteres, repetindo 1 parágrafo entre um bloco e o seguinte) → embeddings → índice vetorial no ChromaDB. Toda checagem ganha também um trecho com o título, mesmo sem texto baixado. Cada chunk guarda metadados: agência, URL, data da checagem, veredito original da agência, alegação checada (`claim_reviewed`) e título.
 
-O veredito original da agência é guardado, mas **não é repassado como conclusão ao usuário**. Ele serve para o Agente de Evidências apresentar o que a agência concluiu, com atribuição ("a Agência Lupa classificou como…"), nunca como veredito do próprio sistema.
+O veredito original da agência é guardado, mas **não é repassado como conclusão do sistema**. Ele define a stance da evidência, isto é, a relação entre a checagem e a frase (falso → `contradiz`, verdadeiro → `apoia`, o resto → `insuficiente`), e é apresentado com atribuição ("a Agência Lupa classificou como…"), nunca como veredito do próprio sistema.
 
 **Meta de volume para o MVP:** alguns milhares de checagens em português, priorizando os últimos 24 meses. Volume maior não compensa se a qualidade do chunking e dos metadados for ruim.
+
+**Corpus atual:** 6.553 checagens (5.826 da API, dos últimos 24 meses, e 727 do FACTCK.BR) e 36.071 trechos. Os dados brutos e o índice ficam fora do Git e são compartilhados com o grupo pelo Google Drive; as instruções estão no card do Agente de Evidências.
 
 ### 6.2 Gold set de avaliação
 
@@ -487,7 +617,7 @@ Conjunto curado à mão pelo grupo, com 60 entradas no MVP, divididas em quatro 
 | Tipo | Qtd. | O que testa | Resposta esperada |
 | --- | --- | --- | --- |
 | Frase com checagem no corpus | 25 | Recuperação e stance | Encontrar a checagem correta, com stance correta |
-| Frase sem checagem no corpus | 15 | Honestidade do sistema | `insuficiente`, sem inventar evidência |
+| Frase sem checagem no corpus | 15 | Honestidade do sistema | Nenhuma evidência para a frase, sem inventar checagem |
 | Opinião ou juízo de valor | 10 | Separação fato/valor | Agente de Texto marca como `valor`; o dossiê não mostra stance para ela |
 | Texto misto (fato + valor + retórica) | 10 | Pipeline completo e guardrail | Separação fato/valor correta, marcadores pertinentes e nenhuma linguagem de veredito, inclusive paráfrases |
 
@@ -509,7 +639,7 @@ O sistema é avaliado **por componente** e **ponta a ponta**, sempre contra o go
 | Agente de Texto | Marcadores pertinentes | Rubrica humana: o marcador aponta um padrão real no trecho? | ≥ 0,70 |
 | Evidências — recuperação | Recall@5 | A checagem esperada aparece entre os 5 primeiros resultados? | ≥ 0,70 |
 | Evidências — stance | Macro-F1 apoia / contradiz / insuficiente | Comparação com a stance anotada | ≥ 0,65 |
-| Evidências — abstenção | Taxa de evidência inventada | Nas 15 frases sem checagem, % em que houve evidência em vez de `insuficiente` | ≤ 0,10 |
+| Evidências — abstenção | Taxa de evidência inventada | Nas 15 frases sem checagem, % em que o agente emitiu alguma evidência | ≤ 0,10 |
 | Sintetizador — citações | Validade de citação | % de URLs no dossiê que estão na lista de evidências | 1,00 (checagem determinística) |
 | Sintetizador — veredito | Vazamento de veredito | % de dossiês com linguagem de veredito, incluindo paráfrases | 0 |
 | Socrático | Qualidade das perguntas | Rubrica humana 1–3: aberta, ancorada na notícia, não indutiva | Média ≥ 2,5 |
@@ -698,7 +828,7 @@ Todo dono entrega, para o seu agente:
 **R2 — Agente de Evidências**
 
 - **Objetivo:** para cada frase, encontrar checagens anteriores relevantes e dizer se apoiam, contradizem ou são insuficientes, sempre com link.
-- **Entregáveis:** coleta via Fact Check Tools API e FACTCK.BR; índice no ChromaDB; embeddings; classificação de stance com NLI; limiar de similaridade calibrado; conformal prediction se houver tempo.
+- **Entregáveis:** coleta via Fact Check Tools API e FACTCK.BR; índice no ChromaDB; embeddings; confirmação da mesma alegação (termos-chave + NLI) e stance pelo veredito da agência; limiar do NLI calibrado no gold set e limiar de similaridade medido no corpus; conformal prediction se houver tempo (não implementado).
 - **Metas:** Recall@5 ≥ 0,70; macro-F1 de stance ≥ 0,65; evidência inventada ≤ 0,10.
 - **Estudar primeiro:** Camadas 1 e 3.
 
@@ -884,14 +1014,14 @@ Só iniciar se, no fim da Sprint 2, o harness de avaliação estiver funcionando
 
 ## 12. Riscos, governança e limitações
 
-O maior risco técnico da versão enxuta é o Agente de Evidências citar uma checagem sobre um fato parecido, mas diferente, sem um verificador dedicado para barrar isso. O maior risco de prazo continua sendo a integração ficar para o fim, mitigado pelo esqueleto com stubs desde a Sprint 1.
+O maior risco técnico da versão enxuta é o Agente de Evidências citar uma checagem sobre um fato parecido, mas diferente. A etapa de mesma alegação do agente barra a maior parte desses casos, mas não todos, e não há um verificador dedicado. O maior risco de prazo continua sendo a integração ficar para o fim, mitigado pelo esqueleto com stubs desde a Sprint 1.
 
 ### 12.1 Riscos técnicos
 
 | Risco | Impacto | Mitigação | Dono |
 | --- | --- | --- | --- |
 | Integração tardia: incompatibilidades descobertas só no fim | Última semana vira retrabalho | Contrato `run(state) -> dict`; stubs desde a Sprint 1; teste de contrato no CI; integração parcial na Sprint 2 | R1 |
-| Checagem sobre fato parecido, mas diferente | Dossiê cita checagem que não se aplica | Limiar de similaridade conservador; stance `insuficiente` na dúvida; casos no gold set; análise de erros a cada sprint | R2 |
+| Checagem sobre fato parecido, mas diferente | Dossiê cita checagem que não se aplica | Etapa de mesma alegação no Agente de Evidências (termos-chave + NLI ≥ 0,8, Seção 4.2): na dúvida, nenhuma evidência; casos no gold set; análise de erros a cada sprint. Residual: 4 casamentos errados em 42 frases (03/10/2026) | R2 |
 | NLI sobre frases longas ou compostas | Stance errada | Segmentação fina no Ingestor; medir macro-F1 de stance por tamanho de frase | R1, R2 |
 | Filtro de veredito não pega paráfrases | Veredito implícito no dossiê | Lista de termos ampliada; casos de paráfrase no gold set; ataque adversarial de R4 | R5 |
 | Socrático pergunta algo que o dossiê já responde | Perguntas redundantes | Sintetizador reordena as perguntas; rubrica humana mede o problema | R4, R5 |
@@ -912,7 +1042,7 @@ O maior risco técnico da versão enxuta é o Agente de Evidências citar uma ch
 
 - O sistema só é tão bom quanto a cobertura das agências brasileiras de checagem; afirmações nunca checadas terão pouca evidência.
 - Esta versão não avalia a fonte da notícia nem como ela se propaga; o dossiê cobre conteúdo e estrutura.
-- Não há verificador dedicado: a conferência de citações é determinística e não detecta checagem sobre fato parecido.
+- Não há verificador dedicado: a conferência de citações é determinística, e a etapa de mesma alegação do Agente de Evidências não pega todos os casos de checagem sobre fato parecido (4 em 42 frases do gold set).
 - Modelos locais de 7–14B têm raciocínio inferior aos modelos de fronteira; isso é um trade-off consciente de custo e privacidade.
 - O teste com usuários é pequeno e ilustrativo, não conclusivo.
 - O sistema não analisa imagem, áudio nem vídeo, que são hoje uma parte relevante da desinformação.
@@ -932,7 +1062,7 @@ O maior risco técnico da versão enxuta é o Agente de Evidências citar uma ch
 **Dados**
 
 - [Google Fact Check Tools API — claims.search](https://developers.google.com/fact-check/tools/api/reference/rest/v1alpha1/claims/search)
-- [FACTCK.BR — dataset de checagens brasileiras](https://github.com/tfs4/FACTCK.BR)
+- [FACTCK.BR — dataset de checagens brasileiras](https://github.com/jghm-f/FACTCK.BR) (licença MIT; artigo do WebMedia '19: https://doi.org/10.1145/3323503.3361698)
 
 **Avaliação**
 

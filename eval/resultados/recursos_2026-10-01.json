@@ -1,0 +1,60 @@
+{
+  "data": "2026-10-01T22:05:56",
+  "configuracao": {
+    "embedding_model": "BAAI/bge-m3",
+    "nli_model": "MoritzLaurer/mDeBERTa-v3-base-mnli-xnli",
+    "device": "cpu",
+    "sim_threshold": 0.55,
+    "claim_match_min_prob": 0.5,
+    "search_k": 10,
+    "claim_candidates": 6,
+    "max_evidence_per_segment": 3,
+    "recall_k": 5,
+    "recall_k_busca": 30,
+    "colecao": "checagens__baai-bge-m3",
+    "trechos_no_indice": 32094,
+    "chromadb": "1.5.9",
+    "python": "3.14.7",
+    "git_commit": "fc2cce22ec58a925b006da0c9e717612f87f2f54",
+    "git_alteracoes_locais": true
+  },
+  "modelos": {
+    "dispositivo": "cpu",
+    "nli_fp16": false,
+    "carregar_embeddings_s": 10.9,
+    "carregar_nli_s": 2.53,
+    "pesos_embeddings_gb": 2.12,
+    "pesos_nli_gb": 0.52,
+    "pesos_total_gb": 2.63,
+    "orcamento_gb": 2.0
+  },
+  "memoria_apos_carregar": {
+    "rss_gb": 2.65,
+    "pico_rss_gb": null,
+    "gpu_gb": null,
+    "fonte": "psutil"
+  },
+  "latencia": {
+    "noticia_3_frases_s": {
+      "n": 36,
+      "p50": 4.931,
+      "p95": 10.811,
+      "max": 10.867
+    },
+    "noticia_36_frases_s": {
+      "n": 3,
+      "p50": 64.395,
+      "p95": 64.537,
+      "max": 64.537
+    }
+  },
+  "memoria_apos_rodar": {
+    "rss_gb": 2.91,
+    "pico_rss_gb": null,
+    "gpu_gb": null,
+    "fonte": "psutil"
+  },
+  "fp32_x_fp16": {
+    "pulado": "sem GPU: o fp16 só vale em cuda/mps"
+  }
+}

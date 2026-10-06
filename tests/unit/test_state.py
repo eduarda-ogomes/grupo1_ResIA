@@ -1,4 +1,3 @@
-from src.graph import sistema_multiagente
 from src.state import PipelineState, initial_state
 
 
@@ -17,16 +16,6 @@ def test_initial_state_aceita_sobrescritas():
 
     assert state.clean_text == "texto"
     assert state.truncated is True
-
-
-def test_grafo_roda_ponta_a_ponta_com_texto_livre():
-    out = sistema_multiagente.invoke(
-        initial_state("O suco de mamão cura a dengue. Isso não tem comprovação.")
-    )
-
-    assert out["segments"]
-    assert out["dossier"]
-    assert out["warnings"] == []
 
 
 def test_initial_state_cobre_exatamente_os_campos_do_schema():

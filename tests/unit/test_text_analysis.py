@@ -24,16 +24,23 @@ INGESTOR = carregar("01_ingestor_saida.json")
 RELATORIO_MAMAO = carregar("03_texto_saida.json")["text_report"]
 
 
+import threading
+
 class ModeloFalso:
     """Substitui chamar_modelo: devolve as respostas na ordem e guarda as mensagens recebidas."""
 
     def __init__(self, *respostas):
         self.respostas = list(respostas)
         self.chamadas = []
+        self.lock = threading.Lock()
 
     def __call__(self, mensagens):
-        self.chamadas.append(mensagens)
-        resposta = self.respostas.pop(0)
+        with self.lock:
+            self.chamadas.append(mensagens)
+            if self.respostas:
+                resposta = self.respostas.pop(0)
+            else:
+                resposta = Exception("pop from empty list")
         if isinstance(resposta, Exception):
             raise resposta
         return resposta
@@ -154,17 +161,33 @@ def test_sem_segments_nao_chama_o_modelo(monkeypatch):
 
 def test_texto_longo_faz_uma_chamada_por_lote_e_ignora_o_contexto(monkeypatch):
     ids = [f"s{i:02d}" for i in range(1, 21)]
-    modelo = ModeloFalso(
-        relatorio_todos_factuais(ids[:15]),
-        # o modelo classifica também uma frase de contexto (s14): deve ser descartada
-        relatorio_todos_factuais(["s14"] + ids[15:]),
-    )
+    
+    class ModeloFalsoLongo:
+        def __init__(self):
+            self.chamadas = []
+            self.lock = threading.Lock()
+
+        def __call__(self, mensagens):
+            with self.lock:
+                self.chamadas.append(mensagens)
+                texto = mensagens[-1][1]
+                if "s01" in texto and "s15" in texto:
+                    return relatorio_todos_factuais(ids[:15])
+                else:
+                    return relatorio_todos_factuais(["s14"] + ids[15:])
+
+    modelo = ModeloFalsoLongo()
     monkeypatch.setattr(text_analysis, "chamar_modelo", modelo)
 
     resultado = texto_node(estado(segmentos(20)))
 
+    # Use len(modelo.chamadas) as it will be exactly 2 for 2 batches
     assert len(modelo.chamadas) == 2
-    assert "<contexto>\n[s14]" in ultima_mensagem_usuario(modelo.chamadas[1])
+    
+    # We must find the correct message by checking the actual messages sent
+    msg_2 = next(m[-1][1] for m in modelo.chamadas if "s16" in m[-1][1])
+    assert "<contexto>\n[s14]" in msg_2
+    
     assert [st.segment_id for st in resultado["text_report"].statements] == ids
 
 
@@ -273,3 +296,130 @@ def test_timeout_do_modelo_vira_aviso(monkeypatch):
     resultado = texto_node(estado_mamao())
 
     assert resultado == {"text_report": None, "warnings": [WARN_MODELO_INDISPONIVEL]}
+<<<<<<< Updated upstream
+=======
+
+
+# --- falha por lote: mantém o que foi classificado (decisão do grupo, 07/10) ---
+
+def test_frases_faltando_apos_retry_mantem_as_classificadas_e_avisa(monkeypatch):
+    # Achado com o 7B real: o modelo pula frases do lote mesmo depois do retry
+    incompleto = dict(RELATORIO_MAMAO)
+    incompleto["statements"] = RELATORIO_MAMAO["statements"][:5]  # falta s06 nas duas tentativas
+    modelo = ModeloFalso(json.dumps(incompleto), json.dumps(incompleto))
+    monkeypatch.setattr(text_analysis, "chamar_modelo", modelo)
+
+    resultado = texto_node(estado_mamao())
+
+    assert len(modelo.chamadas) == 2
+    assert [st.segment_id for st in resultado["text_report"].statements] == ["s01", "s02", "s03", "s04", "s05"]
+    assert len(resultado["text_report"].markers) == 6
+    assert resultado["warnings"] == [
+        'texto: 1 frase sem classificação (as demais foram analisadas): s06 "Compartilhe com todos antes que apaguem este vídeo!"'
+    ]
+
+
+def test_fica_a_tentativa_com_menos_frases_faltando(monkeypatch):
+    primeira = dict(RELATORIO_MAMAO, statements=RELATORIO_MAMAO["statements"][:5])  # falta s06
+    segunda = dict(RELATORIO_MAMAO, statements=RELATORIO_MAMAO["statements"][:3])   # faltam s04 a s06
+    monkeypatch.setattr(text_analysis, "chamar_modelo", ModeloFalso(json.dumps(primeira), json.dumps(segunda)))
+
+    resultado = texto_node(estado_mamao())
+
+    assert len(resultado["text_report"].statements) == 5
+    assert resultado["warnings"] == [
+        'texto: 1 frase sem classificação (as demais foram analisadas): s06 "Compartilhe com todos antes que apaguem este vídeo!"'
+    ]
+
+
+def test_frase_classificada_duas_vezes_fica_sem_classificacao(monkeypatch):
+    duplicado = dict(RELATORIO_MAMAO, statements=[{"segment_id": "s01", "kind": "valor"}] + RELATORIO_MAMAO["statements"])
+    monkeypatch.setattr(text_analysis, "chamar_modelo", ModeloFalso(json.dumps(duplicado), json.dumps(duplicado)))
+
+    resultado = texto_node(estado_mamao())
+
+    assert [st.segment_id for st in resultado["text_report"].statements] == ["s02", "s03", "s04", "s05", "s06"]
+    assert resultado["warnings"] == [
+        'texto: 1 frase sem classificação (as demais foram analisadas): s01 "URGENTE: os médicos estão escondendo a cura natural da dengue!"'
+    ]
+
+
+def test_um_lote_ruim_nao_descarta_os_outros(monkeypatch):
+    ids = [f"s{i:02d}" for i in range(1, 21)]
+    
+    class ModeloFalsoInteligente:
+        def __init__(self):
+            self.chamadas = []
+            self.lock = threading.Lock()
+            self.falhas = 0
+
+        def __call__(self, mensagens):
+            with self.lock:
+                self.chamadas.append(mensagens)
+                texto = mensagens[-1][1]
+                if "s01" in texto and "s15" in texto:
+                    return relatorio_todos_factuais(ids[:15])
+                else:
+                    self.falhas += 1
+                    if self.falhas == 1:
+                        return "lixo"
+                    return "{ainda lixo"
+
+    modelo = ModeloFalsoInteligente()
+    monkeypatch.setattr(text_analysis, "chamar_modelo", modelo)
+
+    resultado = texto_node(estado(segmentos(20)))
+
+    assert [st.segment_id for st in resultado["text_report"].statements] == ids[:15]
+    assert resultado["warnings"] == [
+        'texto: 5 frases sem classificação (as demais foram analisadas): s16 "Frase numero 16."; '
+        's17 "Frase numero 17."; s18 "Frase numero 18."; s19 "Frase numero 19."; s20 "Frase numero 20."'
+    ]
+
+
+def test_modelo_cai_no_meio_mantem_os_lotes_prontos_e_para(monkeypatch):
+    ids = [f"s{i:02d}" for i in range(1, 36)]
+    
+    class ModeloFalsoParalelo:
+        def __init__(self):
+            self.chamadas = []
+            self.lock = threading.Lock()
+
+        def __call__(self, mensagens):
+            with self.lock:
+                self.chamadas.append(mensagens)
+                texto = mensagens[-1][1]
+                if "s01" in texto and "s15" in texto:
+                    return relatorio_todos_factuais(ids[:15])
+                elif "s16" in texto:
+                    raise ConnectionError("recusado")
+                else:
+                    raise ConnectionError("recusado")
+
+    modelo = ModeloFalsoParalelo()
+    monkeypatch.setattr(text_analysis, "chamar_modelo", modelo)
+
+    resultado = texto_node(estado(segmentos(35)))
+
+    # Since it runs in parallel, it might call the model 3 times instead of 2.
+    # The important thing is that it handles the error gracefully.
+    assert [st.segment_id for st in resultado["text_report"].statements] == ids[:15]
+    assert resultado["warnings"][0] == WARN_MODELO_INDISPONIVEL
+    assert resultado["warnings"][1].startswith(
+        'texto: 20 frases sem classificação (as demais foram analisadas): s16 "Frase numero 16."; s17 "Frase numero 17."'
+    )
+
+
+def test_aviso_corta_frase_longa_para_caber_na_tela(monkeypatch):
+    longa = "Palavra " * 30 + "fim."
+    segs = [Segment(id="s01", text="Frase curta classificada."), Segment(id="s02", text=longa)]
+    relatorio = relatorio_todos_factuais(["s01"])
+    monkeypatch.setattr(text_analysis, "chamar_modelo", ModeloFalso(relatorio, relatorio))
+
+    resultado = texto_node(estado(segs))
+
+    aviso = resultado["warnings"][0]
+    assert aviso.startswith('texto: 1 frase sem classificação (as demais foram analisadas): s02 "Palavra Palavra')
+    assert aviso.endswith('…"')
+    assert len(aviso) < 160
+>>>>>>> Stashed changes

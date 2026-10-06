@@ -140,6 +140,7 @@ def texto_node(state: PipelineState) -> dict:
     if not state.segments:
         return {"text_report": None}
 
+<<<<<<< Updated upstream
     statements, markers = [], []
     try:
         for contexto, alvo in dividir_em_lotes(state.segments):
@@ -151,5 +152,36 @@ def texto_node(state: PipelineState) -> dict:
     except ModeloIndisponivel as e:
         logger.warning("Agente de Texto: modelo indisponível: %s", e)
         return {"text_report": None, "warnings": [WARN_MODELO_INDISPONIVEL]}
+=======
+    import concurrent.futures
+
+    statements, markers, sem_classificacao, avisos = [], [], [], []
+    lotes = dividir_em_lotes(state.segments)
+    
+    with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+        futuros = []
+        for contexto, alvo in lotes:
+            futuros.append(executor.submit(analisar_lote, contexto, alvo))
+            
+        modelo_caiu = False
+        for i, (futuro, (contexto, alvo)) in enumerate(zip(futuros, lotes)):
+            if modelo_caiu:
+                sem_classificacao += alvo
+                continue
+
+            try:
+                parcial, faltando = futuro.result()
+                statements += parcial.statements
+                markers += parcial.markers
+                sem_classificacao += [s for s in alvo if s.id in faltando]
+            except ModeloIndisponivel as e:
+                logger.warning("Agente de Texto: modelo indisponível: %s", e)
+                avisos.append(WARN_MODELO_INDISPONIVEL)
+                sem_classificacao += alvo
+                modelo_caiu = True
+                # Cancela os próximos que ainda não começaram
+                for f in futuros[i+1:]:
+                    f.cancel()
+>>>>>>> Stashed changes
 
     return {"text_report": TextReport(statements=statements, markers=markers)}

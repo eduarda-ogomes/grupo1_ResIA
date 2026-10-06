@@ -4,9 +4,22 @@ from pathlib import Path
 # `streamlit run app/app.py` só coloca app/ no sys.path; adiciona a raiz para importar `src`
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
+import os
+
 import streamlit as st
-from src.graph import sistema_multiagente
+from src import medicao
+from src.graph import RAMOS, sistema_multiagente
+from src.observabilidade import configurar_tracing
 from src.state import PipelineState, initial_state
+
+
+@st.cache_resource
+def ligar_tracing() -> bool:
+    """Liga o Phoenix uma vez por processo, quando PHOENIX_TRACING=1 (src/observabilidade.py)."""
+    return configurar_tracing()
+
+
+ligar_tracing()
 
 st.set_page_config(page_title="Dossiê Multiagente", layout="wide")
 
@@ -25,23 +38,15 @@ text_input = st.text_area("Insira a URL ou o texto da notícia para análise:", 
 if st.button("Analisar", type="primary"):
     if text_input.strip():
         estado_inicial = initial_state(text_input)
-        final_state = dict(estado_inicial)
-        
-        # Acompanhamento do pipeline em tempo real
+
+        # Acompanhamento do pipeline em tempo real: uma linha por nó, com o tempo desde o início
         with st.status("Processando pipeline multiagente...", expanded=True) as status:
             try:
-                # O método stream() permite ver o grafo funcionando passo a passo
-                for event in sistema_multiagente.stream(estado_inicial):
-                    for node_name, node_update in event.items():
-                        st.write(f"Nó processado: **{node_name}**")
-                        
-                        # Atualiza nosso estado local para exibir depois
-                        for key, value in node_update.items():
-                            if key == "warnings":
-                                final_state["warnings"] = final_state["warnings"] + value
-                            else:
-                                final_state[key] = value
-                
+                execucao = medicao.executar(
+                    sistema_multiagente,
+                    estado_inicial,
+                    ao_terminar_no=lambda no, segundos: st.write(f"Nó concluído: **{no}** ({segundos:.1f} s)"),
+                )
                 status.update(label="Análise Concluída", state="complete", expanded=False)
             except Exception as e:
                 status.update(label="Erro na execução", state="error")
@@ -49,8 +54,8 @@ if st.button("Analisar", type="primary"):
                 st.info("Dica: verifique se o LM Studio está rodando em localhost:1234 com o qwen2.5-7b carregado.")
                 st.stop()
 
-        # Os eventos do stream trazem dicts crus; valida no schema para exibir objetos tipados
-        validated = PipelineState.model_validate(final_state)
+        # medicao.executar já devolve o estado validado no schema (objetos tipados)
+        validated = execucao.estado
         final_state = {campo: getattr(validated, campo) for campo in PipelineState.model_fields}
 
         if final_state:
@@ -96,5 +101,15 @@ if st.button("Analisar", type="primary"):
                         st.markdown(f"**{m.type}**: *{m.excerpt}*  \n_{m.explanation}_")
                 else:
                     st.write("Nenhum marcador específico extraído.")
+
+            with st.expander("Tempos por etapa"):
+                nos = [n for n in ("ingestor", *RAMOS, "sintetizador") if n in execucao.duracao_por_no]
+                st.table({
+                    "nó": nos + ["total"],
+                    "segundos": [round(execucao.duracao_por_no[n], 1) for n in nos] + [round(execucao.total, 1)],
+                })
+            if execucao.trace_id:
+                endereco = os.environ.get("PHOENIX_COLLECTOR_ENDPOINT", "http://localhost:6006")
+                st.caption(f"Trace desta análise: `{execucao.trace_id}` · [Ver o trace no Phoenix]({endereco})")
     else:
         st.warning("Por favor, insira um texto para analisar.")

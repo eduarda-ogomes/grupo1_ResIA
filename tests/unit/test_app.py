@@ -73,3 +73,51 @@ def test_perguntas_aparecem_uma_vez_so_dentro_do_dossie(monkeypatch):
         assert len(onde) == 1, f"a pergunta aparece {len(onde)} vezes na tela"
         assert "## Perguntas para pensar antes de decidir" in onde[0]
     assert not any(s.value == "Perguntas Socráticas" for s in at.subheader)
+
+
+# --- observabilidade: tempos por etapa e trace ---
+
+def _tabela_de_tempos(at):
+    return next(t.value for t in at.table if "nó" in t.value.columns)
+
+
+def test_app_mostra_tempos_por_etapa(monkeypatch):
+    from tests import modelos_falsos as falsos
+
+    falsos.ligar_falsos(monkeypatch)
+
+    at = analisar(falsos.TEXTO_LIVRE)
+
+    assert not at.exception
+    assert any(e.label == "Tempos por etapa" for e in at.expander)
+    assert list(_tabela_de_tempos(at)["nó"]) == [
+        "ingestor", "agente_evidencias", "agente_texto", "agente_socratico", "sintetizador", "total"]
+
+
+def test_app_mostra_tempos_sem_trace_quando_tracing_desligado(monkeypatch):
+    from tests import modelos_falsos as falsos
+
+    from src import medicao
+
+    falsos.ligar_falsos(monkeypatch)
+    monkeypatch.delenv("PHOENIX_TRACING", raising=False)
+    # Tracing desligado = contexto de span inválido = trace_id None. Simulado aqui porque outro
+    # teste da sessão pode já ter registrado o provider global (fixture `spans`), que não se desfaz.
+    monkeypatch.setattr(medicao, "trace_id_de", lambda contexto: None)
+
+    at = analisar(falsos.TEXTO_LIVRE)
+
+    assert any(e.label == "Tempos por etapa" for e in at.expander)
+    assert not any("Phoenix" in c.value for c in at.caption)
+
+
+def test_app_mostra_o_trace_quando_ha_trace_id(monkeypatch):
+    from src import medicao
+    from tests import modelos_falsos as falsos
+
+    falsos.ligar_falsos(monkeypatch)
+    monkeypatch.setattr(medicao, "trace_id_de", lambda contexto: "0af7651916cd43dd8448eb211c80319c")
+
+    at = analisar(falsos.TEXTO_LIVRE)
+
+    assert any("0af7651916cd43dd8448eb211c80319c" in c.value and "Phoenix" in c.value for c in at.caption)

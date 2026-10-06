@@ -289,7 +289,9 @@ def test_frases_faltando_apos_retry_mantem_as_classificadas_e_avisa(monkeypatch)
     assert len(modelo.chamadas) == 2
     assert [st.segment_id for st in resultado["text_report"].statements] == ["s01", "s02", "s03", "s04", "s05"]
     assert len(resultado["text_report"].markers) == 6
-    assert resultado["warnings"] == ["texto: 1 frase sem classificação (s06); as demais foram analisadas"]
+    assert resultado["warnings"] == [
+        'texto: 1 frase sem classificação (as demais foram analisadas): s06 "Compartilhe com todos antes que apaguem este vídeo!"'
+    ]
 
 
 def test_fica_a_tentativa_com_menos_frases_faltando(monkeypatch):
@@ -300,7 +302,9 @@ def test_fica_a_tentativa_com_menos_frases_faltando(monkeypatch):
     resultado = texto_node(estado_mamao())
 
     assert len(resultado["text_report"].statements) == 5
-    assert resultado["warnings"] == ["texto: 1 frase sem classificação (s06); as demais foram analisadas"]
+    assert resultado["warnings"] == [
+        'texto: 1 frase sem classificação (as demais foram analisadas): s06 "Compartilhe com todos antes que apaguem este vídeo!"'
+    ]
 
 
 def test_frase_classificada_duas_vezes_fica_sem_classificacao(monkeypatch):
@@ -310,7 +314,9 @@ def test_frase_classificada_duas_vezes_fica_sem_classificacao(monkeypatch):
     resultado = texto_node(estado_mamao())
 
     assert [st.segment_id for st in resultado["text_report"].statements] == ["s02", "s03", "s04", "s05", "s06"]
-    assert resultado["warnings"] == ["texto: 1 frase sem classificação (s01); as demais foram analisadas"]
+    assert resultado["warnings"] == [
+        'texto: 1 frase sem classificação (as demais foram analisadas): s01 "URGENTE: os médicos estão escondendo a cura natural da dengue!"'
+    ]
 
 
 def test_um_lote_ruim_nao_descarta_os_outros(monkeypatch):
@@ -322,7 +328,8 @@ def test_um_lote_ruim_nao_descarta_os_outros(monkeypatch):
 
     assert [st.segment_id for st in resultado["text_report"].statements] == ids[:15]
     assert resultado["warnings"] == [
-        "texto: 5 frases sem classificação (s16, s17, s18, s19, s20); as demais foram analisadas"
+        'texto: 5 frases sem classificação (as demais foram analisadas): s16 "Frase numero 16."; '
+        's17 "Frase numero 17."; s18 "Frase numero 18."; s19 "Frase numero 19."; s20 "Frase numero 20."'
     ]
 
 
@@ -336,4 +343,20 @@ def test_modelo_cai_no_meio_mantem_os_lotes_prontos_e_para(monkeypatch):
     assert len(modelo.chamadas) == 2, "sem retry e sem tentar os lotes seguintes com o servidor fora"
     assert [st.segment_id for st in resultado["text_report"].statements] == ids[:15]
     assert resultado["warnings"][0] == WARN_MODELO_INDISPONIVEL
-    assert resultado["warnings"][1].startswith("texto: 20 frases sem classificação (s16, s17,")
+    assert resultado["warnings"][1].startswith(
+        'texto: 20 frases sem classificação (as demais foram analisadas): s16 "Frase numero 16."; s17 "Frase numero 17."'
+    )
+
+
+def test_aviso_corta_frase_longa_para_caber_na_tela(monkeypatch):
+    longa = "Palavra " * 30 + "fim."
+    segs = [Segment(id="s01", text="Frase curta classificada."), Segment(id="s02", text=longa)]
+    relatorio = relatorio_todos_factuais(["s01"])
+    monkeypatch.setattr(text_analysis, "chamar_modelo", ModeloFalso(relatorio, relatorio))
+
+    resultado = texto_node(estado(segs))
+
+    aviso = resultado["warnings"][0]
+    assert aviso.startswith('texto: 1 frase sem classificação (as demais foram analisadas): s02 "Palavra Palavra')
+    assert aviso.endswith('…"')
+    assert len(aviso) < 160

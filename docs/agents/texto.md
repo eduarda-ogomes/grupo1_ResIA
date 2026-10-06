@@ -7,7 +7,7 @@ Classifica cada frase como `factual` ou `valor` e aponta trechos com padrões de
 
 ## Entrada e saída
 - Entrada: `state.segments`.
-- Saída: `{"text_report": TextReport}`. Se algumas frases ficarem sem classificação depois do retry, o relatório traz o que foi classificado e um aviso `texto: N frases sem classificação (s22, s24); as demais foram analisadas`. Só quando nenhuma frase é classificada: `{"text_report": None, "warnings": [...]}`.
+- Saída: `{"text_report": TextReport}`. Se algumas frases ficarem sem classificação depois do retry, o relatório traz o que foi classificado e um aviso com o ID e o começo de cada frase que ficou de fora (`texto: 2 frases sem classificação (as demais foram analisadas): s22 "…"; s24 "…"`); o dossiê lista essas frases por extenso em "Limites desta análise". Só quando nenhuma frase é classificada: `{"text_report": None, "warnings": [...]}`.
 
 ## Modelo
 `qwen2.5-7b` (LM Studio, `localhost:1234`), temperatura 0, JSON Schema do `TextReport`, lotes de 15 frases com 2 de contexto, 1 retry por lote.

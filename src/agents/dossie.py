@@ -170,8 +170,12 @@ def secao_limites(state: PipelineState) -> list[str]:
         linhas.append("- O banco de checagens não pôde ser consultado.")
     if state.text_report is None:
         linhas.append("- A estrutura do texto não pôde ser analisada.")
-    elif {s.id for s in state.segments} - {st.segment_id for st in state.text_report.statements}:
-        linhas.append("- Algumas frases não puderam ser classificadas como fato ou opinião.")
+    else:
+        classificadas = {st.segment_id for st in state.text_report.statements}
+        sem_classificacao = [s for s in state.segments if s.id not in classificadas]
+        if sem_classificacao:
+            frases = ", ".join(f'"{neutralizar_urls(s.text)}"' for s in sem_classificacao)
+            linhas.append(f"- Estas frases não puderam ser classificadas como fato ou opinião: {frases}.")
     if state.socratic_questions is None:
         linhas.append("- As perguntas reflexivas não puderam ser geradas.")
     return linhas + [LIMITE_COLETA]

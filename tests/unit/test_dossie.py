@@ -227,9 +227,21 @@ def test_trecho_da_checagem_com_link_mantem_a_citacao():
     assert '  - Agência Exemplo: Falso — "Leia em [link]." (https://a.org/1)' in linhas
 
 
-def test_limites_avisam_quando_parte_das_frases_ficou_sem_classificacao():
+def test_limites_listam_as_frases_que_ficaram_sem_classificacao():
     relatorio = {"statements": [{"segment_id": f"s0{i}", "kind": "factual"} for i in range(1, 6)], "markers": []}  # falta s06
 
     linhas = dossie.secao_limites(estado_mamao(text_report=relatorio))
 
-    assert "- Algumas frases não puderam ser classificadas como fato ou opinião." in linhas
+    assert ('- Estas frases não puderam ser classificadas como fato ou opinião: '
+            '"Compartilhe com todos antes que apaguem este vídeo!".') in linhas
+
+
+def test_frase_sem_classificacao_com_link_aparece_neutralizada():
+    state = estado_mamao(
+        segments=[{"id": "s01", "text": "Frase classificada."}, {"id": "s02", "text": "Veja em https://golpe.example/v agora."}],
+        text_report={"statements": [{"segment_id": "s01", "kind": "factual"}], "markers": []},
+    )
+
+    linhas = dossie.secao_limites(state)
+
+    assert '- Estas frases não puderam ser classificadas como fato ou opinião: "Veja em [link] agora.".' in linhas

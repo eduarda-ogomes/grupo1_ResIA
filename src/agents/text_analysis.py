@@ -27,9 +27,15 @@ WARN_SAIDA_INVALIDA = "texto: saída inválida após 1 retry"
 WARN_MODELO_INDISPONIVEL = "texto: falha ao chamar o modelo (o LM Studio está rodando?)"
 
 
-def aviso_frases_sem_classificacao(ids: list[str]) -> str:
-    n = len(ids)
-    return f"texto: {n} {'frase' if n == 1 else 'frases'} sem classificação ({', '.join(ids)}); as demais foram analisadas"
+def _resumo(texto: str, limite: int = 80) -> str:
+    return texto if len(texto) <= limite else texto[: limite - 1].rstrip() + "…"
+
+
+def aviso_frases_sem_classificacao(frases: list[Segment]) -> str:
+    """Aviso com o ID e o começo de cada frase que ficou sem classificação."""
+    n = len(frases)
+    lista = "; ".join(f'{s.id} "{_resumo(s.text)}"' for s in frases)
+    return f"texto: {n} {'frase' if n == 1 else 'frases'} sem classificação (as demais foram analisadas): {lista}"
 
 
 class LoteInvalido(ValueError):
@@ -183,11 +189,11 @@ def texto_node(state: PipelineState) -> dict:
             # Servidor fora: não adianta tentar os lotes seguintes (cada um esperaria o timeout)
             logger.warning("Agente de Texto: modelo indisponível: %s", e)
             avisos.append(WARN_MODELO_INDISPONIVEL)
-            sem_classificacao += [s.id for _, restante in lotes[i:] for s in restante]
+            sem_classificacao += [s for _, restante in lotes[i:] for s in restante]
             break
         statements += parcial.statements
         markers += parcial.markers
-        sem_classificacao += faltando
+        sem_classificacao += [s for s in alvo if s.id in faltando]
 
     if not statements:
         return {"text_report": None, "warnings": avisos or [WARN_SAIDA_INVALIDA]}

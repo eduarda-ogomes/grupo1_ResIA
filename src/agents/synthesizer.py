@@ -2,7 +2,7 @@ import re
 import logging
 from typing import Set
 from langchain_core.prompts import ChatPromptTemplate
-from src.services.llm import get_llm
+from src.services.llm import llm
 from src.state import PipelineState
 
 logger = logging.getLogger(__name__)
@@ -104,7 +104,6 @@ def run(state: PipelineState) -> dict:
             ("user", USER_TEMPLATE)
         ])
         
-        llm = get_llm()
         chain = prompt | llm
         
         resposta = chain.invoke({

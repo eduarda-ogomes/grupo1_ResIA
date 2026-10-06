@@ -39,3 +39,22 @@ def test_app_mostra_aviso_quando_o_agente_de_texto_falha():
 
     assert not at.exception
     assert any("texto: falha ao chamar o modelo" in w.value for w in at.warning)
+
+
+def test_app_mostra_o_aviso_de_cada_ramo_que_falhou():
+    # o tests/conftest.py desliga os quatro modelos
+    at = analisar("O suco de mamão cura a dengue. Isso não tem comprovação.")
+
+    assert not at.exception
+    avisos = " ".join(w.value for w in at.warning)
+    for prefixo in ("evidencias:", "texto:", "socrático:"):
+        assert prefixo in avisos
+
+
+def test_app_cita_o_lm_studio_e_nao_o_ollama():
+    at = AppTest.from_file(APP, default_timeout=120)
+    at.run()
+
+    textos = " ".join(m.value for m in at.markdown)
+    assert "LM Studio" in textos
+    assert "Ollama" not in textos

@@ -11,7 +11,7 @@ from src.state import PipelineState, initial_state
 st.set_page_config(page_title="Dossiê Multiagente", layout="wide")
 
 st.title("Sistema Multiagente de Análise de Notícias")
-st.markdown("Executa análise paralela com LangGraph e modelos locais via Ollama (`llama3.2`).")
+st.markdown("Executa a análise em paralelo com LangGraph e modelos locais no LM Studio (`qwen2.5-7b`).")
 
 # Visualização da Arquitetura (Grafo)
 with st.expander("Visualizar Arquitetura do Sistema", expanded=False):
@@ -46,7 +46,7 @@ if st.button("Analisar", type="primary"):
             except Exception as e:
                 status.update(label="Erro na execução", state="error")
                 st.error(f"Erro ao executar o pipeline: {str(e)}")
-                st.info("Dica: Verifique se o Ollama está rodando e se o modelo 'llama3.2' está instalado.")
+                st.info("Dica: verifique se o LM Studio está rodando em localhost:1234 com o qwen2.5-7b carregado.")
                 st.stop()
 
         # Os eventos do stream trazem dicts crus; valida no schema para exibir objetos tipados

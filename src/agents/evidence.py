@@ -36,6 +36,7 @@ from src.retrieval.etapa2 import (display_verdict, key_terms_present, normalize_
                                   stance_from_verdict)
 from src.retrieval.indice import Hit, get_checagem_texts, get_lead_text, search
 from src.retrieval.nli import classify
+from src.observabilidade import span
 from src.state import Evidence, Segment
 
 logger = logging.getLogger(__name__)
@@ -147,34 +148,43 @@ def run(state) -> dict:
             return {"evidence": []}
 
         # Passos 1 e 2: candidatas de cada frase que passam nos termos-chave.
-        hits_per_segment = search([s.text for s in segments], k=config.SEARCH_K)
-        jobs: list[tuple[Segment, list[Hit]]] = []
-        for segment, hits in zip(segments, hits_per_segment):
-            for group in _candidates(hits):
-                claim = _meta(group, "claim_reviewed")
-                texts = [claim, _meta(group, "review_title"), *get_checagem_texts(_meta(group, "source_url"))]
-                if key_terms_present(segment.text, texts, claim).ok:
-                    jobs.append((segment, group))
+        with span("evidencias.busca", tipo="RETRIEVER", frases=len(segments), k=config.SEARCH_K):
+            hits_per_segment = search([s.text for s in segments], k=config.SEARCH_K)
+        with span("evidencias.termos_chave") as s:
+            jobs: list[tuple[Segment, list[Hit]]] = []
+            candidatas = 0
+            for segment, hits in zip(segments, hits_per_segment):
+                for group in _candidates(hits):
+                    candidatas += 1
+                    claim = _meta(group, "claim_reviewed")
+                    texts = [claim, _meta(group, "review_title"), *get_checagem_texts(_meta(group, "source_url"))]
+                    if key_terms_present(segment.text, texts, claim).ok:
+                        jobs.append((segment, group))
+            s.set_attribute("pipeline.candidatas", candidatas)
+            s.set_attribute("pipeline.aprovadas", len(jobs))
         if not jobs:
             return {"evidence": []}
 
-        # Passo 3: um único lote de NLI para a notícia inteira (2 direções por candidata).
-        pairs = []
-        for segment, group in jobs:
-            claim = normalize_claim(_meta(group, "claim_reviewed"))
-            pairs += [(claim, segment.text), (segment.text, claim)]
-        probs = classify(pairs)
+        with span("evidencias.nli") as s:
+            # Passo 3: um único lote de NLI para a notícia inteira (2 direções por candidata).
+            pairs = []
+            for segment, group in jobs:
+                claim = normalize_claim(_meta(group, "claim_reviewed"))
+                pairs += [(claim, segment.text), (segment.text, claim)]
+            probs = classify(pairs)
 
-        # Passo 4: evidências, no máximo MAX_EVIDENCE_PER_SEGMENT por frase.
-        evidence, per_segment = [], {}
-        for i, (segment, group) in enumerate(jobs):
-            score = claim_match_score(probs[2 * i], probs[2 * i + 1])
-            logger.debug(json.dumps({"segment_id": segment.id, "source_url": _meta(group, "source_url"),
-                                     "match_score": round(score, 4)}, ensure_ascii=False))
-            if score < config.CLAIM_MATCH_MIN_PROB or per_segment.get(segment.id, 0) >= config.MAX_EVIDENCE_PER_SEGMENT:
-                continue
-            evidence.append(_build_evidence(segment, group))
-            per_segment[segment.id] = per_segment.get(segment.id, 0) + 1
+            # Passo 4: evidências, no máximo MAX_EVIDENCE_PER_SEGMENT por frase.
+            evidence, per_segment = [], {}
+            for i, (segment, group) in enumerate(jobs):
+                score = claim_match_score(probs[2 * i], probs[2 * i + 1])
+                logger.debug(json.dumps({"segment_id": segment.id, "source_url": _meta(group, "source_url"),
+                                         "match_score": round(score, 4)}, ensure_ascii=False))
+                if score < config.CLAIM_MATCH_MIN_PROB or per_segment.get(segment.id, 0) >= config.MAX_EVIDENCE_PER_SEGMENT:
+                    continue
+                evidence.append(_build_evidence(segment, group))
+                per_segment[segment.id] = per_segment.get(segment.id, 0) + 1
+            s.set_attribute("pipeline.pares", len(pairs))
+            s.set_attribute("pipeline.evidencias", len(evidence))
         return {"evidence": evidence}
 
     except Exception as exc:  # degradação graciosa (Seção 3.4)

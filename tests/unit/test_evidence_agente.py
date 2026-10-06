@@ -242,3 +242,20 @@ def test_aceita_segment_de_outra_classe(fachin):
 
 def test_alias_para_o_graph_atual():
     assert agent.evidencias_node is agent.run
+
+
+# --- observabilidade ---
+
+def test_spans_do_evidencias_no_caso_do_mamao(spans, monkeypatch):
+    state, search, classify, _ = mamao_fakes()
+    patch_agent(monkeypatch, agent, search, classify)
+
+    agent.run(state)
+
+    attrs = {s.name: s.attributes for s in spans.get_finished_spans()}
+    assert attrs["evidencias.busca"]["pipeline.frases"] == 6
+    assert attrs["evidencias.busca"]["openinference.span.kind"] == "RETRIEVER"
+    assert attrs["evidencias.termos_chave"]["pipeline.candidatas"] == 2
+    assert attrs["evidencias.termos_chave"]["pipeline.aprovadas"] == 2
+    assert attrs["evidencias.nli"]["pipeline.pares"] == 4
+    assert attrs["evidencias.nli"]["pipeline.evidencias"] == 2

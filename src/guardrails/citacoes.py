@@ -17,6 +17,15 @@ def extrair_urls(texto: str) -> list[str]:
     return [_normalizar(m.group(0)) for m in _URL.finditer(texto)]
 
 
+def neutralizar_urls(texto: str, marcador: str = "[link]") -> str:
+    """Troca cada URL por `marcador`, mantendo a pontuação final ("(https://a.org/x)." -> "([link]).").
+
+    Para texto que vem da notícia (frases, trechos): link de terceiros nunca vira citação no
+    dossiê nem chega ao LLM, e a checagem final de citações só pega URL vinda de bug.
+    """
+    return _URL.sub(lambda m: marcador + m.group(0)[len(_normalizar(m.group(0))):], texto)
+
+
 def urls_invalidas(texto: str, evidencias: Iterable[Evidence]) -> list[str]:
     """URLs do texto que não estão entre as source_url das evidências, sem repetir."""
     conhecidas = {_normalizar(e.source_url) for e in evidencias}

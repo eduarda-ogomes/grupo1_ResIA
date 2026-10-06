@@ -8,6 +8,7 @@
 
 from __future__ import annotations
 
+import threading
 from dataclasses import dataclass, field
 from typing import Any, Sequence
 
@@ -15,6 +16,7 @@ from src.retrieval import config
 
 _client = None
 _model = None
+_carga_modelo = threading.Lock()  # uma análise abandonada por timeout pode estar carregando ao mesmo tempo
 
 
 # --- Coleção -----------------------------------------------------------------
@@ -48,21 +50,30 @@ def get_collection(*, create: bool = False, reset: bool = False):
 
 # --- Embeddings ----------------------------------------------------------------
 
+def get_embedding_model():
+    """Carrega o modelo de embedding uma única vez por processo, mesmo com várias threads."""
+    global _model
+    if _model is None:
+        with _carga_modelo:
+            if _model is None:
+                from sentence_transformers import SentenceTransformer
+
+                device = config.pick_device()
+                modelo = SentenceTransformer(config.EMBEDDING_MODEL, device=device)
+                if config.EMBEDDING_FP16 and device in {"cuda", "mps"}:
+                    modelo = modelo.half()
+                _model = modelo
+    return _model
+
+
 def _embed(texts: Sequence[str], kind: str) -> list[list[float]]:
     """kind = "query" (frases da notícia) ou "passage" (trechos das checagens)."""
-    global _model
     if not texts:
         return []
-    if _model is None:
-        from sentence_transformers import SentenceTransformer
-
-        device = config.pick_device()
-        _model = SentenceTransformer(config.EMBEDDING_MODEL, device=device)
-        if config.EMBEDDING_FP16 and device in {"cuda", "mps"}:
-            _model = _model.half()
+    modelo = get_embedding_model()
     # A família e5 exige prefixos; o BGE-M3 (padrão) não usa.
     prefix = f"{kind}: " if "e5" in config.EMBEDDING_MODEL.lower() else ""
-    vectors = _model.encode([prefix + t for t in texts], batch_size=config.BATCH_SIZE,
+    vectors = modelo.encode([prefix + t for t in texts], batch_size=config.BATCH_SIZE,
                             normalize_embeddings=True, convert_to_numpy=True, show_progress_bar=False)
     return vectors.astype("float32").tolist()
 

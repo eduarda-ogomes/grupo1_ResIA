@@ -196,3 +196,32 @@ def test_remover_citacoes_invalidas():
     assert limpo == f"## A\n- válida ({URL_LUPA})\n- sem link"
     assert removeu is True
     assert dossie.remover_citacoes_invalidas(limpo, evidencias) == (limpo, False)
+
+
+def test_frase_com_link_nao_desloca_a_checagem():
+    # Antes: a linha da frase com link era removida e a checagem dela ficava embaixo da frase anterior
+    state = estado_mamao(
+        segments=[{"id": "s01", "text": "O mamão cura a dengue."},
+                  {"id": "s02", "text": "Veja o vídeo em https://youtu.be/abc e compartilhe."}],
+        evidence=[evidencia("s01", "https://a.org/1"), evidencia("s02", "https://a.org/2")],
+        text_report=None,
+    )
+
+    texto = dossie.montar(dossie.secao_checagens(state, dossie.preprocessar(state)))
+
+    assert texto.splitlines() == [
+        dossie.TITULO_CHECAGENS,
+        '- "O mamão cura a dengue." — uma checagem contradiz esta frase.',
+        '  - Agência Exemplo: Falso — "Trecho." (https://a.org/1)',
+        '- "Veja o vídeo em [link] e compartilhe." — uma checagem contradiz esta frase.',
+        '  - Agência Exemplo: Falso — "Trecho." (https://a.org/2)',
+    ]
+    assert dossie.remover_citacoes_invalidas(texto, state.evidence) == (texto, False)
+
+
+def test_trecho_da_checagem_com_link_mantem_a_citacao():
+    state = estado_mamao(evidence=[evidencia("s02", "https://a.org/1", excerpt="Leia em https://outro.org/x.")])
+
+    linhas = dossie.secao_checagens(state, dossie.preprocessar(state))
+
+    assert '  - Agência Exemplo: Falso — "Leia em [link]." (https://a.org/1)' in linhas

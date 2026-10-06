@@ -15,6 +15,7 @@ from src import protecao
 from src.agents.evidence import run as evidencias_node
 from src.agents.ingestor import ingestor_node
 from src.agents.socratic import socratic_node as socratico_node
+from src.agents.synthesizer import dossie_sem_modelo
 from src.agents.synthesizer import synthesizer_node as sintetizador_node
 from src.agents.text_analysis import texto_node
 from src.state import PipelineState
@@ -36,7 +37,10 @@ def construir_grafo(
     builder.add_node("agente_socratico", protecao.proteger("socratico", socratico_node, timeout_ramo, {"socratic_questions": None}))
     builder.add_node(
         "sintetizador",
-        protecao.proteger("sintetizador", sintetizador_node, timeout_sintetizador, {"dossier": protecao.DOSSIE_INDISPONIVEL}),
+        protecao.proteger(
+            "sintetizador", sintetizador_node, timeout_sintetizador, {"dossier": protecao.DOSSIE_INDISPONIVEL},
+            recuperar=dossie_sem_modelo,  # estourou o tempo esperando o LLM: monta o dossiê sem ele
+        ),
     )
 
     builder.add_edge(START, "ingestor")

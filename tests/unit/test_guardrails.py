@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from src.guardrails.citacoes import extrair_urls, urls_invalidas
+from src.guardrails.citacoes import extrair_urls, neutralizar_urls, urls_invalidas
 from src.guardrails.veredito import termos_de_veredito
 from src.state import Evidence
 
@@ -83,3 +83,7 @@ def test_url_invalida_repetida_aparece_uma_vez():
 
 def test_texto_sem_url_nao_tem_url_invalida():
     assert urls_invalidas("Sem links aqui.", []) == []
+
+
+def test_neutralizar_urls_mantem_a_pontuacao_em_volta():
+    assert neutralizar_urls("Veja (https://a.org/x). E http://b.org") == "Veja ([link]). E [link]"

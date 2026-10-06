@@ -158,7 +158,7 @@ def test_ramos_ausentes_sao_declarados_sem_aviso_proprio(monkeypatch):
     assert dossie.SEM_PERGUNTAS in resultado["dossier"]
 
 
-def test_link_vindo_da_noticia_e_removido_do_dossie(monkeypatch):
+def test_link_vindo_da_noticia_e_neutralizado_no_dossie(monkeypatch):
     # o trecho do marcador é literal da notícia; se tiver link, o fallback o exibiria
     falsos.SintetizadorFalso(ConnectionError("recusada")).instalar(monkeypatch)
     state = estado_mamao(
@@ -174,4 +174,31 @@ def test_link_vindo_da_noticia_e_removido_do_dossie(monkeypatch):
     resultado = synthesizer.sintetizador_node(state)
 
     assert "golpe.example" not in resultado["dossier"]
-    assert resultado["warnings"] == [synthesizer.WARN_MODELO_INDISPONIVEL, synthesizer.WARN_CITACAO_REMOVIDA]
+    assert '- Urgência: "veja em [link]"' in resultado["dossier"]
+    assert resultado["warnings"] == [synthesizer.WARN_MODELO_INDISPONIVEL]
+
+
+def test_dossie_sem_modelo_nao_chama_o_modelo_e_usa_o_fallback(monkeypatch):
+    modelo = falsos.SintetizadorFalso().instalar(monkeypatch)
+
+    resultado = synthesizer.dossie_sem_modelo(estado_mamao())
+
+    assert modelo.prompts == []
+    assert set(resultado) == {"dossier"}
+    assert titulos(resultado["dossier"]) == TITULOS
+    assert '- Urgência: "URGENTE"' in resultado["dossier"]
+    assert URL_LUPA in resultado["dossier"]
+
+
+def test_links_da_noticia_nao_chegam_ao_modelo(monkeypatch):
+    modelo = falsos.SintetizadorFalso().instalar(monkeypatch)
+    state = estado_mamao(
+        segments=[{"id": "s01", "text": "Isso é lindo, veja https://golpe.example/v"}],
+        evidence=[],
+        text_report={"statements": [{"segment_id": "s01", "kind": "valor"}], "markers": []},
+    )
+
+    synthesizer.sintetizador_node(state)
+
+    assert "golpe.example" not in modelo.prompts[0]
+    assert "veja [link]" in modelo.prompts[0]

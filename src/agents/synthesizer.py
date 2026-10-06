@@ -13,7 +13,7 @@ import logging
 from pathlib import Path
 
 from src.agents import dossie
-from src.guardrails.citacoes import extrair_urls
+from src.guardrails.citacoes import extrair_urls, neutralizar_urls
 from src.guardrails.veredito import termos_de_veredito
 from src.services.llm import llm_sintetizador
 from src.state import PipelineState
@@ -41,11 +41,13 @@ def carregar_prompt_sistema() -> str:
 
 def montar_mensagem_usuario(state: PipelineState, ctx: dossie.Contexto) -> str:
     """Frases e marcadores delimitados como dado (§3.5), sem IDs de frase e sem URLs."""
-    frases = "\n".join(f"- ({ctx.tipo_por_frase.get(s.id, 'sem rótulo')}) {s.text}" for s in state.segments)
-    texto_da_frase = {s.id: s.text for s in state.segments}
+    frases = "\n".join(
+        f"- ({ctx.tipo_por_frase.get(s.id, 'sem rótulo')}) {neutralizar_urls(s.text)}" for s in state.segments
+    )
+    texto_da_frase = {s.id: neutralizar_urls(s.text) for s in state.segments}
     marcadores = "\n".join(
         f'- {dossie.ROTULOS[m.type]} | frase: "{texto_da_frase.get(m.segment_id, "")}" '
-        f'| trecho: "{m.excerpt}" | explicação: {m.explanation}'
+        f'| trecho: "{neutralizar_urls(m.excerpt)}" | explicação: {neutralizar_urls(m.explanation)}'
         for m in state.text_report.markers
     ) or "- (nenhum)"
     return f"<frases>\n{frases}\n</frases>\n\n<marcadores>\n{marcadores}\n</marcadores>"
@@ -96,11 +98,13 @@ def sintese_livre(state: PipelineState, ctx: dossie.Contexto) -> str:
     raise SinteseReprovada(problema)
 
 
-def secao_argumento(state: PipelineState, ctx: dossie.Contexto) -> tuple[list[str], list[str]]:
+def secao_argumento(state: PipelineState, ctx: dossie.Contexto, usar_modelo: bool = True) -> tuple[list[str], list[str]]:
     """Linhas da seção "Como o texto argumenta" e os avisos próprios gerados nela."""
     sem_modelo = dossie.argumento_sem_modelo(state, ctx)
     if sem_modelo is not None:
         return [dossie.TITULO_ARGUMENTO, *sem_modelo], []
+    if not usar_modelo:
+        return [dossie.TITULO_ARGUMENTO, *dossie.fallback_argumento(state, ctx)], []
     try:
         return [dossie.TITULO_ARGUMENTO, sintese_livre(state, ctx)], []
     except ModeloIndisponivel as e:
@@ -111,12 +115,12 @@ def secao_argumento(state: PipelineState, ctx: dossie.Contexto) -> tuple[list[st
     return [dossie.TITULO_ARGUMENTO, *dossie.fallback_argumento(state, ctx)], [aviso]
 
 
-def sintetizador_node(state: PipelineState) -> dict:
+def _montar_dossie(state: PipelineState, usar_modelo: bool) -> dict:
     if not state.segments:
         return {"dossier": dossie.SEM_TEXTO}
 
     ctx = dossie.preprocessar(state)
-    argumento, avisos = secao_argumento(state, ctx)
+    argumento, avisos = secao_argumento(state, ctx, usar_modelo)
     texto = dossie.montar(
         dossie.secao_checagens(state, ctx),
         argumento,
@@ -127,6 +131,20 @@ def sintetizador_node(state: PipelineState) -> dict:
     if removeu:
         avisos.append(WARN_CITACAO_REMOVIDA)
     return {"dossier": texto, "warnings": avisos} if avisos else {"dossier": texto}
+
+
+def sintetizador_node(state: PipelineState) -> dict:
+    return _montar_dossie(state, usar_modelo=True)
+
+
+def dossie_sem_modelo(state: PipelineState) -> dict:
+    """O dossiê inteiro sem chamar o LLM ("Como o texto argumenta" sai do fallback).
+
+    O grafo usa quando o Sintetizador estoura o tempo (src/graph.py): o usuário recebe as
+    checagens, as perguntas e os limites, que não dependem do modelo (spec: "timeout ->
+    fallback determinístico no argumento").
+    """
+    return _montar_dossie(state, usar_modelo=False)
 
 
 # Nomes usados pelo graph.py e pelas convenções do projeto

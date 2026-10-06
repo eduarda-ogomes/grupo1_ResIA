@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import threading
 from typing import Sequence
 
 from src.retrieval import config
@@ -9,6 +10,7 @@ from src.retrieval import config
 LABELS = ("entailment", "neutral", "contradiction")
 
 _pipeline = None
+_carga = threading.Lock()  # uma análise abandonada por timeout pode estar carregando ao mesmo tempo
 
 
 def make_nli_pipeline(fp16: bool | None = None):
@@ -35,7 +37,9 @@ def get_nli():
     """Carrega o modelo uma única vez por processo."""
     global _pipeline
     if _pipeline is None:
-        _pipeline = make_nli_pipeline()
+        with _carga:
+            if _pipeline is None:
+                _pipeline = make_nli_pipeline()
     return _pipeline
 
 

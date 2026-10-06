@@ -40,5 +40,6 @@ Ramo anterior que falhou não gera aviso do Sintetizador: o dossiê declara a au
 ## Limitações conhecidas
 
 - O filtro por lista não pega paráfrases de veredito.
-- O fallback exibe o trecho literal da notícia; se ele tiver um link, a linha sai do dossiê e o aviso de citação aparece.
+- Links que vêm da notícia (frases e trechos de marcador e de checagem) aparecem como `[link]`: nunca viram citação no dossiê nem chegam ao LLM.
+- Se o grafo corta o Sintetizador por tempo, `dossie_sem_modelo` entrega o dossiê com a seção do argumento em fallback (aviso `sintetizador: timeout`).
 - As perguntas socráticas não são reordenadas.

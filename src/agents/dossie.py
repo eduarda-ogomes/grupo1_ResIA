@@ -9,7 +9,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from src.agents.ingestor import is_url
-from src.guardrails.citacoes import urls_invalidas
+from src.guardrails.citacoes import neutralizar_urls, urls_invalidas
 from src.state import Evidence, PipelineState, Segment
 
 TITULO_CHECAGENS = "## O que as checagens dizem"
@@ -99,7 +99,7 @@ def resumo_por_stance(stances: list[str]) -> str:
 
 def _sublinha(ev: Evidence) -> str:
     selo = f"{ev.source_name}: {ev.agency_verdict}" if ev.agency_verdict else ev.source_name
-    return f'  - {selo} — "{ev.excerpt}" ({ev.source_url})'
+    return f'  - {selo} — "{neutralizar_urls(ev.excerpt)}" ({ev.source_url})'
 
 
 def secao_checagens(state: PipelineState, ctx: Contexto) -> list[str]:
@@ -115,13 +115,13 @@ def secao_checagens(state: PipelineState, ctx: Contexto) -> list[str]:
     for segment in state.segments:
         evs = por_frase.get(segment.id)
         if evs:
-            linhas.append(f'- "{segment.text}" — {resumo_por_stance([e.stance for e in evs])}.')
+            linhas.append(f'- "{neutralizar_urls(segment.text)}" — {resumo_por_stance([e.stance for e in evs])}.')
             linhas += [_sublinha(ev) for ev in evs]
 
     if len(linhas) == 1:
         return linhas + [SEM_CHECAGEM]
     if ctx.factuais_sem_checagem:
-        frases = ", ".join(f'"{s.text}"' for s in ctx.factuais_sem_checagem)
+        frases = ", ".join(f'"{neutralizar_urls(s.text)}"' for s in ctx.factuais_sem_checagem)
         linhas.append(f"- Nenhuma checagem encontrada no nosso banco para: {frases}. "
                       "Isso não confirma nem descarta essas frases.")
     return linhas
@@ -143,8 +143,8 @@ def fallback_argumento(state: PipelineState, ctx: Contexto) -> list[str]:
 
     Não copia o `explanation` do Agente de Texto: também é texto de LLM e furaria o filtro de veredito.
     """
-    linhas = [f'- {ROTULOS[m.type]}: "{m.excerpt}"' for m in state.text_report.markers]
-    linhas += [f'- Juízo de valor: "{s.text}" é uma opinião e não foi checada.' for s in ctx.frases_valor]
+    linhas = [f'- {ROTULOS[m.type]}: "{neutralizar_urls(m.excerpt)}"' for m in state.text_report.markers]
+    linhas += [f'- Juízo de valor: "{neutralizar_urls(s.text)}" é uma opinião e não foi checada.' for s in ctx.frases_valor]
     return linhas
 
 

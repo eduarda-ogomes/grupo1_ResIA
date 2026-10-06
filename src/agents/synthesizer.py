@@ -1,141 +1,134 @@
-import re
+"""Agente Sintetizador (R5): junta os três ramos num dossiê neutro e citável, sem veredito.
+
+Abordagem híbrida (Manual §4.5.1; design em docs/superpowers/specs/2026-10-01-agente-sintetizador-design.md):
+o código escreve tudo o que é fato (src/agents/dossie.py); o qwen2.5-7b escreve só a seção
+"Como o texto argumenta", com guardrails (src/guardrails/), 1 retry e fallback em código.
+
+Contrato: sintetizador_node(state) -> {"dossier": str}, mais "warnings" quando o problema
+é do próprio Sintetizador. Nunca devolve dossier = None.
+"""
+from __future__ import annotations
+
 import logging
-from typing import Set
-from langchain_core.prompts import ChatPromptTemplate
-from src.services.llm import llm
+from pathlib import Path
+
+from src.agents import dossie
+from src.guardrails.citacoes import extrair_urls
+from src.guardrails.veredito import termos_de_veredito
+from src.services.llm import llm_sintetizador
 from src.state import PipelineState
 
 logger = logging.getLogger(__name__)
 
-# Configurações do Guardrail
-TERMOS_PROIBIDOS = [
-    r"\bfalso\b", r"\bverdadeiro\b", r"\bfake news\b", r"\bmentira\b", 
-    r"\bboato\b", r"\bconfirmado\b", r"\binventado\b"
-]
+PROMPTS_DIR = Path(__file__).resolve().parents[1] / "prompts"
 
-SYSTEM_PROMPT = """Você é o Agente Sintetizador do sistema scaffolding.
-Sua missão é compilar as informações dos outros agentes em um dossiê analítico.
-Você NUNCA deve dar um veredito de 'Verdadeiro' ou 'Falso'. 
-Você NUNCA deve usar termos como 'Fake News', 'Mentira' ou 'Boato'.
-Você deve ajudar o leitor a pensar criticamente.
+WARN_MODELO_INDISPONIVEL = "sintetizador: falha ao chamar o modelo (o LM Studio está rodando?)"
+WARN_GUARDRAILS = "sintetizador: síntese livre reprovada nos guardrails após 1 retry"
+WARN_CITACAO_REMOVIDA = "sintetizador: citação removida (URL fora das evidências)"
 
-Estruture a resposta OBRIGATORIAMENTE em Markdown com os seguintes cabeçalhos exatos:
-## O que as checagens dizem
-## Análise de Retórica
-## Perguntas para Reflexão
-## Conclusão Neutra
-"""
 
-USER_TEMPLATE = """Baseando-se nos dados abaixo, gere o dossiê:
+class SinteseReprovada(RuntimeError):
+    """O texto do modelo continuou reprovado nos guardrails depois do retry."""
 
-Notícia Original: {texto_original}
 
-EVIDÊNCIAS COLETADAS:
-{bloco_evidencias}
+class ModeloIndisponivel(RuntimeError):
+    """A chamada ao modelo falhou (conexão, timeout, servidor fora do ar)."""
 
-ANÁLISE DE RETÓRICA:
-{bloco_retorica}
 
-PERGUNTAS REFLEXIVAS:
-{bloco_perguntas}
-"""
+def carregar_prompt_sistema() -> str:
+    return (PROMPTS_DIR / "sintetizador_sistema.md").read_text(encoding="utf-8")
 
-def verificar_filtro_veredito(texto: str) -> bool:
-    texto_lower = texto.lower()
-    for termo in TERMOS_PROIBIDOS:
-        if re.search(termo, texto_lower):
-            logger.warning(f"Guardrail acionado: Uso do termo proibido '{termo}' detectado.")
-            return False
-    return True
 
-def verificar_citacoes(texto: str, urls_conhecidas: Set[str]) -> bool:
-    urls_geradas = set(re.findall(r'https?://[^\s)]+', texto))
-    urls_falsas = urls_geradas - urls_conhecidas
-    if urls_falsas:
-        logger.warning(f"Guardrail acionado: O LLM alucinou as URLs: {urls_falsas}")
-        return False
-    return True
+def montar_mensagem_usuario(state: PipelineState, ctx: dossie.Contexto) -> str:
+    """Frases e marcadores delimitados como dado (§3.5), sem IDs de frase e sem URLs."""
+    frases = "\n".join(f"- ({ctx.tipo_por_frase.get(s.id, 'sem rótulo')}) {s.text}" for s in state.segments)
+    texto_da_frase = {s.id: s.text for s in state.segments}
+    marcadores = "\n".join(
+        f'- {dossie.ROTULOS[m.type]} | frase: "{texto_da_frase.get(m.segment_id, "")}" '
+        f'| trecho: "{m.excerpt}" | explicação: {m.explanation}'
+        for m in state.text_report.markers
+    ) or "- (nenhum)"
+    return f"<frases>\n{frases}\n</frases>\n\n<marcadores>\n{marcadores}\n</marcadores>"
 
-def preparar_dados_contexto(state: PipelineState) -> dict:
-    urls_conhecidas = set()
-    evidencias_filtradas = []
-    
-    # Pre-processamento: Deduplicação e filtragem de 'valor'
-    for ev in state.evidences:
-        if ev.url in urls_conhecidas:
-            continue
-            
-        segmento_relacionado = next((s for s in state.segments if s.id == ev.segment_id), None)
-        if segmento_relacionado and segmento_relacionado.statement_type == "valor":
-            continue
-            
-        evidencias_filtradas.append(ev)
-        urls_conhecidas.add(ev.url)
-        
-    return {
-        "urls": urls_conhecidas,
-        "evidencias": evidencias_filtradas
-    }
 
-def run(state: PipelineState) -> dict:
+def montar_mensagens(state: PipelineState, ctx: dossie.Contexto, problema: str | None = None) -> list[tuple[str, str]]:
+    usuario = montar_mensagem_usuario(state, ctx)
+    if problema:
+        usuario += f"\n\nSua resposta anterior foi rejeitada. {problema} Reescreva só os bullets, sem esse problema."
+    return [("system", carregar_prompt_sistema()), ("user", usuario)]
+
+
+def chamar_modelo(mensagens: list[tuple[str, str]]) -> str:
+    """Única função que fala com o LM Studio. Os testes a substituem por um modelo falso."""
+    return llm_sintetizador.invoke(mensagens).content
+
+
+def limpar_resposta(bruto: str) -> str:
+    """Tira títulos que o modelo às vezes acrescenta ("## Como o texto argumenta")."""
+    linhas = [linha for linha in bruto.strip().splitlines() if not linha.lstrip().startswith("#")]
+    return "\n".join(linhas).strip()
+
+
+def problema_da_sintese(texto: str) -> str | None:
+    """Guardrails sobre o texto do modelo; devolve o problema nomeado para o retry, ou None."""
+    if not texto:
+        return "Seu texto veio vazio."
+    termos = termos_de_veredito(texto)
+    if termos:
+        return f"Seu texto usou o termo '{termos[0]}'."
+    if extrair_urls(texto):
+        return "Seu texto incluiu um link."
+    return None
+
+
+def sintese_livre(state: PipelineState, ctx: dossie.Contexto) -> str:
+    problema = None
+    for _ in range(2):  # 1 tentativa + 1 retry
+        try:
+            bruto = chamar_modelo(montar_mensagens(state, ctx, problema))
+        except Exception as e:
+            raise ModeloIndisponivel(str(e)) from e
+        texto = limpar_resposta(bruto)
+        problema = problema_da_sintese(texto)
+        if problema is None:
+            return texto
+        logger.warning("Sintetizador: síntese livre rejeitada: %s", problema)
+    raise SinteseReprovada(problema)
+
+
+def secao_argumento(state: PipelineState, ctx: dossie.Contexto) -> tuple[list[str], list[str]]:
+    """Linhas da seção "Como o texto argumenta" e os avisos próprios gerados nela."""
+    sem_modelo = dossie.argumento_sem_modelo(state, ctx)
+    if sem_modelo is not None:
+        return [dossie.TITULO_ARGUMENTO, *sem_modelo], []
     try:
-        dados = preparar_dados_contexto(state)
-        
-        # Formatando bloco de evidências
-        if dados["evidencias"]:
-            bloco_evidencias = "\n".join([f"- Alegação [{e.segment_id}]: {e.stance} pela {e.source}. Trecho: {e.quote}" for e in dados["evidencias"]])
-        else:
-            bloco_evidencias = "Nenhuma evidência factual encontrada."
-            
-        # Formatando bloco de retórica
-        if state.text_analysis.markers:
-            bloco_retorica = "\n".join([f"- {m.type}: {m.description}" for m in state.text_analysis.markers])
-        else:
-            bloco_retorica = "Nenhum marcador retórico relevante detectado."
-            
-        # Formatando bloco de perguntas
-        if state.socratic_questions:
-            bloco_perguntas = "\n".join([f"- {q}" for q in state.socratic_questions])
-        else:
-            bloco_perguntas = "Nenhuma pergunta socrática gerada."
-            
-        prompt = ChatPromptTemplate.from_messages([
-            ("system", SYSTEM_PROMPT),
-            ("user", USER_TEMPLATE)
-        ])
-        
-        chain = prompt | llm
-        
-        resposta = chain.invoke({
-            "texto_original": state.raw_input,
-            "bloco_evidencias": bloco_evidencias,
-            "bloco_retorica": bloco_retorica,
-            "bloco_perguntas": bloco_perguntas
-        })
-        
-        conteudo_dossie = resposta.content
-        
-        # Aplica Guardrails
-        if not verificar_filtro_veredito(conteudo_dossie):
-            # Segunda chance (re-prompting com aviso)
-            prompt_reforcado = ChatPromptTemplate.from_messages([
-                ("system", SYSTEM_PROMPT + "\nATENÇÃO: Na tentativa anterior você usou termos proibidos como 'falso' ou 'fake news'. NÃO USE ESSES TERMOS."),
-                ("user", USER_TEMPLATE)
-            ])
-            resposta = (prompt_reforcado | llm).invoke({
-                "texto_original": state.raw_input,
-                "bloco_evidencias": bloco_evidencias,
-                "bloco_retorica": bloco_retorica,
-                "bloco_perguntas": bloco_perguntas
-            })
-            conteudo_dossie = resposta.content
-            
-        verificar_citacoes(conteudo_dossie, dados["urls"])
-        
-        return {"dossier": conteudo_dossie}
-        
-    except Exception as e:
-        logger.error(f"Erro no Agente Sintetizador: {e}")
-        return {"dossier": "Não foi possível sintetizar a análise devido a um erro interno."}
+        return [dossie.TITULO_ARGUMENTO, sintese_livre(state, ctx)], []
+    except ModeloIndisponivel as e:
+        logger.warning("Sintetizador: modelo indisponível: %s", e)
+        aviso = WARN_MODELO_INDISPONIVEL
+    except SinteseReprovada:
+        aviso = WARN_GUARDRAILS
+    return [dossie.TITULO_ARGUMENTO, *dossie.fallback_argumento(state, ctx)], [aviso]
 
-synthesizer_node = run
+
+def sintetizador_node(state: PipelineState) -> dict:
+    if not state.segments:
+        return {"dossier": dossie.SEM_TEXTO}
+
+    ctx = dossie.preprocessar(state)
+    argumento, avisos = secao_argumento(state, ctx)
+    texto = dossie.montar(
+        dossie.secao_checagens(state, ctx),
+        argumento,
+        dossie.secao_perguntas(state),
+        dossie.secao_limites(state),
+    )
+    texto, removeu = dossie.remover_citacoes_invalidas(texto, state.evidence or [])
+    if removeu:
+        avisos.append(WARN_CITACAO_REMOVIDA)
+    return {"dossier": texto, "warnings": avisos} if avisos else {"dossier": texto}
+
+
+# Nomes usados pelo graph.py e pelas convenções do projeto
+synthesizer_node = sintetizador_node
+run = sintetizador_node

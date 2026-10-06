@@ -21,6 +21,6 @@ def _cliente(temperatura: float) -> ChatOpenAI:
     )
 
 
-llm = _cliente(0)               # Sintetizador
+llm_sintetizador = _cliente(0)  # Sintetizador
 llm_socratico = _cliente(0.7)   # Agente Socrático
 llm_texto = _cliente(0)         # Agente de Texto

@@ -6,7 +6,6 @@ ChromaDB e o BGE-M3. Quem precisa de uma resposta substitui a função no própr
 teste (ver tests/modelos_falsos.py). O tests/integration/conftest.py desliga este bloqueio.
 """
 import pytest
-from langchain_core.runnables import RunnableLambda
 
 from src.agents import evidence, socratic, synthesizer, text_analysis
 
@@ -21,5 +20,5 @@ def _recusa(*args, **kwargs):
 def sem_modelos(monkeypatch):
     monkeypatch.setattr(text_analysis, "chamar_modelo", _recusa)
     monkeypatch.setattr(socratic, "chamar_modelo", _recusa)
-    monkeypatch.setattr(synthesizer, "llm", RunnableLambda(lambda entrada: _recusa()))
+    monkeypatch.setattr(synthesizer, "chamar_modelo", _recusa)
     monkeypatch.setattr(evidence, "search", _recusa)

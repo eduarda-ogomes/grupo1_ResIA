@@ -16,7 +16,7 @@ def test_agente_socratico_nao_alcanca_o_modelo():
 
 def test_sintetizador_nao_alcanca_o_modelo():
     with pytest.raises(ConnectionError, match="modelos desligados"):
-        synthesizer.llm.invoke("oi")
+        synthesizer.chamar_modelo([("user", "oi")])
 
 
 def test_evidencias_nao_alcanca_o_indice():

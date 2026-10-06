@@ -477,7 +477,7 @@ Cada linha tem um arquivo correspondente em `tests/fixtures/bordas/`.
 | Evidências | Checagem recuperada, mas NLI abaixo do limiar (outra alegação) | Nenhum objeto `Evidence` para a frase: a checagem é descartada |
 | Evidências | Checagem da mesma alegação com veredito inconclusivo ("Enganoso", "Falta contexto") | `Evidence` com stance `insuficiente` e URL |
 | Evidências | Checagem sobre fato parecido ("cura a chikungunya" recuperando checagem de dengue) | Nenhum objeto `Evidence`: os termos-chave ou o NLI descartam a checagem. Caso obrigatório no gold set |
-| Texto | JSON inválido após 1 retry | `text_report: null` e aviso; stance continua exibida |
+| Texto | Lote com frases sem classificação após 1 retry | O que foi classificado fica; aviso lista as frases sem classificação; os outros lotes seguem. Só sem nenhuma frase classificada: `text_report: null` e aviso; stance continua exibida |
 | Socrático | Pergunta indutiva ("Você não acha suspeito que…") | Rejeitada; conta como falha na rubrica |
 | Sintetizador | Rascunho com "falsa" | Filtro reprova; regenera uma vez |
 | Sintetizador | Paráfrase ("não procede") | Filtro aprova: falso negativo conhecido. Caso obrigatório no gold set |

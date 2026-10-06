@@ -134,7 +134,7 @@ def test_excecao_nao_prevista_num_agente_vira_aviso(monkeypatch):
     def quebra(*args, **kwargs):
         raise ValueError("bug no lote")
 
-    # o texto_node só trata SaidaInvalida e ModeloIndisponivel: um ValueError escaparia
+    # o texto_node só trata LoteInvalido, ValidationError e ModeloIndisponivel: um ValueError escaparia
     monkeypatch.setattr(text_analysis, "dividir_em_lotes", quebra)
 
     out = graph.sistema_multiagente.invoke(initial_state(falsos.TEXTO_LIVRE))

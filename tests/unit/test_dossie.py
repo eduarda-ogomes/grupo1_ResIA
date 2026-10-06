@@ -225,3 +225,11 @@ def test_trecho_da_checagem_com_link_mantem_a_citacao():
     linhas = dossie.secao_checagens(state, dossie.preprocessar(state))
 
     assert '  - Agência Exemplo: Falso — "Leia em [link]." (https://a.org/1)' in linhas
+
+
+def test_limites_avisam_quando_parte_das_frases_ficou_sem_classificacao():
+    relatorio = {"statements": [{"segment_id": f"s0{i}", "kind": "factual"} for i in range(1, 6)], "markers": []}  # falta s06
+
+    linhas = dossie.secao_limites(estado_mamao(text_report=relatorio))
+
+    assert "- Algumas frases não puderam ser classificadas como fato ou opinião." in linhas

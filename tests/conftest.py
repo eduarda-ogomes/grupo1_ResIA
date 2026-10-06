@@ -22,3 +22,28 @@ def sem_modelos(monkeypatch):
     monkeypatch.setattr(socratic, "chamar_modelo", _recusa)
     monkeypatch.setattr(synthesizer, "chamar_modelo", _recusa)
     monkeypatch.setattr(evidence, "search", _recusa)
+
+
+_EXPORTADOR = None
+
+
+@pytest.fixture
+def spans():
+    """Spans gravados em memória, para conferir o tracing sem Phoenix.
+
+    O OpenTelemetry só aceita um provider global por processo: ele é registrado na
+    primeira vez que um teste pede a fixture, e o exportador é limpo a cada teste.
+    """
+    global _EXPORTADOR
+    if _EXPORTADOR is None:
+        from opentelemetry import trace
+        from opentelemetry.sdk.trace import TracerProvider
+        from opentelemetry.sdk.trace.export import SimpleSpanProcessor
+        from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter
+
+        _EXPORTADOR = InMemorySpanExporter()
+        provider = TracerProvider()
+        provider.add_span_processor(SimpleSpanProcessor(_EXPORTADOR))
+        trace.set_tracer_provider(provider)
+    _EXPORTADOR.clear()
+    return _EXPORTADOR

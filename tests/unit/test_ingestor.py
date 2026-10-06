@@ -202,3 +202,24 @@ def test_url_pagina_so_javascript_avisa_possivel_renderizacao(monkeypatch):
     assert result["warnings"] == [
         "ingestor: página sem conteúdo legível (possivelmente renderizada por JavaScript)"
     ]
+
+
+# --- observabilidade ---
+
+def test_spans_do_ingestor_com_texto(spans):
+    run_node("Primeira frase. Segunda frase.")
+
+    por_nome = {s.name: s for s in spans.get_finished_spans()}
+    assert "ingestor.baixar" not in por_nome
+    assert por_nome["ingestor.segmentar"].attributes["pipeline.frases"] == 2
+    assert por_nome["ingestor.segmentar"].attributes["pipeline.truncado"] is False
+
+
+def test_span_de_download_marca_paywall(spans, monkeypatch):
+    monkeypatch.setattr(ingestor, "fetch_page", lambda url: None)
+
+    run_node("https://exemplo-jornal.com.br/materia-fechada")
+
+    baixar = next(s for s in spans.get_finished_spans() if s.name == "ingestor.baixar")
+    assert baixar.attributes["pipeline.ok"] is False
+    assert baixar.attributes["pipeline.url"] == "https://exemplo-jornal.com.br/materia-fechada"

@@ -25,6 +25,10 @@ RAW_DIR = Path(os.getenv("EVIDENCE_RAW_DIR", str(REPO_ROOT / "data" / "corpus" /
 SIM_THRESHOLD = float(os.getenv("EVIDENCE_SIM_THRESHOLD", 0.55))              # similaridade mínima na busca
 CLAIM_MATCH_MIN_PROB = float(os.getenv("EVIDENCE_CLAIM_MATCH_MIN_PROB", 0.8))  # entailment mínimo na etapa 2
 
+# Ancoragem lexical (G2): mínimo de radicais de palavras de conteúdo que a frase divide com a
+# alegação checada e o título da checagem. 0 desliga o filtro. Ver o ADR de 08/10.
+MIN_CONTENT_OVERLAP = int(os.getenv("EVIDENCE_MIN_CONTENT_OVERLAP", 1))
+
 SEARCH_K = int(os.getenv("EVIDENCE_SEARCH_K", 10))                   # trechos buscados por frase
 CLAIM_CANDIDATES = int(os.getenv("EVIDENCE_CLAIM_CANDIDATES", 6))    # checagens avaliadas na etapa 2
 MAX_EVIDENCE_PER_SEGMENT = int(os.getenv("EVIDENCE_MAX_PER_SEGMENT", 3))

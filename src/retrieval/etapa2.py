@@ -261,6 +261,19 @@ def key_terms_present(sentence: str, checagem_texts: Iterable[str], claim: str |
     return KeyTermResult(not substitutes, all_missing, substitutes)
 
 
+def content_overlap(sentence: str, texts: Iterable[str]) -> int:
+    """Quantos radicais de palavras de conteúdo da frase aparecem em `texts`.
+
+    Ancoragem lexical (G2): o índice e o NLI aceitam uma checagem de outro assunto
+    quando o texto dela é parecido com a frase só em estilo ("Isso resultou em
+    acúmulo de material combustível" x vídeo de aeronave em névoa). Conta cada
+    radical da frase uma vez, com a mesma normalização de `key_terms_present`
+    (sem acento, sem stopwords, prefixo de 5 letras).
+    """
+    available = {_stem(t) for text in texts for t in tokenize(text)}
+    return len({_stem(t) for t in tokenize(sentence)} & available)
+
+
 # --- 3. Veredito da agência ---------------------------------------------------------
 # Formatos no corpus: rótulo simples ("falso", "Enganoso", "não_é_bem_assim"),
 # rótulo + explicação do Comprova ("Falso: Na verdade...") e texto livre.

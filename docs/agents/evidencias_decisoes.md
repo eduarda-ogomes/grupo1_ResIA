@@ -1,6 +1,6 @@
 # Agente de Evidências — decisões (ADR)
 
-Dono: R2 (Túlio Celeri) · Atualizado em 03/10/2026 · Status: **proposto, a levar ao grupo**
+Dono: R2 (Túlio Celeri) · Atualizado em 08/10/2026 · Status: **proposto, a levar ao grupo**
 Como o agente funciona e como rodar: [`evidencias.md`](evidencias.md)
 
 Registra as decisões que divergem do manual ou que o grupo precisa conhecer, com os números que as motivaram. Divergências do manual estão marcadas com ⚠️.
@@ -121,6 +121,29 @@ Análise dos erros:
 - **Abstenção (0/11) otimista:** 10 das 11 frases `sem_checagem` são notícias neutras, que nem parecem boato; só ev06/s03 testa a abstenção num tema próximo de checagens.
 - **Ressalva:** a análise olhou frases dos dois splits. Corrigir falhas de regra geral (maiúscula, COP30) é legítimo; os limiares devem ser calibrados só no split `calibracao`.
 
+## ADR 4 Ancoragem lexical: a frase precisa dividir uma palavra com a alegação checada
+
+**Contexto.** O índice (similaridade) e o NLI aceitam uma checagem de outro assunto quando a frase se parece com ela só no estilo. Caso real: a frase "Isso resultou em acúmulo de material combustível." recebeu a checagem "Vídeo de aeronave tomada por névoa foi gravado na China, não na Amazônia". Os termos-chave (ADR 1) não pegam, porque a frase não tem nome, número nem doença.
+
+**Decisão (08/10).** Depois dos termos-chave e antes do NLI, a candidata é descartada se a frase divide menos de `MIN_CONTENT_OVERLAP` (padrão **1**, `EVIDENCE_MIN_CONTENT_OVERLAP`, `0` desliga) radicais de palavras de conteúdo com `[normalize_claim(claim), review_title]`. Função `content_overlap` (`etapa2.py`): mesma normalização dos termos-chave (sem acento, sem stopwords, prefixo de 5 letras). Compara só a alegação e o título, e não o texto inteiro da checagem, que fala de muita coisa e deixaria passar qualquer frase. O span `evidencias.termos_chave` registra `pipeline.sem_ancoragem`.
+
+**Medido no conjunto (42 frases, split `todos`, mesma máquina e mesmo índice de 36.071 trechos; o resultado salvo é `eval/resultados/evidencias_2026-10-08.json`).**
+
+| Rodada | Cobertura | Recall@5 | Macro-F1 | Inventada | Casamento errado |
+| --- | --- | --- | --- | --- | --- |
+| Antes (08/10, sem o filtro) | 19/23 | 22/23 | 0,77 | 0/12 | 4 |
+| Depois (`MIN_CONTENT_OVERLAP=1`) | 19/23 | 22/23 | 0,77 | 0/12 | 4 |
+| Só para comparar: `=2` | 19/23 | 22/23 | 0,77 | 0/12 | 3 (sai Marçal) |
+| Só para comparar: `=3` | 19/23 | 22/23 | 0,77 | 0/12 | 1 (só sobra Silvio Almeida) |
+
+Para contexto: a meta antiga da tarefa era `casamento_errado` ≤ 4 (rodada de 03/10); a rodada de 07/10, no índice de 99.464 trechos (GPU), teve 5. O índice local desta máquina (Mac, `mps`) é o de 36.071 trechos, então as rodadas de 08/10 só se comparam entre si, e a comparação certa é antes × depois. Com o filtro em 1, 17 das 99 candidatas que chegam a ele (têm sobreposição 0) caem, e nenhuma é uma URL aceita; as métricas ficam idênticas, e as mesmas 4 checagens erradas continuam, porque são do mesmo tema da frase. O filtro protege contra o caso de outro assunto, que o conjunto quase não exercita.
+
+**Consequências.**
+- ✅ Determinístico, sem LLM e sem custo (só radicais); reversível com `EVIDENCE_MIN_CONTENT_OVERLAP=0`.
+- ✅ Cobertura e casamentos errados não pioram no conjunto (critério da tarefa).
+- ❌ Sinônimos sem radical em comum ("Lei das Bets" × "apostas online") não ancoram; com padrão 1, isso só pesa quando a frase não compartilha nenhuma palavra de conteúdo com a alegação e o título.
+- ⚠️ **Limiar maior parece melhor no conjunto, mas não foi adotado.** Com 3, os casamentos errados caem de 4 para 1 sem perder cobertura; as checagens corretas do conjunto têm sobreposição de 2 a 8 (a maioria de 3 a 5). Porém as frases do conjunto foram escritas como paráfrases das alegações (ADR 3), o que infla a sobreposição das corretas; notícias reais costumam ser mais soltas. Reavaliar o 2 e o 3 quando o conjunto for revisado e ganhar frases que não partem da alegação (Pendente).
+
 ## Decisões menores
 
 | Decisão | Motivo |
@@ -149,6 +172,7 @@ Análise dos erros:
 | Revisão das 42 frases de `data/gold/evidencias.json` (36 escritas pelo Claude; as 6 de ev13 e ev14, pelo R2), preenchendo `revisor` | R1 |
 | Trocar parte das frases `sem_checagem` neutras por boatos sem checagem no corpus (sugestão: 6 de 12, 3 por split), para a "evidência inventada" testar a abstenção num tema próximo de checagens. Fica para depois do PR, se der tempo | R2, com a revisão do R1 |
 | Recalibrar `CLAIM_MATCH_MIN_PROB` quando o conjunto for revisado ou ampliado | Revisão do R1 |
+| Recalibrar `EVIDENCE_MIN_CONTENT_OVERLAP` (hoje 1; 3 baixaria os casamentos errados de 4 para 1 no conjunto, ADR 4) com frases que não são paráfrases da alegação | Revisão do R1 |
 | **Medir memória e tempo na máquina da demo** (Mac M4, Seção 5.2): `python eval/medir_recursos.py --comparar-fp16 --salvar`, e decidir o `EVIDENCE_NLI_FP16` pela comparação fp32 × fp16. O R2 não tem acesso a um Mac nesta etapa e mediu no Windows, na CPU e numa GPU NVIDIA (1,58 GB de pesos); a medida no Mac fica com quem tiver a máquina da demo (o R1 mede a latência nela, Seção 9.3). Ver "Memória e tempo" nas decisões menores | R1 / máquina da demo |
 | Converter `data/gold/evidencias.json` para o formato do gold set | R3 |
 | Casamentos errados que sobram (Kamala, Bolsonaro na UTI, Silvio Almeida e Marçal; NLI de 0,93 a 0,98 nos dois primeiros): registrados em 04/10 como limitação conhecida no card. Uma regra na etapa 2 que compare o episódio, e não só os termos, fica para depois do PR | Depois |
@@ -179,3 +203,4 @@ Análise dos erros:
 | 03/10 | Reindexação depois do descarte (36.071 trechos) e conjunto com 42 frases: Recall@5 22/23, macro-F1 0,77, as 4 checagens do FACTCK.BR citadas com a stance certa. BGE-M3 × e5-large de igual para igual: **fica o BGE-M3** (e5: Recall@5 17/23, macro-F1 0,56). |
 | 04/10 | Casos de anotação decididos, sem mudar URLs nem stances: ev01/s02 não aceita a checagem do Temer (outra alegação), ev08/s02 não aceita "Lula comunista" (outro episódio) e ev11/s01 mantém `apoia` com as duas URLs. Motivos no `obs` de cada frase. Índice e dados brutos no Google Drive; `chromadb` fixado em 1.5.9. Os 4 casamentos errados que sobram ficam como limitação conhecida (meta 0 não atingida). |
 | 07/10 | Coleta da API sem limite de idade e com 83 palavras-chave: 15.423 checagens (2015–2026); índice com 99.464 trechos. Ano no `source_name` das checagens anteriores a 2024. Avaliação: métricas iguais às de 03/10, com 1 casamento errado a mais que é lacuna do gabarito (ev12/s03). Índice novo enviado ao Drive. |
+| 08/10 | Ancoragem lexical (G2, ADR 4): a checagem cuja alegação e título não dividem nenhuma palavra de conteúdo com a frase é descartada antes do NLI (`content_overlap`, `EVIDENCE_MIN_CONTENT_OVERLAP=1`). Conjunto de 42 frases: métricas idênticas às de antes (cobertura 19/23, 4 casamentos errados); 17 candidatas sem sobreposição caem. |

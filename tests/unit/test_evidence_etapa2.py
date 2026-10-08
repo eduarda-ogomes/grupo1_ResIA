@@ -6,8 +6,8 @@ alegação, termos-chave e vereditos (formatos encontrados no corpus real).
 
 import pytest
 
-from src.retrieval.etapa2 import (display_verdict, key_terms, key_terms_present, name_groups, normalize_claim,
-                                  normalize_text, stance_from_verdict)
+from src.retrieval.etapa2 import (content_overlap, display_verdict, key_terms, key_terms_present, name_groups,
+                                  normalize_claim, normalize_text, stance_from_verdict)
 
 # --- Normalização e termos-chave -------------------------------------------------
 
@@ -96,6 +96,25 @@ def test_sem_alegacao_a_regra_e_estrita():
     """Sem a alegação, qualquer termo ausente reprova (contexto a mais também)."""
     result = key_terms_present("Fachin apontou o dedo para Moraes no STF.", ["Imagem de Fachin e Moraes é falsa"])
     assert result == (False, ["stf"], [])
+
+
+# --- Ancoragem lexical (G2) ------------------------------------------------------
+
+def test_frase_e_alegacao_sem_palavra_em_comum_tem_sobreposicao_zero():
+    frase = "Isso resultou em acúmulo de material combustível."
+    titulo = "Vídeo de aeronave tomada por névoa foi gravado na China, não na Amazônia"
+    assert content_overlap(frase, [titulo]) == 0
+
+
+def test_sobreposicao_tolera_flexao_e_acento():
+    assert content_overlap("O chá da folha de mamão cura a dengue.", ["Chá de folhas de mamão não cura dengue"]) == 5
+
+
+def test_sobreposicao_conta_cada_radical_da_frase_uma_vez_e_soma_os_textos():
+    frase = "Lula visitou Lula e o Paraguai."
+    assert content_overlap(frase, ["Lula não foi", "Paraguaio disse"]) == 2
+    assert content_overlap(frase, []) == 0
+    assert content_overlap("", ["Lula"]) == 0
 
 
 # --- Vereditos -------------------------------------------------------------------

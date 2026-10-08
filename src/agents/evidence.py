@@ -10,6 +10,9 @@ Fluxo, por frase:
   2. Termos-chave: se a frase troca um nome próprio, número ou doença da
      alegação checada ("chikungunya" no lugar de "dengue"), a checagem é
      descartada. O NLI sozinho não percebe esse tipo de troca.
+     Também cai a checagem de outro assunto: a frase precisa dividir pelo menos
+     MIN_CONTENT_OVERLAP palavras de conteúdo com a alegação checada ou o título
+     (ancoragem lexical, G2). O índice e o NLI aceitam parecido só em estilo.
   3. NLI: a frase e a alegação checada (sem "Foto/Vídeo mostra") precisam se
      implicar em pelo menos uma direção (entailment >= CLAIM_MATCH_MIN_PROB).
   4. Evidência: stance = veredito da agência (falso -> contradiz,
@@ -32,8 +35,8 @@ import re
 from typing import Any, Iterable
 
 from src.retrieval import config
-from src.retrieval.etapa2 import (display_verdict, key_terms_present, normalize_claim, normalize_text,
-                                  stance_from_verdict)
+from src.retrieval.etapa2 import (content_overlap, display_verdict, key_terms_present, normalize_claim,
+                                  normalize_text, stance_from_verdict)
 from src.retrieval.indice import Hit, get_checagem_texts, get_lead_text, search
 from src.retrieval.nli import classify
 from src.observabilidade import span
@@ -152,15 +155,23 @@ def run(state) -> dict:
             hits_per_segment = search([s.text for s in segments], k=config.SEARCH_K)
         with span("evidencias.termos_chave") as s:
             jobs: list[tuple[Segment, list[Hit]]] = []
-            candidatas = 0
+            candidatas = sem_ancoragem = 0
             for segment, hits in zip(segments, hits_per_segment):
                 for group in _candidates(hits):
                     candidatas += 1
                     claim = _meta(group, "claim_reviewed")
-                    texts = [claim, _meta(group, "review_title"), *get_checagem_texts(_meta(group, "source_url"))]
-                    if key_terms_present(segment.text, texts, claim).ok:
-                        jobs.append((segment, group))
+                    title = _meta(group, "review_title")
+                    texts = [claim, title, *get_checagem_texts(_meta(group, "source_url"))]
+                    if not key_terms_present(segment.text, texts, claim).ok:
+                        continue
+                    # Ancoragem lexical (G2): só a alegação e o título; o texto inteiro da checagem
+                    # fala de muita coisa e deixaria passar qualquer frase.
+                    if content_overlap(segment.text, [normalize_claim(claim), title]) < config.MIN_CONTENT_OVERLAP:
+                        sem_ancoragem += 1
+                        continue
+                    jobs.append((segment, group))
             s.set_attribute("pipeline.candidatas", candidatas)
+            s.set_attribute("pipeline.sem_ancoragem", sem_ancoragem)
             s.set_attribute("pipeline.aprovadas", len(jobs))
         if not jobs:
             return {"evidence": []}

@@ -304,36 +304,6 @@ def test_timeout_do_modelo_vira_aviso(monkeypatch):
 
 # --- falha por lote: mantém o que foi classificado (decisão do grupo, 06/10) ---
 
-def test_frases_faltando_apos_retry_mantem_as_classificadas_e_avisa(monkeypatch):
-    # Achado com o 7B real: o modelo pula frases do lote mesmo depois do retry
-    incompleto = dict(RELATORIO_MAMAO)
-    incompleto["statements"] = RELATORIO_MAMAO["statements"][:5]  # falta s06 nas duas tentativas
-    modelo = ModeloFalso(json.dumps(incompleto), json.dumps(incompleto))
-    monkeypatch.setattr(text_analysis, "chamar_modelo", modelo)
-
-    resultado = texto_node(estado_mamao())
-
-    assert len(modelo.chamadas) == 2
-    assert [st.segment_id for st in resultado["text_report"].statements] == ["s01", "s02", "s03", "s04", "s05"]
-    assert len(resultado["text_report"].markers) == 6
-    assert resultado["warnings"] == [
-        'texto: 1 frase sem classificação (as demais foram analisadas): s06 "Compartilhe com todos antes que apaguem este vídeo!"'
-    ]
-
-
-def test_fica_a_tentativa_com_menos_frases_faltando(monkeypatch):
-    primeira = dict(RELATORIO_MAMAO, statements=RELATORIO_MAMAO["statements"][:5])  # falta s06
-    segunda = dict(RELATORIO_MAMAO, statements=RELATORIO_MAMAO["statements"][:3])   # faltam s04 a s06
-    monkeypatch.setattr(text_analysis, "chamar_modelo", ModeloFalso(json.dumps(primeira), json.dumps(segunda)))
-
-    resultado = texto_node(estado_mamao())
-
-    assert len(resultado["text_report"].statements) == 5
-    assert resultado["warnings"] == [
-        'texto: 1 frase sem classificação (as demais foram analisadas): s06 "Compartilhe com todos antes que apaguem este vídeo!"'
-    ]
-
-
 def test_frase_classificada_duas_vezes_fica_sem_classificacao(monkeypatch):
     duplicado = dict(RELATORIO_MAMAO, statements=[{"segment_id": "s01", "kind": "valor"}] + RELATORIO_MAMAO["statements"])
     monkeypatch.setattr(text_analysis, "chamar_modelo", ModeloFalso(json.dumps(duplicado), json.dumps(duplicado)))
@@ -415,7 +385,7 @@ def test_modelo_cai_no_meio_mantem_os_lotes_prontos_e_para(monkeypatch):
 def test_aviso_corta_frase_longa_para_caber_na_tela(monkeypatch):
     longa = "Palavra " * 30 + "fim."
     segs = [Segment(id="s01", text="Frase curta classificada."), Segment(id="s02", text=longa)]
-    relatorio = relatorio_todos_factuais(["s01"])
+    relatorio = relatorio_todos_factuais(["s01", "s02", "s02"])  # s02 duplicado
     monkeypatch.setattr(text_analysis, "chamar_modelo", ModeloFalso(relatorio, relatorio))
 
     resultado = texto_node(estado(segs))

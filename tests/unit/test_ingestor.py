@@ -224,6 +224,12 @@ def test_paragrafo_comum_que_cita_leia_no_meio_fica():
     assert remover_boilerplate(texto) == texto
 
 
+def test_paragrafo_de_noticia_com_nao_refletem_necessariamente_fica():
+    texto = "Os dados oficiais não refletem necessariamente o total de casos, segundo o instituto."
+
+    assert remover_boilerplate(texto) == texto
+
+
 def test_remover_boilerplate_colapsa_linhas_vazias_que_sobram():
     texto = "Primeira frase.\n\nPublicidade\n\nSegunda frase."
 

@@ -25,7 +25,7 @@ WARN_TRUNCATED = "ingestor: texto truncado no limite de tokens"
 # Casadas em minúsculas e sem acento; a linha inteira sai se algum padrão bater.
 PADROES_BOILERPLATE = tuple(re.compile(p) for p in (
     r"^(leia|veja) (tambem|mais)\b",
-    r"nao refletem necessariamente",
+    r"nao refletem necessariamente (a |o |as |os )?(opiniao|opinioes|ponto de vista|posicao|visao|linha editorial)",
     r"todos os direitos reservados",
     r"^(receba|assine)\b.*\b(newsletter|noticias|e-?mail)\b",
     r"^siga\b.*\b(instagram|twitter|facebook|tiktok|youtube|redes sociais)\b",

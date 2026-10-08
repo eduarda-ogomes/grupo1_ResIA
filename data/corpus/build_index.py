@@ -86,6 +86,17 @@ def chunk_id(url: str, index: int | str) -> str:
     return f"{hashlib.sha1(url.encode('utf-8')).hexdigest()[:16]}-{suffix}"
 
 
+def source_name_with_year(name: str, review_date: str) -> str:
+    """Acrescenta o ano ao nome da agência quando a checagem é anterior a SOURCE_YEAR_BEFORE.
+
+    Nome que já traz o ano (o FACTCK.BR, "Agência Lupa (2018)") e checagem sem data ficam como estão.
+    """
+    m = re.match(r"(\d{4})", review_date or "")
+    if not name or not m or name.endswith(")") or int(m.group(1)) >= config.SOURCE_YEAR_BEFORE:
+        return name
+    return f"{name} ({m.group(1)})"
+
+
 def build_records(claims: list[dict], articles: list[dict]) -> list[dict]:
     """Um registro por trecho: id, texto e metadados (só str/int/bool, exigência do Chroma).
 
@@ -103,7 +114,8 @@ def build_records(claims: list[dict], articles: list[dict]) -> list[dict]:
         title = " ".join(str(meta.get("review_title") or "").split())
         base = {
             "source_url": url,
-            "source_name": meta.get("source_name") or meta.get("publisher_site") or "",
+            "source_name": source_name_with_year(meta.get("source_name") or meta.get("publisher_site") or "",
+                                                 meta.get("review_date") or ""),
             "agency_verdict": meta.get("agency_verdict") or "",
             "review_date": meta.get("review_date") or "",
             "claim_reviewed": meta.get("claim_reviewed") or "",

@@ -172,6 +172,23 @@ def test_trecho_registra_a_fonte_do_corpus():
     assert corpus == {"https://x.org/1": "factckbr", "https://x.org/2": "factcheck_api"}
 
 
+def test_checagem_antiga_leva_o_ano_no_nome_da_agencia():
+    antes = build_index.config.SOURCE_YEAR_BEFORE - 1
+    claims = [
+        {"source_url": "https://x.org/antiga", "source_name": "Aos Fatos", "review_title": "T",
+         "review_date": f"{antes}-05-02T00:00:00Z"},
+        {"source_url": "https://x.org/recente", "source_name": "Aos Fatos", "review_title": "T",
+         "review_date": f"{build_index.config.SOURCE_YEAR_BEFORE}-01-10T00:00:00Z"},
+        {"source_url": "https://x.org/sem-data", "source_name": "Aos Fatos", "review_title": "T"},
+        {"source_url": "https://x.org/factckbr", "source_name": "Agência Lupa (2018)", "review_title": "T",
+         "review_date": "2018-03-01"},
+    ]
+    nomes = {r["metadata"]["source_url"].split("/")[-1]: r["metadata"]["source_name"]
+             for r in build_index.build_records(claims, [])}
+    assert nomes == {"antiga": f"Aos Fatos ({antes})", "recente": "Aos Fatos",
+                     "sem-data": "Aos Fatos", "factckbr": "Agência Lupa (2018)"}
+
+
 # --- import_factckbr: filtros e correções ----------------------------------------
 
 def _linha(url, agencia, claim="Alegação curta sobre o fato", titulo="Título", rotulo="Falso",

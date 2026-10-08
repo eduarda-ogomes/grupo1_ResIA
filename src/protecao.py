@@ -12,6 +12,7 @@ LM Studio, o que pode atrasar a análise seguinte.
 """
 from __future__ import annotations
 
+import contextvars
 import copy
 import logging
 import math
@@ -20,6 +21,8 @@ import threading
 from concurrent.futures import ThreadPoolExecutor
 from concurrent.futures import TimeoutError as FuturesTimeout  # no Python 3.10 não é o TimeoutError embutido
 from typing import Any, Callable
+
+from src import observabilidade
 
 logger = logging.getLogger(__name__)
 
@@ -63,21 +66,32 @@ def proteger(
     """
 
     def no(state):
+        # Um span por nó, com o resultado e os avisos que a análise vai mostrar
+        with observabilidade.span(f"no.{nome}", no=nome) as s:
+            saida, resultado = executar(state)
+            s.set_attribute("pipeline.resultado", resultado)
+            s.set_attribute("pipeline.avisos", tuple(saida.get("warnings", [])))
+            return saida
+
+    def executar(state) -> tuple[dict, str]:
         executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix=nome)
-        futuro = executor.submit(fn, state)
+        # O contexto (span atual do trace, config do LangChain) não atravessa threads sozinho:
+        # sem a cópia, as chamadas de LLM do agente apareceriam soltas no Phoenix.
+        contexto = contextvars.copy_context()
+        futuro = executor.submit(contexto.run, fn, state)
         try:
-            return futuro.result(timeout=timeout_s)
+            return futuro.result(timeout=timeout_s), "ok"
         except FuturesTimeout:
             logger.warning("%s: estourou o limite de %s s", nome, timeout_s)
-            motivo = "timeout"
+            motivo, resultado = "timeout", "timeout"
         except Exception as exc:
             logger.exception("%s falhou", nome)
-            motivo = f"{type(exc).__name__}: {exc}"
+            motivo, resultado = f"{type(exc).__name__}: {exc}", "erro"
         finally:
             # wait=False: não espera a thread travada (um `with` esperaria e anularia o timeout)
             executor.shutdown(wait=False, cancel_futures=True)
         saida = _saida_de_falha(nome, state, em_falha, recuperar)
-        return {**saida, "warnings": [f"{nome}: {motivo}", *saida.get("warnings", [])]}
+        return {**saida, "warnings": [f"{nome}: {motivo}", *saida.get("warnings", [])]}, resultado
 
     no.__name__ = f"{nome}_protegido"
     return no

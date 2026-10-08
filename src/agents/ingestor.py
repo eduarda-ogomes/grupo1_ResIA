@@ -8,6 +8,7 @@ import spacy.cli
 import trafilatura
 from bs4 import BeautifulSoup
 
+from src.observabilidade import span
 from src.state import PipelineState, Segment
 
 MAX_WORDS = 5000
@@ -127,10 +128,13 @@ def ingestor_node(state: PipelineState) -> dict:
     published_at = None
 
     if is_url(raw_input):
-        try:
-            html = fetch_page(raw_input)
-        except requests.Timeout:
-            return _empty_result(WARN_TIMEOUT)
+        with span("ingestor.baixar", url=raw_input) as s:
+            try:
+                html = fetch_page(raw_input)
+            except requests.Timeout:
+                s.set_attribute("pipeline.ok", False)
+                return _empty_result(WARN_TIMEOUT)
+            s.set_attribute("pipeline.ok", bool(html))
         if not html:
             return _empty_result(WARN_PAYWALL)
         clean_text, title, published_at = extract_text(html)
@@ -141,12 +145,15 @@ def ingestor_node(state: PipelineState) -> dict:
 
     clean_text, truncated = truncate_words(clean_text)
     warnings = [WARN_TRUNCATED] if truncated else []
+    with span("ingestor.segmentar", truncado=truncated) as s:
+        segments = segment_text(clean_text)
+        s.set_attribute("pipeline.frases", len(segments))
 
     return {
         "clean_text": clean_text,
         "title": title,
         "published_at": published_at,
         "truncated": truncated,
-        "segments": segment_text(clean_text),
+        "segments": segments,
         "warnings": warnings,
     }

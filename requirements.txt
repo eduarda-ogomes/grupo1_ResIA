@@ -12,3 +12,6 @@ langchain-openai
 spacy>=3.8.0
 beautifulsoup4
 requests
+arize-phoenix
+arize-phoenix-otel
+openinference-instrumentation-langchain

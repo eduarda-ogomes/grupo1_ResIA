@@ -210,7 +210,7 @@ python data/corpus/diagnostico.py --frases "Um grupo de pessoas espancou em Osas
 
 | Fonte | Checagens | Período | Observação |
 | --- | --- | --- | --- |
-| Google Fact Check Tools API | 5.826: UOL 1.733 (com 195 espelhos do BOL), Estadão 1.478, Aos Fatos 1.192, AFP Checamos 1.191, Comprova 232 | Últimos 24 meses | Coletadas em ~38 buscas por palavra-chave, porque a API dá erro 503 depois de ~500–600 resultados de uma mesma busca |
+| Google Fact Check Tools API | 15.423: Aos Fatos 3.960, UOL 3.778 (mais 487 espelhos do BOL), AFP Checamos 3.359, Estadão 2.618, Comprova 1.220 | 2015–2026 (sem limite de idade desde 07/10; antes, últimos 24 meses) | Coletadas em 84 buscas por site (83 palavras-chave e uma sem palavra-chave), porque a API dá erro 503 depois de ~500–600 resultados de uma mesma busca |
 | FACTCK.BR (dataset acadêmico) | 727: Agência Lupa 379, Aos Fatos 348 | 2018–2019 | Só páginas com uma alegação; sem o Truco; sem as 4 checagens "verdadeiro" com título que desmente (ADR 2) |
 
 A Lupa não aparece na API (testado com dois domínios), e por isso só entra pelo FACTCK.BR. A AFP e o UOL recusam o download do texto (bloqueio confirmado em 01/10, não contornado): as checagens deles entram no índice só pelo título e pela alegação.
@@ -234,7 +234,9 @@ Todos os scripts ficam em `data/corpus/`, rodam a partir da raiz do repositório
 - **Metadados de cada trecho:** `source_url`, `source_name`, `agency_verdict`, `review_date`, `claim_reviewed`, `review_title`, `corpus` ("factcheck_api" ou "factckbr"), `chunk_index`, `chunk_kind`.
 - **IDs determinísticos** (hash da URL + número do trecho): rodar de novo atualiza em vez de duplicar, e o `--apenas-novos` calcula embeddings só do que falta.
 
-Índice atual (03/10/2026): 6.553 checagens (3.630 com texto, 2.923 só com título), **36.071 trechos**.
+Índice atual (07/10/2026): 15.938 checagens (8.314 com texto, 7.624 só com título), **99.464 trechos**. Antes da coleta sem limite de idade (03/10): 6.553 checagens e 36.071 trechos.
+
+Checagens da API publicadas antes de 2024 levam o ano no `source_name` ("Aos Fatos (2019)"), como as do FACTCK.BR. Checagens sem data na API (5.282, a maioria do Estadão) ficam sem o ano.
 
 ### Coleção por modelo
 
@@ -278,7 +280,7 @@ Para rodar o agente, não é preciso coletar o corpus nem indexar. A pasta do Go
 
 | Arquivo | Pasta criada ao extrair | Para quê |
 | --- | --- | --- |
-| `chroma_data.zip` | `chroma_data/` | Índice que o agente consulta: coleção `checagens__baai-bge-m3` (BGE-M3), com 36.071 trechos (API + FACTCK.BR), gerada em 03/10/2026 com `chromadb` 1.5.9. Basta ele para rodar o agente. |
+| `chroma_data.zip` | `chroma_data/` | Índice que o agente consulta: coleção `checagens__baai-bge-m3` (BGE-M3), com 36.071 trechos (API + FACTCK.BR), gerada em 03/10/2026 com `chromadb` 1.5.9. Basta ele para rodar o agente. ⚠️ O índice de 07/10 (99.464 trechos) e os dados brutos novos ainda não foram enviados ao Drive. |
 | `raw.zip` | `data/corpus/raw/` | Dados brutos: checagens da API, textos baixados e FACTCK.BR (CSV e arquivos convertidos). Necessário para a avaliação (`sortear`, `validar` e `avaliar` leem o corpus daqui) e para refazer o índice sem a chave da API. |
 
 - O `requirements.txt` fixa o `chromadb` em 1.5.9: um índice criado numa versão pode não abrir em outra.
@@ -494,14 +496,16 @@ O relatório mostra números absolutos ao lado de cada taxa, a matriz de confus�
 | 03/10 (42 frases) | teste | 12/12 | 10/12 | — | 10/10 | — | 2 | (mesmo arquivo) |
 | 03/10 (42 frases) | calibração | 10/11 | 9/11 | — | 9/9 | — | 2 | (mesmo arquivo) |
 | 03/10 (e5-large, 42 frases) | todos | 17/23 = 0,74 | 14/23 = 0,61 | 0,56 ❌ | 14/14 | 0/12 | 1 | `evidencias_2026-10-03_5.json` |
+| **07/10 (corpus 2015–2026, atual)** | todos | 22/23 = **0,96** | 19/23 = **0,83** | **0,77** ✅ | 19/19 | 0/12 | 5 | `evidencias_2026-10-07.json` |
 
-Configuração: BGE-M3, mDeBERTa, `SIM_THRESHOLD` 0,55, índice com 32.094 trechos. Primeira rodada: `CLAIM_MATCH_MIN_PROB` 0,5, Mac (`mps`), commit `9eba0f7`; a "stance nas cobertas" foi criada depois dela e calculada a partir do detalhe por frase salvo no arquivo. Rodadas "termos-chave" e "NLI 0,8": Windows (CPU), commit `fc2cce2`, com a correção dos termos-chave; a primeira com NLI 0,5, a segunda com 0,8 (o valor calibrado, medido uma única vez no teste). Rodadas de 03/10: NLI 0,8, commit `ee88110` com alterações locais. As de 36 frases usam o índice com o FACTCK.BR antes do descarte (36.099 trechos); a do BGE-M3 rodou na CPU e a do e5-large na GPU. As de 42 frases usam o índice atual (36.071 trechos), as duas na CPU; os splits não têm macro-F1 próprio no relatório.
+Configuração: BGE-M3, mDeBERTa, `SIM_THRESHOLD` 0,55, índice com 32.094 trechos. Primeira rodada: `CLAIM_MATCH_MIN_PROB` 0,5, Mac (`mps`), commit `9eba0f7`; a "stance nas cobertas" foi criada depois dela e calculada a partir do detalhe por frase salvo no arquivo. Rodadas "termos-chave" e "NLI 0,8": Windows (CPU), commit `fc2cce2`, com a correção dos termos-chave; a primeira com NLI 0,5, a segunda com 0,8 (o valor calibrado, medido uma única vez no teste). Rodadas de 03/10: NLI 0,8, commit `ee88110` com alterações locais. As de 36 frases usam o índice com o FACTCK.BR antes do descarte (36.099 trechos); a do BGE-M3 rodou na CPU e a do e5-large na GPU. As de 42 frases de 03/10 usam o índice de 36.071 trechos, as duas na CPU; os splits não têm macro-F1 próprio no relatório. A de 07/10 usa o índice de 99.464 trechos e rodou na GPU (NVIDIA).
 
 Leitura:
 - **Quando o agente acha a checagem certa, a stance sai certa** (19/19 na rodada atual). O que derruba o macro-F1 são checagens perdidas e as 2 frases que desmentem o boato (limitação do ADR 1), não erro de stance.
 - **Checagens perdidas na rodada atual (4 de 23):** Arkansas e Cármen Lúcia (a checagem certa estava na busca, mas foi recusada na etapa 2), Janja em Roma (paráfrase que o NLI não reconheceu: entailment 0,00 e 0,10) e "Lula e o socialismo" (as duas checagens certas só têm título no índice e nem entram no top 5; é o único erro de Recall@5).
 - A revocação de `insuficiente` (1,00) está inflada: frase `insuficiente` cuja checagem o agente perdeu conta como acerto. A "stance nas cobertas" existe para isso.
 - **Calibração do NLI** (`calibracao_2026-10-01.json`, só no split de calibração): a cobertura ficou em 7/9 com 0,5, 0,6, 0,7 e 0,8, e os casamentos errados caíram de 4 para 2 com 0,8. No teste, 0,8 manteve a cobertura (8/10) e tirou 1 dos 3 casamentos errados.
+- **Corpus 2015–2026** (07/10): com quase o triplo de trechos, as métricas ficaram iguais às de 03/10; as checagens novas não tiraram as certas do top 5. O 5º casamento errado (ev12/s03, camiseta de Flávio Bolsonaro) é uma lacuna do gabarito: o agente citou também as checagens da AFP e do UOL de 2022 sobre a mesma montagem, que voltou a circular em 2026, com a mesma conclusão. Falta acrescentá-las às `checagens_aceitas` na revisão. O conjunto não tem frases sobre checagens de 2015–2023, então o ganho do corpus novo ainda não foi medido.
 - **FACTCK.BR** (03/10): nas 36 frases antigas nada mudou, porque nenhuma usava checagens dele. Nas 6 de ev13 e ev14, tudo certo: as 4 checagens vieram em 1º lugar na busca e foram citadas com a stance certa (duas `apoia`), o fato parecido (Moro × Cunha) foi barrado e a frase sem checagem ficou sem evidência.
 - **BGE-M3 × e5-large** (03/10): **fica o BGE-M3.** De igual para igual (42 frases, mesmo índice, CPU), o e5 acha 5 checagens a menos na busca (17 × 22), entre elas as 4 do FACTCK.BR, e fica com macro-F1 0,56, abaixo da meta. Ele cita só 1 checagem errada, contra 4 do BGE-M3, mas porque acha menos em geral.
 - A análise dos erros e os próximos passos estão no ADR 3.
@@ -536,7 +540,7 @@ Windows (PowerShell): os mesmos comandos, ativando o ambiente com `venv\Scripts\
 
 ## Limitações conhecidas
 
-- Só acha o que está no corpus: 5.826 checagens da API (últimos 24 meses) e 727 do FACTCK.BR (Lupa e Aos Fatos, 2018–2019). A Lupa só aparece em checagens antigas, e o Truco ainda não entrou. Checagens do FACTCK.BR saem com o ano no nome da agência ("Agência Lupa (2019)"), porque podem estar desatualizadas. Checagens da AFP e da maior parte do UOL entram só pelo título e pela alegação: os dois sites recusam o download (o UOL foi testado de novo em 01/10), e o bloqueio não é contornado.
+- Só acha o que está no corpus: 15.423 checagens da API (2015–2026) e 727 do FACTCK.BR (Lupa e Aos Fatos, 2018–2019). A Lupa só aparece em checagens antigas, e o Truco ainda não entrou. Checagens do FACTCK.BR saem com o ano no nome da agência ("Agência Lupa (2019)"), porque podem estar desatualizadas. Checagens da AFP e da maior parte do UOL entram só pelo título e pela alegação: os dois sites recusam o download (o UOL foi testado de novo em 01/10), e o bloqueio não é contornado.
 - Memória: numa GPU NVIDIA, 1,58 GB de pesos, dentro do orçamento de 2 GB; na CPU, 2,63 GB (o BGE-M3 fica em fp32), acima dele. Falta a medida no Mac da demo (ver o ADR).
 - **Casamento errado: 4 nas 42 frases do conjunto (meta 0).** Nos quatro, o NLI aceitou uma checagem de outro fato, com o mesmo personagem e o mesmo tema, e os termos-chave não tinham o que barrar:
   - Kamala ("urnas do Arkansas trocavam votos de Trump por Kamala" × "Kamala Harris forjou ligação com eleitores", NLI 0,98) e Bolsonaro ("envenenado na cela da Papudinha" × "Vídeo mostra Bolsonaro deixando UTI", 0,93): mesma pessoa, outro episódio. Nenhum limiar separa esses casos;
@@ -604,7 +608,7 @@ Os unitários usam `tests/evidence_fakes.py`, que simula a busca e o NLI. Por is
 | Erro de codificação ("charmap", "UnicodeEncodeError") no Windows | Rode `$env:PYTHONUTF8 = "1"` antes dos scripts e use `Out-File -Encoding utf8` para gravar saídas redirecionadas. |
 | O script parece travado no PowerShell | O console entrou no modo de seleção (um clique na janela). Aperte Enter ou Esc. |
 | Tem GPU NVIDIA, mas o agente roda na CPU | O torch instalado é a versão `+cpu` (`python -c "import torch; print(torch.__version__, torch.cuda.is_available())"`). Reinstale o torch com CUDA pelo seletor de pytorch.org; placas mais novas podem exigir a versão mais recente do CUDA que o seletor oferece. |
-| Números da avaliação diferentes dos da tabela | Rode com `EVIDENCE_DEVICE=cpu`: as rodadas oficiais são na CPU, e GPU e CPU podem diferir nas casas decimais do NLI. Confira também se o índice tem 36.071 trechos (aparece no resultado salvo). |
+| Números da avaliação diferentes dos da tabela | Rode com `EVIDENCE_DEVICE=cpu`: as rodadas oficiais são na CPU, e GPU e CPU podem diferir nas casas decimais do NLI. Confira também se o índice tem 99.464 trechos (36.071 nas rodadas até 03/10) (aparece no resultado salvo). |
 | Busca ruim com o e5 | A família e5 exige os prefixos `query:` e `passage:`; o `indice.py` põe os dois automaticamente quando o nome do modelo tem "e5". Índices do e5 feitos sem prefixo precisam ser refeitos. |
 | Nome próprio novo não barra uma troca | O vocabulário está desatualizado: `python data/corpus/build_index.py --so-nomes`. |
 | Aviso "unauthenticated requests to the HF Hub" | Inofensivo: só diz que o download dos modelos não usa token do Hugging Face. |

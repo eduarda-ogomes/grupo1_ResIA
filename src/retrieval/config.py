@@ -40,6 +40,9 @@ EXCERPT_MAX_CHARS = 300
 CHUNK_MAX_CHARS = 800        # trechos do índice: parágrafos agrupados até este tamanho
 CHUNK_OVERLAP_PARAGRAPHS = 1
 MIN_PARAGRAPH_CHARS = 40
+# Checagens publicadas antes deste ano levam o ano no source_name ("Aos Fatos (2019)"):
+# o Evidence não tem campo de data, e uma checagem antiga não pode parecer atual no dossiê.
+SOURCE_YEAR_BEFORE = 2024
 
 
 def collection_name(model_name: str | None = None) -> str:

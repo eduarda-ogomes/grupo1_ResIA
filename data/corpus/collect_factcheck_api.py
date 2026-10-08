@@ -60,6 +60,13 @@ QUERIES = [
     "vídeo", "foto", "inteligência artificial", "golpe", "polícia", "facção",
     "enchente", "clima", "Amazônia", "Israel", "Trump", "Estados Unidos", "China",
     "igreja", "escola", "morte", "prisão",
+    # Ampliação de 07/10/2026: mais pessoas, órgãos e temas recorrentes.
+    "Lewandowski", "Haddad", "Tarcísio", "Marçal", "Janja", "Michelle", "Dino", "Barroso",
+    "Anvisa", "SUS", "Petrobras", "Correios", "Receita Federal", "FGTS", "CNH", "Banco Central",
+    "Ucrânia", "Rússia", "Venezuela", "Gaza", "Argentina", "Milei",
+    "aborto", "LGBT", "indígena", "MST", "agro", "queimada", "seca", "terremoto",
+    "WhatsApp", "deepfake", "celebridade", "futebol", "papa", "militares", "ditadura",
+    "gasolina", "inflação", "dólar", "auxílio", "criança", "mulher", "armas", "drogas",
 ]
 
 

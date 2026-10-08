@@ -13,6 +13,7 @@ import logging
 from pathlib import Path
 
 from src.agents import dossie
+from src.guardrails.ancoragem import citacoes_nao_literais, termos_fora_do_contexto
 from src.guardrails.citacoes import extrair_urls, neutralizar_urls
 from src.guardrails.veredito import termos_de_veredito
 from src.services.llm import llm_sintetizador
@@ -71,8 +72,13 @@ def limpar_resposta(bruto: str) -> str:
     return "\n".join(linhas).strip()
 
 
-def problema_da_sintese(texto: str) -> str | None:
-    """Guardrails sobre o texto do modelo; devolve o problema nomeado para o retry, ou None."""
+def problema_da_sintese(texto: str, frases: list[str]) -> str | None:
+    """Guardrails sobre o texto do modelo; devolve o problema nomeado para o retry, ou None.
+
+    `frases` são os textos dos segmentos já passados por neutralizar_urls, os mesmos que o modelo recebeu:
+    G3 exige que todo trecho entre aspas esteja literalmente numa delas; G4, que nomes, números e doenças
+    apareçam nelas. Os rótulos fixos do prompt (dossie.ROTULOS, "Juízo de valor") não contam como termos.
+    """
     if not texto:
         return "Seu texto veio vazio."
     termos = termos_de_veredito(texto)
@@ -80,10 +86,18 @@ def problema_da_sintese(texto: str) -> str | None:
         return f"Seu texto usou o termo '{termos[0]}'."
     if extrair_urls(texto):
         return "Seu texto incluiu um link."
+    trechos = citacoes_nao_literais(texto, frases)
+    if trechos:
+        return f'Seu texto citou "{trechos[0]}", que não está em nenhuma frase da notícia.'
+    ignorar = list(dossie.ROTULOS.values()) + ["Juízo de valor"]
+    fora = termos_fora_do_contexto(texto, " ".join(frases), ignorar)
+    if fora:
+        return f"Seu texto mencionou '{fora[0]}', que não aparece na notícia."
     return None
 
 
 def sintese_livre(state: PipelineState, ctx: dossie.Contexto) -> str:
+    frases = [neutralizar_urls(s.text) for s in state.segments]
     problema = None
     for _ in range(2):  # 1 tentativa + 1 retry
         try:
@@ -91,7 +105,7 @@ def sintese_livre(state: PipelineState, ctx: dossie.Contexto) -> str:
         except Exception as e:
             raise ModeloIndisponivel(str(e)) from e
         texto = limpar_resposta(bruto)
-        problema = problema_da_sintese(texto)
+        problema = problema_da_sintese(texto, frases)
         if problema is None:
             return texto
         logger.warning("Sintetizador: síntese livre rejeitada: %s", problema)

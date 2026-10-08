@@ -214,3 +214,58 @@ def test_rotulo_falsa_dicotomia_passa_nos_guardrails_sem_retry(monkeypatch):
     assert len(modelo.prompts) == 1
     assert "warnings" not in resultado
     assert resposta in resultado["dossier"]
+
+
+def test_trecho_inventado_dispara_retry_com_o_trecho_nomeado(monkeypatch):
+    modelo = falsos.SintetizadorFalso(
+        '- Urgência: "corra antes que seja tarde" pede pressa.',
+        '- Urgência: "URGENTE" pede ação imediata.',
+    ).instalar(monkeypatch)
+
+    resultado = synthesizer.sintetizador_node(estado_mamao())
+
+    assert len(modelo.prompts) == 2
+    assert 'Seu texto citou "corra antes que seja tarde", que não está em nenhuma frase da notícia.' in modelo.prompts[1]
+    assert '"URGENTE" pede ação imediata' in resultado["dossier"]
+    assert "warnings" not in resultado
+
+
+def test_entidade_de_fora_reprovada_duas_vezes_cai_no_fallback(monkeypatch):
+    modelo = falsos.SintetizadorFalso("- Generalização: a OMS discorda.").instalar(monkeypatch)
+
+    resultado = synthesizer.sintetizador_node(estado_mamao())
+
+    assert len(modelo.prompts) == 2
+    assert "Seu texto mencionou 'oms', que não aparece na notícia." in modelo.prompts[1]
+    assert resultado["warnings"] == [synthesizer.WARN_GUARDRAILS]
+    assert "OMS" not in resultado["dossier"]
+
+
+def test_rotulos_fixos_e_trecho_literal_da_noticia_passam_sem_retry(monkeypatch):
+    # "Autoridade sem identificação" e "Juízo de valor" são rótulos do prompt, não termos da notícia
+    resposta = (
+        '- Autoridade sem identificação: "Um especialista em plantas medicinais garante" não diz quem é.\n'
+        '- Juízo de valor: "Não existe nada melhor do que a natureza" é opinião.'
+    )
+    modelo = falsos.SintetizadorFalso(resposta).instalar(monkeypatch)
+
+    resultado = synthesizer.sintetizador_node(estado_mamao())
+
+    assert len(modelo.prompts) == 1
+    assert "warnings" not in resultado
+    assert resposta in resultado["dossier"]
+
+
+def test_problema_da_sintese_confere_citacao_e_termo_so_depois_de_vazio_veredito_e_link():
+    frases = ["URGENTE: os médicos estão escondendo a cura natural da dengue!"]
+
+    assert synthesizer.problema_da_sintese("", frases) == "Seu texto veio vazio."
+    assert "o termo 'falsa'" in synthesizer.problema_da_sintese('- Falsa: "inventado" e a OMS.', frases)
+    assert synthesizer.problema_da_sintese('- "inventado" veja https://x.org e a OMS.', frases) == "Seu texto incluiu um link."
+    assert synthesizer.problema_da_sintese('- "inventado" e a OMS.', frases) == (
+        'Seu texto citou "inventado", que não está em nenhuma frase da notícia.'
+    )
+    assert synthesizer.problema_da_sintese("- A OMS discorda.", frases) == (
+        "Seu texto mencionou 'oms', que não aparece na notícia."
+    )
+    assert synthesizer.problema_da_sintese('- Urgência: "URGENTE" pede pressa.', frases) is None

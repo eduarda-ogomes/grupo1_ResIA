@@ -5,7 +5,8 @@ from pathlib import Path
 import pytest
 
 from src.agents import dossie
-from src.state import PipelineState
+from src.guardrails.veredito import termos_de_veredito
+from src.state import PipelineState, Segment
 
 MAMAO = Path(__file__).resolve().parents[1] / "fixtures" / "caso_mamao_dengue"
 URL_LUPA = "https://www.agencialupa.org/jornalismo/2024/02/06/e-falso-que-cha-de-folha-de-mamao-cura-a-dengue-em-tres-dias/"
@@ -21,6 +22,11 @@ def estado_mamao(**sobrescritas) -> PipelineState:
 def evidencia(segment_id, url, stance="contradiz", verdict="Falso", excerpt="Trecho.", name="Agência Exemplo"):
     return {"segment_id": segment_id, "stance": stance, "excerpt": excerpt, "source_url": url,
             "source_name": name, "agency_verdict": verdict}
+
+
+def secao(state: PipelineState) -> list[str]:
+    ctx = dossie.preprocessar(state)
+    return dossie.secao_checagens(state, ctx, dossie.numerar_fontes(state, ctx))
 
 
 # --- Pré-processamento ----------------------------------------------------------
@@ -63,57 +69,152 @@ def test_sem_text_report_mantem_todas_as_evidencias_e_nao_lista_factuais():
 
 # --- Seção de checagens ---------------------------------------------------------
 
-@pytest.mark.parametrize("stances, resumo", [
-    (["contradiz"], "uma checagem contradiz esta frase"),
-    (["contradiz", "contradiz", "apoia"], "duas checagens contradizem e uma apoia esta frase"),
-    (["insuficiente"], "uma checagem não é conclusiva sobre esta frase"),
-    (["apoia", "apoia", "apoia"], "três checagens apoiam esta frase"),
-    (["insuficiente", "contradiz"], "uma checagem contradiz esta frase, e uma não é conclusiva"),
-    (["insuficiente", "insuficiente"], "duas checagens não são conclusivas sobre esta frase"),
-])
-def test_resumo_por_stance(stances, resumo):
-    assert dossie.resumo_por_stance(stances) == resumo
+def test_legenda_nao_usa_termos_de_veredito_e_esta_numa_linha_so():
+    assert termos_de_veredito(dossie.LEGENDA_CHECAGENS) == []
+    assert "\n" not in dossie.LEGENDA_CHECAGENS
 
 
 def test_secao_checagens_do_mamao():
-    state = estado_mamao()
-
-    linhas = dossie.secao_checagens(state, dossie.preprocessar(state))
-
+    state = estado_mamao(); ctx = dossie.preprocessar(state)
+    linhas = dossie.secao_checagens(state, ctx, dossie.numerar_fontes(state, ctx))
     assert linhas == [
-        dossie.TITULO_CHECAGENS,
-        '- "O chá da folha de mamão cura a dengue em apenas três dias." — uma checagem contradiz esta frase.',
-        f'  - Agência Lupa: Falso — "Não existe um tratamento específico para a dengue e as formas graves da doença." ({URL_LUPA})',
-        '- "Ele estimula a medula óssea a produzir mais plaquetas e evita a dengue hemorrágica." — uma checagem contradiz esta frase.',
-        f'  - Aos Fatos: Falso — "não comprovam que o tratamento seja eficaz em humanos" ({URL_AOSFATOS})',
-        '- Nenhuma checagem encontrada no nosso banco para: "URGENTE: os médicos estão escondendo a cura natural da dengue!", '
-        '"Um especialista em plantas medicinais garante que a folha de mamão salva vidas.". '
+        dossie.TITULO_CHECAGENS, dossie.LEGENDA_CHECAGENS,
+        '- "O chá da folha de mamão cura a dengue em apenas três dias."',
+        f'  - Contradiz · Agência Lupa: Falso [↗ 1](<{URL_LUPA}>)',
+        '- "Ele estimula a medula óssea a produzir mais plaquetas e evita a dengue hemorrágica."',
+        f'  - Contradiz · Aos Fatos: Falso [↗ 2](<{URL_AOSFATOS}>)',
+        '- Sem checagem no nosso banco: 2 afirmações factuais, "URGENTE: os médicos estão escondendo a cura natural da dengue!" '
+        'e "Um especialista em plantas medicinais garante que a folha de mamão salva vidas.". '
         'Isso não confirma nem descarta essas frases.',
     ]
 
 
+def test_fontes_do_mamao():
+    state = estado_mamao(); ctx = dossie.preprocessar(state)
+    assert dossie.secao_fontes(ctx, dossie.numerar_fontes(state, ctx)) == [
+        dossie.TITULO_FONTES,
+        f'1. Agência Lupa: Falso — "Não existe um tratamento específico para a dengue e as formas graves da doença." · [abrir ↗](<{URL_LUPA}>)',
+        f'2. Aos Fatos: Falso — "não comprovam que o tratamento seja eficaz em humanos" · [abrir ↗](<{URL_AOSFATOS}>)',
+    ]
+
+
+def test_secao_fontes_vazia_quando_nao_ha_fontes():
+    state = estado_mamao(evidence=[]); ctx = dossie.preprocessar(state)
+    assert dossie.numerar_fontes(state, ctx) == {}
+    assert dossie.secao_fontes(ctx, {}) == []
+
+
+def test_sem_checagem_com_muitas_frases_mostra_duas_e_conta_o_resto():
+    frases = [Segment(id=f"s{i:02d}", text=f"Frase factual número {i} " + "x" * 90) for i in range(1, 31)]
+    linha = dossie.linha_sem_checagem(frases)
+    assert linha.startswith('- Sem checagem no nosso banco: 30 afirmações factuais, como "Frase factual número 1 ')
+    assert linha.endswith(' e mais 28. Isso não confirma nem descarta essas frases.')
+    assert len(linha) < 300
+
+
+def test_uma_frase_sem_checagem_usa_singular():
+    assert dossie.linha_sem_checagem([Segment(id="s01", text="A ponte caiu.")]) == (
+        '- Sem checagem no nosso banco: 1 afirmação factual, "A ponte caiu.". Isso não confirma nem descarta essa frase.')
+
+
+def test_tres_frases_sem_checagem_mostram_duas_e_mais_uma():
+    frases = [Segment(id=f"s0{i}", text=t) for i, t in enumerate(["A.", "B.", "C."], start=1)]
+    assert dossie.linha_sem_checagem(frases) == (
+        '- Sem checagem no nosso banco: 3 afirmações factuais, como "A.", "B." e mais 1. '
+        'Isso não confirma nem descarta essas frases.')
+
+
+def test_encurtar_corta_no_limite_com_reticencias():
+    assert dossie.encurtar("curta") == "curta"
+    assert dossie.encurtar("x" * 80) == "x" * 80
+    assert dossie.encurtar("x" * 81) == "x" * 79 + "…"
+    assert len(dossie.encurtar("palavra " * 30)) <= 80
+
+
+def test_frase_sem_checagem_e_escapada_e_neutralizada_na_linha():
+    linha = dossie.linha_sem_checagem([Segment(id="s01", text="Custa R$ 10, veja https://a.org/x_y agora.")])
+    assert '"Custa R\\$ 10, veja [link] agora."' in linha
+
+
+def test_mesma_url_em_duas_frases_tem_um_numero_so():
+    url = "https://a.org/1"
+    state = estado_mamao(evidence=[evidencia("s02", url), evidencia("s03", url)]); ctx = dossie.preprocessar(state)
+    fontes = dossie.numerar_fontes(state, ctx)
+    assert fontes == {url: 1}
+    assert len(dossie.secao_fontes(ctx, fontes)) == 2
+    corpo = dossie.secao_checagens(state, ctx, fontes)
+    assert corpo.count(f"  - Contradiz · Agência Exemplo: Falso [↗ 1](<{url}>)") == 2
+
+
+def test_numeracao_segue_a_ordem_das_frases_e_nao_a_das_evidencias():
+    state = estado_mamao(evidence=[evidencia("s03", "https://a.org/terceira"), evidencia("s02", "https://a.org/segunda")])
+    fontes = dossie.numerar_fontes(state, dossie.preprocessar(state))
+    assert fontes == {"https://a.org/segunda": 1, "https://a.org/terceira": 2}
+
+
+def test_evidencia_de_frase_desconhecida_nao_ganha_numero():
+    state = estado_mamao(evidence=[evidencia("s99", "https://a.org/orfa"), evidencia("s02", "https://a.org/1")])
+    ctx = dossie.preprocessar(state)
+    fontes = dossie.numerar_fontes(state, ctx)
+    assert fontes == {"https://a.org/1": 1}
+    assert dossie.secao_fontes(ctx, fontes)[1:] == [
+        '1. Agência Exemplo: Falso — "Trecho." · [abrir ↗](<https://a.org/1>)']
+
+
+def test_url_com_parenteses_continua_valida():
+    url = "https://x.org/a_(b)"
+    state = estado_mamao(evidence=[evidencia("s02", url)]); ctx = dossie.preprocessar(state)
+    texto = dossie.montar(dossie.secao_checagens(state, ctx, dossie.numerar_fontes(state, ctx)))
+    assert f"[↗ 1](<{url}>)" in texto
+    assert dossie.remover_citacoes_invalidas(texto, state.evidence)[1] is False
+
+
+def test_cifrao_asterisco_e_colchete_da_noticia_sao_escapados():
+    assert dossie.texto_seguro("Custa R$ 10 e R$ 20, *exclusivo* [veja]") == r"Custa R\$ 10 e R\$ 20, \*exclusivo\* \[veja\]"
+    assert dossie.texto_seguro("veja https://a.org/x_y.") == "veja [link]."
+
+
+def test_escapar_markdown_cobre_o_conjunto_inteiro():
+    assert dossie.escapar_markdown("\\ ` * _ [ ] < > ~ $") == r"\\ \` \* \_ \[ \] \< \> \~ \$"
+    assert dossie.escapar_markdown("texto simples, com acento e 100%.") == "texto simples, com acento e 100%."
+
+
+def test_stance_sai_por_extenso_em_portugues():
+    state = estado_mamao(evidence=[
+        evidencia("s02", "https://a.org/1", stance="contradiz"),
+        evidencia("s02", "https://a.org/2", stance="apoia"),
+        evidencia("s02", "https://a.org/3", stance="insuficiente"),
+    ])
+    ctx = dossie.preprocessar(state)
+    linhas = dossie.secao_checagens(state, ctx, dossie.numerar_fontes(state, ctx))
+    assert "  - Contradiz · Agência Exemplo: Falso [↗ 1](<https://a.org/1>)" in linhas
+    assert "  - Apoia · Agência Exemplo: Falso [↗ 2](<https://a.org/2>)" in linhas
+    assert "  - Não conclusiva · Agência Exemplo: Falso [↗ 3](<https://a.org/3>)" in linhas
+
+
 def test_sem_selo_quando_a_agencia_nao_deu_veredito():
     state = estado_mamao(evidence=[evidencia("s02", "https://a.org/1", verdict=None)])
+    ctx = dossie.preprocessar(state)
+    fontes = dossie.numerar_fontes(state, ctx)
 
-    linhas = dossie.secao_checagens(state, dossie.preprocessar(state))
+    linhas = dossie.secao_checagens(state, ctx, fontes)
 
-    assert '  - Agência Exemplo — "Trecho." (https://a.org/1)' in linhas
+    assert "  - Contradiz · Agência Exemplo [↗ 1](<https://a.org/1>)" in linhas
+    assert dossie.secao_fontes(ctx, fontes)[1:] == ['1. Agência Exemplo — "Trecho." · [abrir ↗](<https://a.org/1>)']
 
 
 def test_evidence_none_e_lista_vazia_sao_ausencias_diferentes():
     sem_banco = estado_mamao(evidence=None)
     vazia = estado_mamao(evidence=[])
 
-    assert dossie.secao_checagens(sem_banco, dossie.preprocessar(sem_banco)) == [dossie.TITULO_CHECAGENS, dossie.SEM_BANCO]
-    assert dossie.secao_checagens(vazia, dossie.preprocessar(vazia)) == [dossie.TITULO_CHECAGENS, dossie.SEM_CHECAGEM]
+    assert secao(sem_banco) == [dossie.TITULO_CHECAGENS, dossie.SEM_BANCO]
+    assert secao(vazia) == [dossie.TITULO_CHECAGENS, dossie.SEM_CHECAGEM]   # sem checagem listada, sem legenda
 
 
 def test_evidencia_de_frase_desconhecida_nao_quebra_nem_mostra_id():
     state = estado_mamao(evidence=[evidencia("s99", "https://a.org/orfa")])
 
-    linhas = dossie.secao_checagens(state, dossie.preprocessar(state))
-
-    assert linhas == [dossie.TITULO_CHECAGENS, dossie.SEM_CHECAGEM]
+    assert secao(state) == [dossie.TITULO_CHECAGENS, dossie.SEM_CHECAGEM]
 
 
 # --- Seção do argumento sem LLM -------------------------------------------------
@@ -207,24 +308,27 @@ def test_frase_com_link_nao_desloca_a_checagem():
         text_report=None,
     )
 
-    texto = dossie.montar(dossie.secao_checagens(state, dossie.preprocessar(state)))
+    texto = dossie.montar(secao(state))
 
     assert texto.splitlines() == [
-        dossie.TITULO_CHECAGENS,
-        '- "O mamão cura a dengue." — uma checagem contradiz esta frase.',
-        '  - Agência Exemplo: Falso — "Trecho." (https://a.org/1)',
-        '- "Veja o vídeo em [link] e compartilhe." — uma checagem contradiz esta frase.',
-        '  - Agência Exemplo: Falso — "Trecho." (https://a.org/2)',
+        dossie.TITULO_CHECAGENS, dossie.LEGENDA_CHECAGENS,
+        '- "O mamão cura a dengue."',
+        '  - Contradiz · Agência Exemplo: Falso [↗ 1](<https://a.org/1>)',
+        '- "Veja o vídeo em [link] e compartilhe."',
+        '  - Contradiz · Agência Exemplo: Falso [↗ 2](<https://a.org/2>)',
     ]
     assert dossie.remover_citacoes_invalidas(texto, state.evidence) == (texto, False)
 
 
 def test_trecho_da_checagem_com_link_mantem_a_citacao():
     state = estado_mamao(evidence=[evidencia("s02", "https://a.org/1", excerpt="Leia em https://outro.org/x.")])
+    ctx = dossie.preprocessar(state)
 
-    linhas = dossie.secao_checagens(state, dossie.preprocessar(state))
+    linhas = dossie.secao_fontes(ctx, dossie.numerar_fontes(state, ctx))
 
-    assert '  - Agência Exemplo: Falso — "Leia em [link]." (https://a.org/1)' in linhas
+    assert linhas[1] == '1. Agência Exemplo: Falso — "Leia em [link]." · [abrir ↗](<https://a.org/1>)'
+    texto = dossie.montar(dossie.secao_checagens(state, ctx, dossie.numerar_fontes(state, ctx)), linhas)
+    assert dossie.remover_citacoes_invalidas(texto, state.evidence)[1] is False
 
 
 def test_limites_listam_as_frases_que_ficaram_sem_classificacao():
@@ -245,3 +349,29 @@ def test_frase_sem_classificacao_com_link_aparece_neutralizada():
     linhas = dossie.secao_limites(state)
 
     assert '- Estas frases não puderam ser classificadas como fato ou opinião: "Veja em [link] agora.".' in linhas
+
+
+# --- Texto da notícia escapado em todas as seções do código -----------------------
+
+def test_frase_da_noticia_e_escapada_no_corpo_das_checagens():
+    state = estado_mamao(segments=[{"id": "s01", "text": "O kit custa R$ 10 e é *natural*."}],
+                         evidence=[evidencia("s01", "https://a.org/1")], text_report=None)
+
+    linhas = secao(state)
+
+    assert '- "O kit custa R\\$ 10 e é \\*natural\\*."' in linhas
+
+
+def test_fallback_e_limites_escapam_trecho_e_frase_da_noticia():
+    state = estado_mamao(
+        segments=[{"id": "s01", "text": "Paga R$ 5 por mês."}, {"id": "s02", "text": "Frase_sem classificar."}],
+        text_report={"statements": [{"segment_id": "s01", "kind": "valor"}],
+                     "markers": [{"segment_id": "s01", "type": "adjetivacao_extrema", "excerpt": "R$ 5 *só*", "explanation": "x"}]},
+    )
+
+    linhas = dossie.fallback_argumento(state, dossie.preprocessar(state))
+
+    assert linhas[0] == '- Adjetivação extrema: "R\\$ 5 \\*só\\*"'
+    assert linhas[1] == '- Juízo de valor: "Paga R\\$ 5 por mês." é uma opinião e não foi checada.'
+    assert ('- Estas frases não puderam ser classificadas como fato ou opinião: "Frase\\_sem classificar.".'
+            in dossie.secao_limites(state))

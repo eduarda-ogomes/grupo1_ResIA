@@ -40,6 +40,8 @@ def test_caso_do_mamao(monkeypatch):
     assert titulos(texto) == TITULOS
     assert "Agência Lupa: Falso" in texto and URL_LUPA in texto
     assert "Aos Fatos: Falso" in texto and URL_AOSFATOS in texto
+    assert f"[↗ 1](<{URL_LUPA}>)" in texto and f"[↗ 2](<{URL_AOSFATOS}>)" in texto
+    assert dossie.LEGENDA_CHECAGENS in texto
     assert falsos.RESPOSTA_SINTETIZADOR in texto
     assert "1. Quais estudos o texto apresenta" in texto
     assert not re.search(r"\bs\d{2}\b", texto), "IDs de frase não podem aparecer no dossiê"

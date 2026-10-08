@@ -134,9 +134,10 @@ def _montar_dossie(state: PipelineState, usar_modelo: bool) -> dict:
         return {"dossier": dossie.SEM_TEXTO}
 
     ctx = dossie.preprocessar(state)
+    fontes = dossie.numerar_fontes(state, ctx)
     argumento, avisos = secao_argumento(state, ctx, usar_modelo)
     texto = dossie.montar(
-        dossie.secao_checagens(state, ctx),
+        dossie.secao_checagens(state, ctx, fontes),
         argumento,
         dossie.secao_perguntas(state),
         dossie.secao_limites(state),

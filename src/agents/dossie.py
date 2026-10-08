@@ -6,6 +6,7 @@ livre do LLM ("Como o texto argumenta").
 """
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 
 from src.agents.ingestor import is_url
@@ -16,6 +17,18 @@ TITULO_CHECAGENS = "## O que as checagens dizem"
 TITULO_ARGUMENTO = "## Como o texto argumenta"
 TITULO_PERGUNTAS = "## Perguntas para pensar antes de decidir"
 TITULO_LIMITES = "## Limites desta análise"
+TITULO_FONTES = "## Fontes"
+
+# Cópia exata do spec do dossiê final ("2. O que as checagens dizem"); sem os termos do filtro de veredito
+LEGENDA_CHECAGENS = (
+    "_Comparamos cada afirmação factual com checagens já publicadas por agências. "
+    "**Contradiz**: a agência checou uma alegação igual e concluiu que ela não se sustenta. "
+    "**Apoia**: concluiu que ela se sustenta. "
+    "**Não conclusiva**: deu um veredito intermediário (como \"enganoso\" ou \"sem contexto\") "
+    "ou não chegou a uma conclusão. "
+    "O selo ao lado é o veredito da própria agência; o número leva à fonte._"
+)
+ROTULOS_STANCE = {"contradiz": "Contradiz", "apoia": "Apoia", "insuficiente": "Não conclusiva"}
 
 ROTULOS = {
     "adjetivacao_extrema": "Adjetivação extrema",
@@ -36,7 +49,7 @@ SEM_PERGUNTAS = "- As perguntas não puderam ser geradas nesta análise."
 NENHUMA_PERGUNTA = "- Nenhuma pergunta foi gerada para este texto."
 LIMITE_COLETA = "- O banco de checagens pode não conter checagens mais recentes que a última coleta."
 
-_NUMERAIS = {1: "uma", 2: "duas", 3: "três", 4: "quatro", 5: "cinco", 6: "seis"}
+_ESCAPAR = re.compile(r"([\\`*_\[\]<>~$])")
 
 
 @dataclass
@@ -70,61 +83,111 @@ def preprocessar(state: PipelineState) -> Contexto:
     )
 
 
-# --- 3. Montagem: "O que as checagens dizem" -------------------------------------
+# --- Texto da notícia dentro do Markdown ------------------------------------------
 
-def _numeral(n: int) -> str:
-    return _NUMERAIS.get(n, str(n))
+def escapar_markdown(texto: str) -> str:
+    """Escapa com `\\` os caracteres que o Markdown do app interpretaria: \\ ` * _ [ ] < > ~ $.
 
-
-def _checagens(n: int) -> str:
-    return f"{_numeral(n)} {'checagem' if n == 1 else 'checagens'}"
-
-
-def resumo_por_stance(stances: list[str]) -> str:
-    """Resumo por extenso, na ordem contradiz -> apoia -> insuficiente."""
-    n = {s: stances.count(s) for s in ("contradiz", "apoia", "insuficiente")}
-    partes = []
-    for stance, singular, plural in (("contradiz", "contradiz", "contradizem"), ("apoia", "apoia", "apoiam")):
-        if n[stance]:
-            # o substantivo só vai no primeiro: "duas checagens contradizem e uma apoia"
-            sujeito = _checagens(n[stance]) if not partes else _numeral(n[stance])
-            partes.append(f"{sujeito} {singular if n[stance] == 1 else plural}")
-    if not n["insuficiente"]:
-        return f"{' e '.join(partes)} esta frase"
-    conclusiva = "não é conclusiva" if n["insuficiente"] == 1 else "não são conclusivas"
-    if not partes:
-        return f"{_checagens(n['insuficiente'])} {conclusiva} sobre esta frase"
-    return f"{' e '.join(partes)} esta frase, e {_numeral(n['insuficiente'])} {conclusiva}"
+    O `$` entra porque o Streamlit renderiza `$...$` como LaTeX ("R$ 10 e R$ 20").
+    """
+    return _ESCAPAR.sub(r"\\\1", texto)
 
 
-def _sublinha(ev: Evidence) -> str:
-    selo = f"{ev.source_name}: {ev.agency_verdict}" if ev.agency_verdict else ev.source_name
-    return f'  - {selo} — "{neutralizar_urls(ev.excerpt)}" ({ev.source_url})'
+def texto_seguro(texto: str) -> str:
+    """Frase ou trecho da notícia/corpus pronto para o dossiê: escapa primeiro e só depois troca as URLs
+    por [link], para que o próprio "[link]" não seja escapado."""
+    return neutralizar_urls(escapar_markdown(texto))
 
 
-def secao_checagens(state: PipelineState, ctx: Contexto) -> list[str]:
+def encurtar(texto: str, limite: int = 80) -> str:
+    """Corta em `limite` caracteres no máximo, terminando em "…" quando cortou."""
+    if len(texto) <= limite:
+        return texto
+    return texto[:limite - 1].rstrip() + "…"
+
+
+# --- 3. Montagem: "O que as checagens dizem" e "Fontes" ------------------------------
+
+def _por_frase(ctx: Contexto) -> dict[str, list[Evidence]]:
+    por_frase: dict[str, list[Evidence]] = {}
+    for ev in ctx.evidencias:
+        por_frase.setdefault(ev.segment_id, []).append(ev)
+    return por_frase
+
+
+def numerar_fontes(state: PipelineState, ctx: Contexto) -> dict[str, int]:
+    """URL -> número da fonte, na ordem das frases e depois das evidências de cada frase.
+
+    Só numera o que aparece no corpo (evidência de frase que não está em segments não aparece);
+    a mesma URL em duas frases fica com o primeiro número.
+    """
+    por_frase = _por_frase(ctx)
+    fontes: dict[str, int] = {}
+    for segment in state.segments:
+        for ev in por_frase.get(segment.id, []):
+            fontes.setdefault(ev.source_url, len(fontes) + 1)
+    return fontes
+
+
+def _selo(ev: Evidence) -> str:
+    return f"{ev.source_name}: {ev.agency_verdict}" if ev.agency_verdict else ev.source_name
+
+
+def _linha_checagem(ev: Evidence, fontes: dict[str, int]) -> str:
+    return f"  - {ROTULOS_STANCE[ev.stance]} · {_selo(ev)} [↗ {fontes[ev.source_url]}](<{ev.source_url}>)"
+
+
+def linha_sem_checagem(frases: list[Segment]) -> str:
+    """Uma linha com teto de tamanho: até 2 frases (cortadas em 80 caracteres) e a contagem do resto.
+
+    `frases` não pode ser vazia; a lista completa fica no expander do app.
+    """
+    n = len(frases)
+    citadas = [f'"{texto_seguro(encurtar(s.text))}"' for s in frases[:2]]
+    if n == 1:
+        lista, frase = f"1 afirmação factual, {citadas[0]}", "essa frase"
+    elif n == 2:
+        lista, frase = f"2 afirmações factuais, {citadas[0]} e {citadas[1]}", "essas frases"
+    else:
+        lista, frase = f"{n} afirmações factuais, como {citadas[0]}, {citadas[1]} e mais {n - 2}", "essas frases"
+    return f"- Sem checagem no nosso banco: {lista}. Isso não confirma nem descarta {frase}."
+
+
+def secao_checagens(state: PipelineState, ctx: Contexto, fontes: dict[str, int]) -> list[str]:
     linhas = [TITULO_CHECAGENS]
     if state.evidence is None:
         return linhas + [SEM_BANCO]
 
-    por_frase: dict[str, list[Evidence]] = {}
-    for ev in ctx.evidencias:
-        por_frase.setdefault(ev.segment_id, []).append(ev)
+    por_frase = _por_frase(ctx)
 
     # Na ordem das frases; evidência de frase que não está em segments não aparece (e o ID nunca aparece)
+    corpo: list[str] = []
     for segment in state.segments:
         evs = por_frase.get(segment.id)
         if evs:
-            linhas.append(f'- "{neutralizar_urls(segment.text)}" — {resumo_por_stance([e.stance for e in evs])}.')
-            linhas += [_sublinha(ev) for ev in evs]
+            corpo.append(f'- "{texto_seguro(segment.text)}"')
+            corpo += [_linha_checagem(ev, fontes) for ev in evs]
 
-    if len(linhas) == 1:
+    if not corpo:
         return linhas + [SEM_CHECAGEM]
+    linhas += [LEGENDA_CHECAGENS, *corpo]
     if ctx.factuais_sem_checagem:
-        frases = ", ".join(f'"{neutralizar_urls(s.text)}"' for s in ctx.factuais_sem_checagem)
-        linhas.append(f"- Nenhuma checagem encontrada no nosso banco para: {frases}. "
-                      "Isso não confirma nem descarta essas frases.")
+        linhas.append(linha_sem_checagem(ctx.factuais_sem_checagem))
     return linhas
+
+
+def secao_fontes(ctx: Contexto, fontes: dict[str, int]) -> list[str]:
+    """Uma linha por fonte numerada: veredito da agência, trecho da checagem e link. [] sem fontes."""
+    if not fontes:
+        return []
+    primeira: dict[str, Evidence] = {}
+    for ev in ctx.evidencias:
+        if ev.source_url in fontes:
+            primeira.setdefault(ev.source_url, ev)
+    return [TITULO_FONTES] + [
+        f'{n}. {_selo(primeira[url])} — "{texto_seguro(primeira[url].excerpt)}" · [abrir ↗](<{url}>)'
+        for url, n in sorted(fontes.items(), key=lambda item: item[1]) if url in primeira
+    ]
 
 
 # --- "Como o texto argumenta" sem LLM ---------------------------------------------
@@ -143,8 +206,8 @@ def fallback_argumento(state: PipelineState, ctx: Contexto) -> list[str]:
 
     Não copia o `explanation` do Agente de Texto: também é texto de LLM e furaria o filtro de veredito.
     """
-    linhas = [f'- {ROTULOS[m.type]}: "{neutralizar_urls(m.excerpt)}"' for m in state.text_report.markers]
-    linhas += [f'- Juízo de valor: "{neutralizar_urls(s.text)}" é uma opinião e não foi checada.' for s in ctx.frases_valor]
+    linhas = [f'- {ROTULOS[m.type]}: "{texto_seguro(m.excerpt)}"' for m in state.text_report.markers]
+    linhas += [f'- Juízo de valor: "{texto_seguro(s.text)}" é uma opinião e não foi checada.' for s in ctx.frases_valor]
     return linhas
 
 
@@ -174,7 +237,7 @@ def secao_limites(state: PipelineState) -> list[str]:
         classificadas = {st.segment_id for st in state.text_report.statements}
         sem_classificacao = [s for s in state.segments if s.id not in classificadas]
         if sem_classificacao:
-            frases = ", ".join(f'"{neutralizar_urls(s.text)}"' for s in sem_classificacao)
+            frases = ", ".join(f'"{texto_seguro(s.text)}"' for s in sem_classificacao)
             linhas.append(f"- Estas frases não puderam ser classificadas como fato ou opinião: {frases}.")
     if state.socratic_questions is None:
         linhas.append("- As perguntas reflexivas não puderam ser geradas.")

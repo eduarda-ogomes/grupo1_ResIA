@@ -206,7 +206,7 @@ def test_marcador_com_trecho_inventado_ou_frase_inexistente_e_descartado(monkeyp
     assert len(resultado["text_report"].markers) == 6
 
 
-def test_frase_sem_classificacao_dispara_retry(monkeypatch):
+def test_frase_sem_classificacao_nao_dispara_retry_pois_preenche(monkeypatch):
     incompleto = dict(RELATORIO_MAMAO)
     incompleto["statements"] = RELATORIO_MAMAO["statements"][:5]  # falta s06
     modelo = ModeloFalso(json.dumps(incompleto), json.dumps(RELATORIO_MAMAO))
@@ -214,9 +214,13 @@ def test_frase_sem_classificacao_dispara_retry(monkeypatch):
 
     resultado = texto_node(estado_mamao())
 
-    assert len(modelo.chamadas) == 2
-    assert "s06" in ultima_mensagem_usuario(modelo.chamadas[1])
+    # Com a nova otimização, o modelo não é penalizado por omitir uma frase.
+    # A frase omitida é automaticamente assumida como 'factual'.
+    assert len(modelo.chamadas) == 1
     assert len(resultado["text_report"].statements) == 6
+    # Verifica se a s06 foi preenchida como factual
+    s06 = next(s for s in resultado["text_report"].statements if s.segment_id == "s06")
+    assert s06.kind == "factual"
 
 
 def test_kind_fora_do_schema_dispara_retry(monkeypatch):

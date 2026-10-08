@@ -11,7 +11,7 @@ texto do LLM ("OMS" x "Organização Mundial da Saúde") é apontada como termo 
 import re
 from typing import Iterable
 
-from src.retrieval.etapa2 import DISEASES, _stem, name_groups, tokenize
+from src.retrieval.etapa2 import _SENTENCE_SPLIT, DISEASES, _stem, name_groups, tokenize
 
 # Aspas retas ou curvas; o trecho não atravessa linha, para uma aspa solta não engolir o resto do texto
 _TRECHO = re.compile(r'"([^"\n]*)"|“([^”\n]*)”')
@@ -70,7 +70,8 @@ def termos_fora_do_contexto(texto: str, contexto: str, ignorar: Iterable[str] = 
 
     `ignorar`: rótulos fixos do prompt (ex.: "Autoridade sem identificação"), tirados do texto antes da
     extração, sem diferenciar caixa. O texto é lido linha a linha, sem o marcador de lista ("- ", "1. "),
-    para que a primeira palavra de cada item seja tratada como início de frase.
+    e cada linha é repartida em frases (depois de ". ", ": " etc.), para que a primeira palavra de cada
+    item e de cada frase seja tratada como início de frase, e não como nome próprio.
     """
     radicais = {_stem(t) for t in tokenize(contexto)}
     numeros_do_contexto = {t for t in tokenize(contexto) if t.isdigit()}
@@ -80,9 +81,10 @@ def termos_fora_do_contexto(texto: str, contexto: str, ignorar: Iterable[str] = 
 
     for linha in _sem_rotulos(texto or "", ignorar).splitlines():
         linha = _MARCADOR_DE_LISTA.sub("", linha).strip()
-        for grupo in name_groups(linha):
-            if not any(_stem(t) in radicais for t in grupo):
-                nomes.append(" ".join(grupo))
+        for frase in _SENTENCE_SPLIT.split(linha):
+            for grupo in name_groups(frase):
+                if not any(_stem(t) in radicais for t in grupo):
+                    nomes.append(" ".join(grupo))
         for token in tokenize(linha):
             if token.isdigit():
                 if token not in numeros_do_contexto:

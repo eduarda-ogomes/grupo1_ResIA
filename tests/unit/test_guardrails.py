@@ -212,3 +212,17 @@ def test_numero_com_milhar_e_comparado_normalizado():
     contexto = "O incêndio atingiu 1.800 casas."
 
     assert termos_fora_do_contexto("- Foram 1800 casas atingidas.", contexto) == []
+
+
+@pytest.mark.parametrize("texto", [
+    "- A aeronave caiu. Moradores relataram barulho.",
+    "- A aeronave caiu. Testemunhas viram fumaça.",
+    "- Urgência: Reforça o dano da aeronave.",
+])
+def test_inicio_de_cada_frase_da_linha_nao_e_nome(texto):
+    # Só a primeira palavra da linha era tratada como início de frase; as de depois de ". " e de ": " também são
+    assert termos_fora_do_contexto(texto, " ".join(FRASES)) == []
+
+
+def test_nome_de_fora_na_segunda_frase_da_linha_continua_sendo_apontado():
+    assert termos_fora_do_contexto("- A aeronave caiu. Segundo a OMS, houve falhas.", " ".join(FRASES)) == ["oms"]

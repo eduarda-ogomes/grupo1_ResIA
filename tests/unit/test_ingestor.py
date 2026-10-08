@@ -5,6 +5,7 @@ from src.agents.ingestor import (
     MAX_WORDS,
     extract_text,
     ingestor_node,
+    remover_boilerplate,
     segment_text,
     truncate_words,
 )
@@ -202,6 +203,53 @@ def test_url_pagina_so_javascript_avisa_possivel_renderizacao(monkeypatch):
     assert result["warnings"] == [
         "ingestor: página sem conteúdo legível (possivelmente renderizada por JavaScript)"
     ]
+
+
+# --- boilerplate da página ---
+
+def test_remove_aviso_de_opiniao_e_chamadas_da_pagina():
+    texto = ("O fogo atingiu 3 mil hectares.\n"
+             "Os artigos de opinião assinados não refletem necessariamente o ponto de vista da Folha.\n"
+             "Leia também: Incêndios no Pantanal batem recorde\n"
+             "Receba as notícias no seu e-mail\n"
+             "© 2024 Globo. Todos os direitos reservados.\n"
+             "A Defesa Civil monitora a região.")
+
+    assert remover_boilerplate(texto) == "O fogo atingiu 3 mil hectares.\nA Defesa Civil monitora a região."
+
+
+def test_paragrafo_comum_que_cita_leia_no_meio_fica():
+    texto = "O ministro pediu que a população leia também as orientações oficiais."
+
+    assert remover_boilerplate(texto) == texto
+
+
+def test_remover_boilerplate_colapsa_linhas_vazias_que_sobram():
+    texto = "Primeira frase.\n\nPublicidade\n\nSegunda frase."
+
+    assert remover_boilerplate(texto) == "Primeira frase.\nSegunda frase."
+
+
+def test_texto_colado_nao_passa_pelo_filtro():
+    # entrada sem URL: o usuário escolheu o texto, nada é removido
+    result = run_node("Leia também: a cura natural da dengue.")
+
+    assert result["clean_text"] == "Leia também: a cura natural da dengue."
+    assert [s.text for s in result["segments"]] == ["Leia também: a cura natural da dengue."]
+
+
+def test_url_com_boilerplate_nao_gera_segmento_dele(monkeypatch):
+    texto = ("O fogo atingiu 3 mil hectares.\n"
+             "Leia também: Incêndios no Pantanal batem recorde\n"
+             "A Defesa Civil monitora a região.")
+    monkeypatch.setattr(ingestor, "fetch_page", lambda url: "<html></html>")
+    monkeypatch.setattr(ingestor, "extract_text", lambda html: (texto, "Incêndio", None))
+
+    result = run_node(URL)
+
+    assert result["clean_text"] == "O fogo atingiu 3 mil hectares.\nA Defesa Civil monitora a região."
+    assert not any("Leia também" in s.text for s in result["segments"])
+    assert result["segments"]
 
 
 # --- observabilidade ---

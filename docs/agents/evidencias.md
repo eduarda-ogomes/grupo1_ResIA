@@ -260,6 +260,7 @@ O nome da coleção vem do modelo de embedding (`checagens__baai-bge-m3`). Troca
 | `data/corpus/fetch_articles.py` | Download do texto completo de cada checagem (desiste do site depois de 20 falhas seguidas) |
 | `data/corpus/import_factckbr.py` | Converte o FACTCK.BR enriquecido para o formato do corpus |
 | `data/corpus/build_index.py` | Trechos, embeddings e índice; gera o `nomes_proprios.txt` |
+| `data/corpus/atualizar.py` | Roda coleta, download e indexação incremental em sequência |
 | `data/corpus/diagnostico.py` | Mostra cada passo do agente para uma frase; lista os vereditos do corpus |
 | `data/corpus/experimento_etapa2.py` + `pares_etapa2.json` | Experimento da etapa 2 nos 37 pares (ADR 1) |
 | `data/corpus/nomes_proprios.txt` | Palavras que o corpus usa como nome próprio |
@@ -377,6 +378,24 @@ python eval/medir_recursos.py --comparar-fp16 --salvar                  # tempo 
 ```
 
 A variável vale só para a janela do terminal em que foi definida. Fora do ambiente virtual, no macOS, use `python3` no lugar de `python`. No Mac com Apple Silicon, o agente usa a GPU (`mps`) automaticamente.
+
+### Popular o índice com checagens novas
+
+`data/corpus/atualizar.py` roda os três comandos do corpus em sequência e para no primeiro que falhar:
+
+1. `collect_factcheck_api.py --max-age-days 30`: checagens dos últimos 30 dias; as já coletadas são puladas;
+2. `fetch_articles.py --pular-sites ...`: texto das novas, sem os sites que bloqueiam o download (AFP, UOL e BOL);
+3. `build_index.py --apenas-novos`: embeddings só dos trechos que faltam no índice (regenera também o `nomes_proprios.txt`).
+
+Se a última rodada foi há mais de 30 dias, aumente a janela com `--max-age-days`. A chave vem de `FACTCHECK_API_KEY` ou do `.env` da raiz (que está no `.gitignore`). Se o Python não tiver certificados próprios (o do python.org no macOS), o script usa os do `certifi`.
+
+```bash
+echo 'FACTCHECK_API_KEY=sua-chave' >> .env
+python data/corpus/atualizar.py
+python data/corpus/atualizar.py --max-age-days 90
+```
+
+O app aberto continua com o índice que carregou; reinicie-o para ver as checagens novas.
 
 ## Configuração
 

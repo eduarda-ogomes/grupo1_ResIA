@@ -280,7 +280,7 @@ Para rodar o agente, não é preciso coletar o corpus nem indexar. A pasta do Go
 
 | Arquivo | Pasta criada ao extrair | Para quê |
 | --- | --- | --- |
-| `chroma_data.zip` | `chroma_data/` | Índice que o agente consulta: coleção `checagens__baai-bge-m3` (BGE-M3), com 36.071 trechos (API + FACTCK.BR), gerada em 03/10/2026 com `chromadb` 1.5.9. Basta ele para rodar o agente. ⚠️ O índice de 07/10 (99.464 trechos) e os dados brutos novos ainda não foram enviados ao Drive. |
+| `chroma_data.zip` | `chroma_data/` | Índice que o agente consulta: coleção `checagens__baai-bge-m3` (BGE-M3), com 99.464 trechos (API 2015–2026 + FACTCK.BR), gerada em 07/10/2026 com `chromadb` 1.5.9. Basta ele para rodar o agente. |
 | `raw.zip` | `data/corpus/raw/` | Dados brutos: checagens da API, textos baixados e FACTCK.BR (CSV e arquivos convertidos). Necessário para a avaliação (`sortear`, `validar` e `avaliar` leem o corpus daqui) e para refazer o índice sem a chave da API. |
 
 - O `requirements.txt` fixa o `chromadb` em 1.5.9: um índice criado numa versão pode não abrir em outra.

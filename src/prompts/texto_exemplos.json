@@ -37,5 +37,20 @@
         {"type": "urgencia_artificial", "segment_id": "s05", "excerpt": "agora mesmo", "explanation": "Pede ação imediata sem motivo concreto."}
       ]
     }
+  },
+  {
+    "entrada": [
+      {"id": "s01", "text": "O avião caiu em uma área de mata e ficou totalmente destruído, segundo os bombeiros."},
+      {"id": "s02", "text": "Dois corpos foram encontrados carbonizados."},
+      {"id": "s03", "text": "Em nota, a empresa disse: \"Com profundo pesar recebemos a notícia do falecimento dos tripulantes.\""}
+    ],
+    "saida": {
+      "statements": [
+        {"segment_id": "s01", "kind": "factual"},
+        {"segment_id": "s02", "kind": "factual"},
+        {"segment_id": "s03", "kind": "factual"}
+      ],
+      "markers": []
+    }
   }
 ]

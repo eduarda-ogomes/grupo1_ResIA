@@ -1,6 +1,7 @@
 import sys
 from pathlib import Path
 import base64
+import html
 import os
 import textwrap
 
@@ -9,6 +10,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 import streamlit as st
 import streamlit.components.v1 as components
 from src import medicao
+from src.agents.dossie import tabela_frases
 from src.graph import RAMOS, sistema_multiagente
 from src.observabilidade import configurar_tracing
 from src.state import PipelineState, initial_state
@@ -505,8 +507,12 @@ def render_analisar():
         
         if final_state:
             title = final_state.get('title') or 'Sem título'
-            dossier_text = final_state.get('dossier', '')
-            
+            published_at = final_state.get('published_at')
+            data_html = (
+                f'<p style="font-size:0.9rem; color:#666; margin:-1.5rem 0 2rem 0;">Publicado em {html.escape(str(published_at))}</p>'
+                if published_at else ""
+            )
+
             render_html(f"""
 <div class="exemplo-box">
 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
@@ -515,18 +521,43 @@ def render_analisar():
 <span style="font-size:0.7rem; border:1px solid #EAEAEA; padding:4px 8px; border-radius:4px; margin-right:8px;">Análise Real</span>
 </div>
 </div>
-<h2 style="font-size:2.2rem !important; margin-bottom:2rem;">"{title}"</h2>
+<h2 style="font-size:2.2rem !important; margin-bottom:2rem;">"{html.escape(title)}"</h2>
+{data_html}
 <div style="background-color:#FAFAFA; border:1px solid #EAEAEA; padding:1.5rem; border-radius:8px; display:flex; gap:15px; align-items:flex-start; margin-bottom:2rem;">
 <span style="color:#666; font-size:1.2rem;">ⓘ</span>
 <span style="font-size:0.9rem; color:#555;">Esta análise foi gerada por inteligência artificial com base no texto fornecido. O Dossiê organiza o que falta verificar; não determina se a notícia é verdadeira ou falsa.</span>
 </div>
-
-<div class="custom-card" style="border:none; padding:0; box-shadow:none;">
-{dossier_text}
-</div>
 </div>
             """)
-            
+
+            for aviso in final_state.get('warnings', []):
+                st.warning(aviso, icon=":material/warning:")
+
+            segments = final_state.get('segments', [])
+            if not segments:
+                st.error("O Ingestor não extraiu nenhum texto. Cole o texto da matéria manualmente.", icon=":material/error:")
+
+            # O dossiê é Markdown (seções, listas, links): renderiza fora do HTML para o Markdown valer.
+            # As perguntas do Agente Socrático já vêm dentro do dossiê
+            dossier = final_state.get('dossier')
+            if dossier:
+                with st.container(border=True):
+                    st.markdown(dossier)
+
+            if segments:
+                with st.expander(f"Todas as frases analisadas ({len(segments)})"):
+                    st.table(tabela_frases(validated))
+
+            with st.expander("Detalhes técnicos"):
+                nos = [n for n in ("ingestor", *RAMOS, "sintetizador") if n in execucao.duracao_por_no]
+                st.table({
+                    "nó": nos + ["total"],
+                    "segundos": [round(execucao.duracao_por_no[n], 1) for n in nos] + [round(execucao.total, 1)],
+                })
+                if execucao.trace_id:
+                    endereco = os.environ.get("PHOENIX_COLLECTOR_ENDPOINT", "http://localhost:6006")
+                    st.caption(f"Trace desta análise: `{execucao.trace_id}` · [Ver o trace no Phoenix]({endereco})")
+
     else:
         # Exemplo Ilustrativo Estático
         render_html("""

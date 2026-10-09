@@ -2,7 +2,7 @@ langgraph>=0.0.20
 pydantic>=2.0
 langchain-ollama
 langchain-core
-streamlit
+streamlit>=1.51  # st.components.v2 (sala dos agentes)
 trafilatura
 chromadb==1.5.9
 transformers

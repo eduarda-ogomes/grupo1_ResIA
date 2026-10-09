@@ -4,6 +4,7 @@ import base64
 import html
 import os
 import textwrap
+import uuid
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
@@ -13,6 +14,7 @@ from src import medicao
 from src.agents.dossie import tabela_frases
 from src.graph import RAMOS, sistema_multiagente
 from src.observabilidade import configurar_tracing
+from src.progresso import Progresso
 from src.state import PipelineState, initial_state
 
 @st.cache_resource
@@ -20,6 +22,20 @@ def ligar_tracing() -> bool:
     return configurar_tracing()
 
 ligar_tracing()
+
+# A sala dos agentes (app/sala/). Registrar de novo a cada rerun é seguro: com o mesmo
+# conteúdo o Streamlit só sobrescreve, e o registro vale por sessão do servidor.
+SALA = Path(__file__).resolve().parent / "sala"
+sala_agentes = st.components.v2.component(
+    "sala_agentes",
+    css=(SALA / "sala.css").read_text(encoding="utf-8"),
+    js=(SALA / "sala.js").read_text(encoding="utf-8"),
+)
+
+def desenhar_sala(lugar, progresso):
+    # Redesenha no mesmo lugar; o JS reconhece a análise pelo id e continua a animação de onde estava
+    with lugar:
+        sala_agentes(data=progresso.para_a_sala())
 
 def render_html(html_str):
     st.markdown(textwrap.dedent(html_str), unsafe_allow_html=True)
@@ -489,15 +505,22 @@ def render_analisar():
     if analisar_clicado and text_input.strip():
         # Fluxo Real com LangGraph
         estado_inicial = initial_state(text_input)
-        with st.status("Processando leitura crítica (consultando Inteligência Artificial)...", expanded=True) as status:
+        progresso = Progresso(uuid.uuid4().hex)
+        lugar_da_sala = st.empty()
+        desenhar_sala(lugar_da_sala, progresso)
+
+        def ao_terminar_no(no, segundos, avisos):
+            progresso.terminou(no, segundos, avisos)
+            desenhar_sala(lugar_da_sala, progresso)
+            st.write(f"Concluído: **{no}** ({segundos:.1f} s)")
+
+        with st.status("Processando leitura crítica (consultando Inteligência Artificial)...", expanded=False) as status:
             try:
-                execucao = medicao.executar(
-                    sistema_multiagente,
-                    estado_inicial,
-                    ao_terminar_no=lambda no, segundos: st.write(f"Concluído: **{no}** ({segundos:.1f} s)"),
-                )
+                execucao = medicao.executar(sistema_multiagente, estado_inicial, ao_terminar_no=ao_terminar_no)
                 status.update(label="Análise Concluída", state="complete", expanded=False)
             except Exception as e:
+                progresso.interromper()
+                desenhar_sala(lugar_da_sala, progresso)
                 status.update(label="Erro na execução", state="error")
                 st.error(f"Erro ao executar o pipeline: {str(e)}")
                 st.info("Dica: verifique se o LM Studio está rodando em localhost:1234 com o qwen2.5-7b carregado.")

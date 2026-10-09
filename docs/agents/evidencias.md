@@ -35,9 +35,10 @@ flowchart LR
     S((início)) --> I[Ingestor]
     I --> E[Evidências]
     I --> T[Texto]
-    I --> Q[Socrático]
-    E --> Y[Sintetizador]
-    T --> Y
+    T --> A[agente_argumento]
+    T --> Q[Socrático]
+    E --> Y[Sintetizador<br/>só código]
+    A --> Y
     Q --> Y
     Y --> F((fim))
 ```

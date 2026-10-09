@@ -90,7 +90,7 @@ pytest
 
 ### 5. Orquestração: timeouts e avisos
 
-O grafo (`src/graph.py`) roda o Ingestor, depois Evidências, Texto e Socrático em paralelo, e por fim o Sintetizador. Cada nó tem um limite de tempo (`src/protecao.py`). Se um nó estoura o tempo ou quebra, o grafo segue sem ele, a interface mostra o aviso (por exemplo, `socratico: timeout`) e o dossiê sai assim mesmo.
+O grafo (`src/graph.py`) roda o Ingestor, depois Evidências e Texto em paralelo; depois do Texto, o `agente_argumento` e o Socrático em paralelo; e por fim o Sintetizador (só código), que espera Evidências, Argumento e Socrático. Cada nó tem um limite de tempo (`src/protecao.py`). Se um nó estoura o tempo ou quebra, o grafo segue sem ele, a interface mostra o aviso (por exemplo, `socratico: timeout`) e o dossiê sai assim mesmo.
 
 | Nó | Padrão | Variável de ambiente |
 | --- | --- | --- |

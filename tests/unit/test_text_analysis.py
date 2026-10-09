@@ -1,4 +1,8 @@
 import json
+import re
+import time
+
+import pytest
 
 from src.agents import text_analysis
 from src.agents.text_analysis import (
@@ -8,6 +12,7 @@ from src.agents.text_analysis import (
     carregar_prompt_sistema,
     dividir_em_lotes,
     montar_mensagens,
+    paralelismo,
     texto_node,
 )
 from src.state import PipelineState, Segment, TextReport, initial_state
@@ -405,3 +410,49 @@ def test_prompt_tem_as_regras_de_desastre_e_fala_citada():
 def test_ha_exemplo_de_desastre_sem_marcadores():
     exemplos = [e for e in carregar_exemplos() if any("carbonizados" in s["text"] for s in e["entrada"])]
     assert len(exemplos) == 1 and exemplos[0]["saida"]["markers"] == []
+
+
+# --- lotes em paralelo e explicação curta ---
+
+def test_lotes_rodam_em_paralelo_e_mantem_a_ordem(monkeypatch):
+    monkeypatch.setenv("TEXTO_PARALELISMO", "2")
+    lock = threading.Lock()
+    estatisticas = {"ativas": 0, "pico": 0}
+
+    def modelo_falso(mensagens):
+        usuario = ultima_mensagem_usuario(mensagens)
+        alvo = usuario.split("<frases_para_analisar>")[1]  # ignora o <contexto>
+        ids = re.findall(r"\[(s\d+)\]", alvo)
+        with lock:
+            estatisticas["ativas"] += 1
+            estatisticas["pico"] = max(estatisticas["pico"], estatisticas["ativas"])
+        time.sleep(0.05)
+        with lock:
+            estatisticas["ativas"] -= 1
+        return relatorio_todos_factuais(ids)
+
+    monkeypatch.setattr(text_analysis, "chamar_modelo", modelo_falso)
+
+    out = texto_node(estado(segmentos(45)))  # 45 frases → 3 lotes
+
+    assert estatisticas["pico"] == 2
+    assert [st.segment_id for st in out["text_report"].statements] == [f"s{i:02d}" for i in range(1, 46)]
+
+
+@pytest.mark.parametrize("valor, esperado", [("1", 1), ("3", 3), ("0", 2), ("x", 2), ("", 2)])
+def test_paralelismo(monkeypatch, valor, esperado):
+    monkeypatch.setenv("TEXTO_PARALELISMO", valor)
+    assert paralelismo() == esperado
+
+
+def test_paralelismo_padrao_sem_variavel(monkeypatch):
+    monkeypatch.delenv("TEXTO_PARALELISMO", raising=False)
+    assert paralelismo() == 2
+
+
+def test_explicacoes_dos_exemplos_tem_no_maximo_10_palavras():
+    assert all(len(m["explanation"].split()) <= 10 for e in carregar_exemplos() for m in e["saida"]["markers"])
+
+
+def test_prompt_limita_a_explicacao_a_10_palavras():
+    assert "- `explanation` tem no máximo 10 palavras e descreve um padrão para o leitor observar, nunca uma acusação." in carregar_prompt_sistema()

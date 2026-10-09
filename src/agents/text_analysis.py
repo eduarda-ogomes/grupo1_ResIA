@@ -9,6 +9,7 @@ continuaram sem classificação depois do retry são listadas num aviso. `text_r
 """
 import json
 import logging
+import os
 from collections import Counter
 from pathlib import Path
 
@@ -22,9 +23,19 @@ logger = logging.getLogger(__name__)
 PROMPTS_DIR = Path(__file__).resolve().parents[1] / "prompts"
 TAMANHO_LOTE = 15
 FRASES_DE_CONTEXTO = 2
+PARALELISMO_PADRAO = 2
 
 WARN_SAIDA_INVALIDA = "texto: saída inválida após 1 retry"
 WARN_MODELO_INDISPONIVEL = "texto: falha ao chamar o modelo (o LM Studio está rodando?)"
+
+
+def paralelismo() -> int:
+    """Quantos lotes rodam ao mesmo tempo (env TEXTO_PARALELISMO; inválido ou < 1 dá 2)."""
+    try:
+        n = int(os.environ.get("TEXTO_PARALELISMO", ""))
+    except ValueError:
+        return PARALELISMO_PADRAO
+    return n if n >= 1 else PARALELISMO_PADRAO
 
 
 def _resumo(texto: str, limite: int = 80) -> str:
@@ -192,7 +203,7 @@ def texto_node(state: PipelineState) -> dict:
     statements, markers, sem_classificacao, avisos = [], [], [], []
     lotes = dividir_em_lotes(state.segments)
     
-    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=paralelismo()) as executor:
         futuros = []
         for contexto, alvo in lotes:
             futuros.append(executor.submit(analisar_lote, contexto, alvo))
@@ -213,7 +224,7 @@ def texto_node(state: PipelineState) -> dict:
                 avisos.append(WARN_MODELO_INDISPONIVEL)
                 sem_classificacao += alvo
                 modelo_caiu = True
-                # Cancela os próximos que ainda não começaram
+                # Cancela os próximos que ainda não começaram (os já em andamento terminam, mas o resultado é descartado)
                 for f in futuros[i+1:]:
                     f.cancel()
 

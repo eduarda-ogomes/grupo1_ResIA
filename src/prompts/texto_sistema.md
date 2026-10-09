@@ -23,7 +23,7 @@ Analise CADA frase dentro de <frases_para_analisar>.
 ## Regras
 
 - `excerpt` deve ser uma cópia LITERAL de um trecho da frase indicada em `segment_id`, com as mesmas letras, acentos e pontuação. Não resuma nem parafraseie.
-- `explanation` tem no máximo uma frase curta e descreve um padrão para o leitor observar, nunca uma acusação.
+- `explanation` tem no máximo 10 palavras e descreve um padrão para o leitor observar, nunca uma acusação.
 - Dados estatísticos neutros não são marcadores, mesmo que o tema seja grave.
 - Palavras que descrevem um fato concreto e grave (mortes, destruição, ferimentos, número de vítimas) não são adjetivação extrema, mesmo que sejam fortes: "carbonizados", "totalmente destruído" e "morreram" descrevem o que aconteceu.
 - Linguagem emocional dentro de falas, notas ou declarações citadas e atribuídas a alguém identificado é da pessoa citada, não do texto, e não é marcador.

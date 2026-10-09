@@ -69,12 +69,11 @@
           "checagens_aceitas": [
             "https://projetocomprova.com.br/publica%C3%A7%C3%B5es/post-inventa-encontro-noturno-entre-janja-e-macron-em-roma/",
             "https://noticias.uol.com.br/comprova/ultimas-noticias/2025/05/06/post-inventa-encontro-noturno-entre-janja-e-macron-em-roma.htm",
-            "https://www.bol.uol.com.br/noticias/2025/05/06/post-inventa-encontro-noturno-entre-janja-e-macron-em-roma.ghtm",
             "https://www.estadao.com.br/estadao-verifica/falso-encontro-noturno-janja-macron-roma/"
           ],
           "stance_esperada": "contradiz",
           "alegacao_original": "Janja foi vista saindo do hotel de Macron em Roma",
-          "obs": "",
+          "obs": "URL do BOL retirada em 08/10/2026: republicação do UOL, fora do índice (config.DOMINIOS_EXCLUIDOS).",
           "_veredito": "Projeto Comprova: Falso"
         },
         {
@@ -516,12 +515,11 @@
           "tipo": "com_checagem",
           "checagens_aceitas": [
             "https://checamos.afp.com/doc.afp.com.C9AE4G3",
-            "https://noticias.uol.com.br/confere/ultimas-noticias/2026/09/25/falso-imagem-flavio-bolsonaro-camisa-ofensa-nordestinos.ghtm",
-            "https://www.bol.uol.com.br/noticias/2026/09/25/falso-imagem-flavio-bolsonaro-camisa-ofensa-nordestinos.ghtm"
+            "https://noticias.uol.com.br/confere/ultimas-noticias/2026/09/25/falso-imagem-flavio-bolsonaro-camisa-ofensa-nordestinos.ghtm"
           ],
           "stance_esperada": "contradiz",
           "alegacao_original": "Flávio Bolsonaro veste camisa com ofensas a nordestinos",
-          "obs": "",
+          "obs": "URL do BOL retirada em 08/10/2026: republicação do UOL, fora do índice (config.DOMINIOS_EXCLUIDOS).",
           "_veredito": "AFP Checamos: Falso"
         }
       ]

@@ -59,7 +59,7 @@ Os riscos residuais estão registrados na Seção 12 e são o foco da análise d
 
 ## 3. Arquitetura do sistema
 
-O sistema é um **grafo de estados em LangGraph** com topologia fixa: uma etapa de entrada, três ramos paralelos no mesmo *superstep* e uma etapa de síntese que só começa quando os três terminam.
+O sistema é um **grafo de estados em LangGraph** com topologia fixa: uma etapa de entrada, Evidências e Texto em paralelo, o `agente_argumento` e o Socrático em paralelo depois do Texto, e uma etapa de síntese (só código) que espera Evidências, Argumento e Socrático.
 
 ### 3.1 Grafo de execução
 
@@ -68,9 +68,10 @@ flowchart LR
     IN[Entrada: texto ou URL] --> ING[Ingestor<br/>limpeza + segmentação]
     ING --> EV[Agente de Evidências<br/>RAG + NLI]
     ING --> TX[Agente de Texto<br/>viés, falácias, fato/valor]
-    ING --> SO[Agente Socrático<br/>perguntas reflexivas]
+    TX --> AR[agente_argumento<br/>como o texto argumenta]
+    TX --> SO[Agente Socrático<br/>perguntas reflexivas]
     EV --> SY[Sintetizador<br/>dossiê + guardrails]
-    TX --> SY
+    AR --> SY
     SO --> SY
     SY --> OUT[Dossiê ao usuário]
 ```
@@ -83,7 +84,7 @@ flowchart LR
 | Agente de Evidências | RAG com modelos encoder (embeddings + NLI) | Não | Sim |
 | Agente de Texto | LLM local com few-shot e saída estruturada | Sim | Sim |
 | Agente Socrático | LLM local com system prompt restrito | Sim | Sim |
-| Sintetizador | LLM de alta capacidade + guardrails determinísticos | Sim | Não |
+| Sintetizador | Só código: monta o dossiê e aplica os guardrails (o LLM do argumento roda no `agente_argumento`, com saída estruturada) | Não | Não |
 
 O Agente de Evidências não usa LLM gerador: busca vetorial e classificação NLI rodam com modelos encoder pequenos, mais rápidos e mais previsíveis.
 
@@ -138,7 +139,7 @@ Cada ramo paralelo escreve em um campo próprio, então não há conflito de esc
 
 ### 3.4 Fluxo de controle e tratamento de falhas
 
-- **Fan-out estático:** três arestas saem do Ingestor. O LangGraph executa os três ramos no mesmo superstep e só chama o Sintetizador quando todos terminam.
+- **Fan-out estático:** duas arestas saem do Ingestor (Evidências e Texto, em paralelo) e duas saem do Texto (`agente_argumento` e Socrático, em paralelo). O Sintetizador espera Evidências, Argumento e Socrático e roda uma vez só. Medições e motivos em `docs/agents/desempenho.md`.
 - **Limite de entrada:** o Ingestor trunca textos acima de um limite fixo de tokens e marca `truncated = True`, que o dossiê informa ao usuário.
 - **Timeout por nó:** um ramo que estoura o tempo grava um aviso em `warnings` e devolve `None`; os outros seguem. Implementado em `src/protecao.py`: 60 s no Ingestor, 240 s em cada ramo e 180 s no Sintetizador, ajustáveis por `GRAFO_TIMEOUT_INGESTOR`, `GRAFO_TIMEOUT_RAMO` e `GRAFO_TIMEOUT_SINTETIZADOR`. A mesma camada transforma uma exceção não tratada de qualquer nó em aviso, e o Sintetizador protegido nunca devolve `dossier = None`.
 - **Degradação graciosa:** o Sintetizador trata `None` como ausência declarada ("não foi possível analisar a estrutura do texto"), nunca como silêncio.

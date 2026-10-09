@@ -46,7 +46,8 @@ Reprovou: 1 retry, nomeando o problema. Reprovou de novo, ou o LM Studio está f
 Do `agente_argumento`:
 
 - `sintetizador: falha ao chamar o modelo (o LM Studio está rodando?)`
-- `sintetizador: síntese livre reprovada nos guardrails após 1 retry`
+- `sintetizador: efeito do argumento reprovado nos guardrails após 1 retry`
+- `sintetizador: saída inválida após 1 retry` (a saída estruturada do modelo não bateu com o schema)
 
 Do `sintetizador` (montagem):
 

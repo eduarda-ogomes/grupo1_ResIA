@@ -49,6 +49,13 @@ DEFAULT_SITES = [
     "checamos.afp.com",        # AFP Checamos
     "estadao.com.br",          # Estadão Verifica
     "noticias.uol.com.br",     # UOL Confere
+    # Ampliação de 08/10/2026 (sondagem de ~40 domínios; só estes devolveram checagens em
+    # pt-BR). Fora: nexojornal.com.br (várias alegações por página) e bol.uol.com.br
+    # (republica o UOL Confere). Checagens de Portugal ficam de fora.
+    "oglobo.globo.com",        # Fato ou Fake (O Globo)
+    "apublica.org",            # Truco (Agência Pública)
+    "correiobraziliense.com.br",  # Correio Braziliense
+    "em.com.br",               # Estado de Minas
 ]
 
 # Palavras-chave para dividir a coleta em buscas menores. Temas recorrentes de
@@ -67,6 +74,17 @@ QUERIES = [
     "aborto", "LGBT", "indígena", "MST", "agro", "queimada", "seca", "terremoto",
     "WhatsApp", "deepfake", "celebridade", "futebol", "papa", "militares", "ditadura",
     "gasolina", "inflação", "dólar", "auxílio", "criança", "mulher", "armas", "drogas",
+    # Ampliação de 08/10/2026.
+    "Flávio Bolsonaro", "Eduardo Bolsonaro", "Alckmin", "Ciro", "Boulos", "Nikolas", "Zema",
+    "Gilmar", "Senado", "Câmara", "deputado", "prefeito", "governador", "ministro",
+    "Polícia Federal", "Forças Armadas", "8 de janeiro", "fraude", "apuração",
+    "pesquisa eleitoral", "censura", "comunismo", "Cuba", "Irã", "ONU", "OMS", "Elon Musk",
+    "TikTok", "Instagram", "YouTube", "Globo", "jornalista", "BPC", "Enem", "universidade",
+    "hospital", "médico", "vírus", "gripe", "autismo", "alimento", "água", "energia",
+    "Rio Grande do Sul", "São Paulo", "Rio de Janeiro", "Nordeste", "chuva", "calor",
+    "banco", "cartão", "empréstimo", "celular", "5G", "Copa", "Neymar", "Carnaval",
+    "evangélico", "bíblia", "racismo", "imigrante", "estupro", "assassinato", "PCC",
+    "milícia", "presídio", "acidente", "avião", "incêndio",
 ]
 
 

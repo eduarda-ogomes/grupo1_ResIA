@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 
 from streamlit.testing.v1 import AppTest
@@ -142,3 +143,74 @@ def test_app_mostra_so_o_dossie_e_os_expanders():
     rotulos = [e.label for e in at.expander]
     assert any(r.startswith("Todas as frases analisadas (") for r in rotulos)
     assert "Detalhes técnicos" in rotulos
+
+
+SEM_NOTICIA = "Nenhuma notícia enviada"
+
+
+def test_dica_de_exemplo_aparece_antes_de_analisar():
+    at = pagina_analisar()
+    at.run()
+
+    assert any(SEM_NOTICIA in m.value for m in at.markdown)
+
+
+def test_dica_de_exemplo_some_ao_gerar_o_dossie():
+    at = analisar("O suco de mamão cura a dengue. Isso não tem comprovação.")
+
+    assert not at.exception
+    assert not any(SEM_NOTICIA in m.value for m in at.markdown)
+
+
+# --- sala dos agentes (app/sala/) ---
+
+def _sala(at):
+    salas = at.get("bidi_component")
+    assert len(salas) == 1, "a sala aparece uma vez só"
+    assert salas[0].proto.component_name == "sala_agentes"
+    return json.loads(salas[0].proto.json)
+
+
+def test_sala_mostra_todos_os_agentes_concluidos_no_fim(monkeypatch):
+    from tests import modelos_falsos as falsos
+
+    falsos.ligar_falsos(monkeypatch)
+
+    at = analisar(falsos.TEXTO_LIVRE)
+
+    assert not at.exception
+    sala = _sala(at)
+    assert sala["concluida"] is True and sala["interrompida"] is False
+    assert [a["id"] for a in sala["agentes"]] == [
+        "ingestor", "agente_evidencias", "agente_texto", "agente_socratico", "sintetizador"]
+    assert {a["estado"] for a in sala["agentes"]} == {"concluido"}
+
+
+def test_sala_mostra_os_avisos_de_cada_agente():
+    # o tests/conftest.py desliga os modelos: os ramos terminam com aviso
+    at = analisar("O suco de mamão cura a dengue. Isso não tem comprovação.")
+
+    agentes = {a["id"]: a for a in _sala(at)["agentes"]}
+    assert any(aviso.startswith("texto:") for aviso in agentes["agente_texto"]["avisos"])
+
+
+def test_sala_fica_interrompida_quando_a_analise_falha(monkeypatch):
+    from src import medicao
+
+    def falha(*args, **kwargs):
+        raise RuntimeError("modelo fora do ar")
+
+    monkeypatch.setattr(medicao, "executar", falha)
+
+    at = analisar("O suco de mamão cura a dengue. Isso não tem comprovação.")
+
+    sala = _sala(at)
+    assert sala["interrompida"] is True
+    assert {a["id"]: a["estado"] for a in sala["agentes"]}["ingestor"] == "interrompido"
+
+
+def test_sala_nao_aparece_antes_de_analisar():
+    at = pagina_analisar()
+    at.run()
+
+    assert not at.get("bidi_component")

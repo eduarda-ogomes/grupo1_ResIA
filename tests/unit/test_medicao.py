@@ -52,10 +52,10 @@ def test_duracoes_respeitam_o_paralelismo():
 def test_avisa_cada_no_que_termina():
     vistos = []
 
-    executar_falso(ao_terminar_no=lambda no, segundos: vistos.append((no, segundos)))
+    executar_falso(ao_terminar_no=lambda no, segundos, avisos: vistos.append((no, segundos, avisos)))
 
-    assert vistos == [("ingestor", 1), ("agente_socratico", 4), ("agente_evidencias", 6),
-                      ("agente_texto", 9), ("sintetizador", 12)]
+    assert vistos == [("ingestor", 1, ["ingestor: x"]), ("agente_socratico", 4, ["socrático: y"]),
+                      ("agente_evidencias", 6, []), ("agente_texto", 9, ["texto: z"]), ("sintetizador", 12, [])]
 
 
 def test_span_raiz_analise_com_atributos(spans, monkeypatch):

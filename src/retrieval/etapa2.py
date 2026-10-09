@@ -22,6 +22,7 @@ Números do experimento (37 pares, NLI real): NLI + termos-chave + normalizaçã
 from __future__ import annotations
 
 import re
+import threading
 import unicodedata
 from pathlib import Path
 from typing import Iterable, NamedTuple
@@ -123,6 +124,7 @@ _SENTENCE_SPLIT = re.compile(r"(?<=[.!?:;])\s+")
 
 _name_vocabulary: set[str] | None = None
 _name_vocabulary_loaded = False
+_name_vocabulary_lock = threading.Lock()
 
 
 def _is_shouting(word: str) -> bool:
@@ -157,9 +159,16 @@ def load_name_vocabulary(path: Path = NAME_VOCABULARY_PATH) -> set[str] | None:
     """Vocabulário salvo pelo build_index.py; None se o arquivo não existir (vale a regra antiga)."""
     global _name_vocabulary, _name_vocabulary_loaded
     if not _name_vocabulary_loaded:
-        _name_vocabulary_loaded = True
-        if path.exists():
-            _name_vocabulary = {w.strip() for w in path.read_text(encoding="utf-8").splitlines() if w.strip()}
+        # Socrático e argumento rodam em threads paralelas e as duas chegam aqui na
+        # primeira análise: só uma carrega e o vocabulário é atribuído ANTES de marcar
+        # como carregado, para nenhuma thread ler o cache pela metade (None).
+        with _name_vocabulary_lock:
+            if not _name_vocabulary_loaded:
+                vocabulary = None
+                if path.exists():
+                    vocabulary = {w.strip() for w in path.read_text(encoding="utf-8").splitlines() if w.strip()}
+                _name_vocabulary = vocabulary
+                _name_vocabulary_loaded = True
     return _name_vocabulary
 
 

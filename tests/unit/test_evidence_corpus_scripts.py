@@ -15,6 +15,7 @@ import build_index  # noqa: E402
 import experimento_etapa2  # noqa: E402
 import fetch_articles  # noqa: E402
 import import_factckbr  # noqa: E402
+import import_lupa  # noqa: E402
 
 
 # --- build_index: divisão em trechos ----------------------------------------------
@@ -188,6 +189,60 @@ def test_republicacoes_nao_geram_trecho_e_sao_listadas_para_apagar():
     assert excluidas == ["https://www.bol.uol.com.br/a.htm", "https://www.bol.uol.com.br/b.htm"]
 
 
+# --- variantes de URL da mesma página (UOL: .htm, .ghtm, .amp.htm) ------------------
+
+@pytest.mark.parametrize("url, canonica", [
+    ("https://noticias.uol.com.br/confere/2024/12/20/nikolas.htm", "https://noticias.uol.com.br/confere/2024/12/20/nikolas"),
+    ("https://noticias.uol.com.br/confere/2024/12/20/nikolas.ghtm", "https://noticias.uol.com.br/confere/2024/12/20/nikolas"),
+    ("https://noticias.uol.com.br/confere/2024/12/20/nikolas.amp.htm", "https://noticias.uol.com.br/confere/2024/12/20/nikolas"),
+    ("https://noticias.uol.com.br/a/b.htm?cmpid=x", "https://noticias.uol.com.br/a/b"),
+    ("https://www.estadao.com.br/estadao-verifica/x/", "https://www.estadao.com.br/estadao-verifica/x"),
+    ("https://saude.uol.com.br/noticias/doenca.html", "https://saude.uol.com.br/noticias/doenca.html"),  # .html fica
+])
+def test_url_canonica_junta_as_variantes(url, canonica):
+    assert build_index.url_canonica(url) == canonica
+
+
+def test_unifica_variantes_mantem_htm_e_completa_campos_vazios():
+    base = "https://noticias.uol.com.br/confere/2024/12/20/nikolas"
+    claims = [
+        {"source_url": base + ".amp.htm", "review_title": "É falso que Nikolas…", "review_date": "2024-12-20"},
+        {"source_url": base + ".htm", "review_title": "É falso que Nikolas…", "review_date": ""},
+        {"source_url": base + ".ghtm", "review_title": "É falso que Nikolas…", "review_date": "2024-12-20"},
+        {"source_url": "https://www.aosfatos.org/noticias/outra/", "review_title": "Outra"},
+    ]
+    articles = [{"source_url": base + ".ghtm", "text": "Texto baixado pela variante .ghtm."}]
+    claims_ok, articles_ok, removidas = build_index.unificar_variantes(claims, articles)
+    assert [c["source_url"] for c in claims_ok] == [base + ".htm", "https://www.aosfatos.org/noticias/outra/"]
+    assert claims_ok[0]["review_date"] == "2024-12-20"                   # veio de outra variante
+    assert articles_ok == [{"source_url": base + ".htm", "text": "Texto baixado pela variante .ghtm."}]
+    assert sorted(removidas) == [base + ".amp.htm", base + ".ghtm"]
+
+
+def test_mesma_url_em_duas_fontes_nao_e_removida_nem_misturada():
+    url = "https://www.aosfatos.org/noticias/insulina/"
+    claims = [{"source_url": url, "review_title": "Da API", "claim_reviewed": ""},
+              {"source_url": url, "review_title": "Do FACTCK.BR", "claim_reviewed": "Alegação", "corpus": "factckbr"},
+              {"source_url": url.rstrip("/"), "review_title": "Sem barra"}]
+    claims_ok, _, removidas = build_index.unificar_variantes(claims, [])
+    assert claims_ok == [{"source_url": url, "review_title": "Da API", "claim_reviewed": ""}]   # como antes
+    assert removidas == [url.rstrip("/")]                       # a URL que fica nunca é apagada do índice
+
+
+def test_textos_da_mesma_url_passam_como_estao():
+    url = "https://www.aosfatos.org/noticias/comprovante/"
+    articles = [{"source_url": url, "text": "Texto da API."}, {"source_url": url, "text": "Texto do FACTCK.BR."}]
+    _, articles_ok, _ = build_index.unificar_variantes([{"source_url": url, "review_title": "T"}], articles)
+    assert articles_ok == articles          # build_records continua usando o último, como antes
+
+
+def test_unifica_variantes_sem_htm_fica_a_ghtm():
+    base = "https://noticias.uol.com.br/confere/2026/09/25/video"
+    claims = [{"source_url": base + ".amp.htm", "review_title": "T"}, {"source_url": base + ".ghtm", "review_title": "T"}]
+    claims_ok, _, removidas = build_index.unificar_variantes(claims, [])
+    assert [c["source_url"] for c in claims_ok] == [base + ".ghtm"] and removidas == [base + ".amp.htm"]
+
+
 def test_trecho_registra_a_fonte_do_corpus():
     claims = [{"source_url": "https://x.org/1", "review_title": "Título", "corpus": "factckbr"},
               {"source_url": "https://x.org/2", "review_title": "Outro"}]
@@ -297,3 +352,71 @@ def test_importador_le_o_csv_e_grava_os_dois_arquivos(tmp_path):
     assert art["text"] == "Linha 1\nLinha 2 com, vírgula"
     assert json.loads(claims.read_text(encoding="utf-8"))["source_url"] == "https://www.aosfatos.org/noticias/a/"
 
+
+
+# --- import_lupa: checagens da Agência Lupa pelo sitemap ---------------------------
+
+@pytest.mark.parametrize("url, candidata", [
+    ("https://www.agencialupa.org/verificacao/2026/10/08/e-falso-que-mesarios-na-bahia/", True),
+    ("https://www.agencialupa.org/checagem/2025/03/01/qualquer-coisa/", True),
+    ("https://www.agencialupa.org/eleicoes/2026/10/08/video-antigo-de-lula-e-editado/", True),
+    ("https://www.agencialupa.org/jornalismo/2023/03/29/e-falso-que-oms-mudou-a-classificacao/", True),
+    ("https://www.agencialupa.org/jornalismo/2020/11/25/verificamos-cafeteira-3-coracoes/", True),
+    ("https://www.agencialupa.org/jornalismo/2024/05/02/e-verdade-que-o-salario-minimo/", True),
+    ("https://www.agencialupa.org/jornalismo/2021/06/10/entrevista-com-diretora/", False),   # reportagem
+    ("https://www.agencialupa.org/noticias/2025/09/25/vai-dar-namoro/", False),
+    ("https://www.agencialupa.org/institucional/2020/01/01/e-falso-que-x/", False),
+])
+def test_lupa_candidatas_pelo_endereco(url, candidata):
+    assert import_lupa.eh_candidata(url) is candidata
+
+
+@pytest.mark.parametrize("titulo, esperado", [
+    ("É falso que OMS mudou a classificação de jovens e idosos",
+     ("Falso", "OMS mudou a classificação de jovens e idosos")),
+    ("É verdade que o salário mínimo subiu 7% em 2024.", ("Verdade", "O salário mínimo subiu 7% em 2024")),
+    ("#Verificamos: É enganoso que vacina cause autismo", ("Enganoso", "Vacina cause autismo")),
+    ("É FALSO que Lula foi preso em 2025", ("Falso", "Lula foi preso em 2025")),
+    ("É golpe mensagem que oferece cafeteiras gratuitas", None),   # sem "É <rótulo> que <alegação>"
+    ("Vídeo antigo de Lula é editado para sugerir críticas", None),
+    ("É falso que", None),
+])
+def test_lupa_veredito_e_alegacao_saem_do_titulo(titulo, esperado):
+    assert import_lupa.alegacao_do_titulo(titulo) == esperado
+
+
+def test_lupa_limpa_titulo_e_data_vem_da_url():
+    assert import_lupa.limpar_titulo("#Verificamos:  É falso que X • Lupa") == "É falso que X"
+    assert import_lupa.data_da_url("https://www.agencialupa.org/jornalismo/2020/11/25/x/") == "2020-11-25"
+    assert import_lupa.data_da_url("https://www.agencialupa.org/sobre/") == ""
+
+
+def test_lupa_monta_checagem_no_formato_do_corpus():
+    url = "https://www.agencialupa.org/jornalismo/2020/11/25/e-falso-que-x/"
+    checagem, texto, motivo = import_lupa.montar(url, "É falso que X fechou o STF • Lupa", "Texto da checagem.")
+    assert motivo is None
+    assert checagem == {
+        "source_url": url, "source_name": "Agência Lupa", "review_title": "É falso que X fechou o STF",
+        "review_date": "2020-11-25", "agency_verdict": "Falso", "claim_reviewed": "X fechou o STF",
+        "language": "pt", "corpus": "lupa",
+    }
+    assert texto == {"source_url": url, "title": "É falso que X fechou o STF", "text": "Texto da checagem.",
+                     "corpus": "lupa"}
+
+
+def test_lupa_descarta_sem_padrao_sem_texto_e_verdade_que_desmente():
+    url = "https://www.agencialupa.org/verificacao/2026/01/02/a/"
+    assert import_lupa.montar(url, "É golpe mensagem que oferece cafeteiras", "Texto.")[2] == "título sem 'É <rótulo> que'"
+    assert import_lupa.montar(url, "É falso que X fechou o STF", "")[2] == "sem texto"
+    assert import_lupa.montar(url, "É verdade que Lula não cortou o Bolsa Família", "Texto.")[2] == \
+        "veredito verdadeiro com título que desmente"
+
+
+def test_lupa_pendentes_pulam_feitas_descartadas_e_factckbr():
+    urls = ["https://www.agencialupa.org/jornalismo/2019/01/14/verificamos-acucar/",
+            "https://www.agencialupa.org/jornalismo/2020/01/01/e-falso-que-a/",
+            "https://www.agencialupa.org/jornalismo/2020/01/02/e-falso-que-b/",
+            "https://www.agencialupa.org/jornalismo/2020/01/03/e-falso-que-c"]
+    ja = {"https://www.agencialupa.org/jornalismo/2019/01/14/verificamos-acucar",   # FACTCK.BR, sem a barra
+          "https://www.agencialupa.org/jornalismo/2020/01/01/e-falso-que-a/"}       # já baixada
+    assert import_lupa.pendentes(urls, ja) == urls[2:]

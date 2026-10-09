@@ -68,12 +68,10 @@ agil
 agnaldo
 agostinho
 agrevefoiumfiasco
-agricultura
 agrishow
 agu
 aguia
 aguiar
-ah
 ahmadinejad
 ahronot
 aids
@@ -156,6 +154,7 @@ amaro
 amazon
 amazonas
 amazonia
+amazonica
 amb
 ambas
 ambipar
@@ -191,6 +190,7 @@ andreas
 andrei
 andreia
 andres
+andrew
 android
 aneel
 anel
@@ -339,6 +339,7 @@ bage
 bahamas
 bahia
 bahrein
+baigorri
 baixada
 baldassari
 baldwin
@@ -460,7 +461,6 @@ bieber
 bienal
 big
 bild
-bilenky
 biles
 bilhete
 bill
@@ -499,7 +499,6 @@ body
 boechat
 boeing
 bolero
-bolhosa
 bolivariana
 bolivia
 bolosonaro
@@ -518,7 +517,6 @@ bonita
 bonito
 bonner
 book
-boost
 bope
 bora
 borba
@@ -541,7 +539,6 @@ bowl
 boyko
 bozo
 bozobanana
-bozzo
 bpa
 bpc
 br
@@ -632,7 +629,6 @@ cac
 cacau
 cachoeira
 cachoeirinha
-cacique
 cacs
 cacurta
 cadegiani
@@ -815,7 +811,6 @@ chimbote
 china
 chiquinho
 choquei
-choro
 chris
 christi
 christian
@@ -1258,7 +1253,6 @@ eslovaquia
 eslovenia
 esondeu
 espanha
-espantoesta
 esperanca
 espirito
 esplanada
@@ -1275,7 +1269,6 @@ estela
 ester
 estero
 esteves
-esto
 estocolmo
 estonia
 estrasburgo
@@ -1392,6 +1385,7 @@ fhc
 fi
 fiat
 fic
+ficha
 fidel
 fiel
 fies
@@ -1414,7 +1408,6 @@ fiumicino
 fla
 flamengo
 flavia
-flavinho
 flavio
 fleury
 flight
@@ -1469,7 +1462,6 @@ frazao
 fred
 frederik
 free
-frei
 freire
 freitas
 freixo
@@ -1603,6 +1595,7 @@ go
 godoy
 goebbels
 goering
+gogh
 goiana
 goiania
 goias
@@ -1844,7 +1837,6 @@ ibirite
 ibis
 ibiza
 ibope
-ibopeglobo
 ibpg
 ibrahimovic
 ibs
@@ -1977,6 +1969,7 @@ ives
 ivete
 ivm
 iza
+izabella
 j
 jabatiuma
 jabor
@@ -2074,7 +2067,6 @@ jorginho
 jornal
 jose
 joseph
-joserainha
 josi
 journal
 jr
@@ -2187,7 +2179,6 @@ kyiv
 l
 l7
 lab
-ladro
 lady
 lago
 lagoas
@@ -2338,7 +2329,6 @@ luiza
 lula
 luladrao
 lulaladrao
-lulamanifestante
 lule
 luleco
 lulinha
@@ -2659,6 +2649,7 @@ monta
 montalvao
 montana
 montano
+monte
 monteiro
 montel
 montenegro
@@ -2856,7 +2847,9 @@ oliveira
 oliver
 olx
 oma
+omaha
 omar
+omikron
 oms
 omura
 oncologista
@@ -2960,7 +2953,6 @@ parelheiros
 paris
 parkinson
 parlamento
-pas
 paschoal
 pascoa
 pascoal
@@ -3010,7 +3002,6 @@ penha
 pensilvania
 pequim
 perakov
-percebo
 pereira
 peres
 perhson
@@ -3108,7 +3099,6 @@ polo
 polonia
 polyana
 ponce
-ponta
 porchat
 porciuncula
 portiolli
@@ -3137,13 +3127,11 @@ preto
 pretti
 prev
 previdencia
-previdenciapessoas
 prf
 prigozhin
 princesa
 priscila
 priscilla
-priso
 probank
 proclamacao
 procon
@@ -3152,7 +3140,7 @@ producoes
 profetico
 project
 prole
-promotores
+pronatec
 prostituta
 protogenes
 prtb
@@ -3193,7 +3181,6 @@ quito
 quixote
 r
 r15
-raa
 rabelo
 radcliffe
 rael
@@ -3284,7 +3271,6 @@ rett
 reuters
 revalida
 revolucionaria
-revolucionario
 rey
 rezende
 rfb
@@ -3366,7 +3352,6 @@ rose
 roseana
 rosinha
 rossi
-rota
 rothschild
 rouanet
 round
@@ -3515,7 +3500,6 @@ sertania
 serva
 servia
 seul
-severo
 shadow
 shakira
 sham
@@ -3689,6 +3673,7 @@ tariflavio
 tasso
 tasuko
 tasuku
+tate
 tavares
 tayaya
 taylor
@@ -3843,7 +3828,6 @@ ue2020
 uefa
 uerj
 ufc
-ufes
 uff
 ufmg
 ufpa
@@ -3875,7 +3859,6 @@ unifesp
 unifesspa
 unimed
 unionpay
-universal
 university
 universo
 univesp
@@ -3911,9 +3894,7 @@ v
 vaers
 vaids
 val
-vala
 valadao
-valas
 valdemar
 valdemiro
 valdes
@@ -3923,7 +3904,6 @@ valeurs
 vamo
 vaqueiro
 var
-vara
 varela
 varella
 vargas
@@ -3951,7 +3931,6 @@ verifica
 verissimo
 verita
 verizon
-vermelho
 verstappen
 vertigem
 veterano
@@ -3995,7 +3974,6 @@ viviane
 vladimir
 vlt
 voa
-voc
 vocario
 voepass
 vogue
@@ -4051,6 +4029,7 @@ whatsapp
 white
 whites
 whitty
+wi
 will
 william
 williams
@@ -4058,6 +4037,7 @@ willian
 willians
 willis
 wilson
+windows
 winston
 winter
 wisconsin

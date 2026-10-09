@@ -149,6 +149,8 @@ Dois cuidados com nomes:
 - **A primeira palavra da frase** tem maiúscula por ser a primeira. Ela só conta como nome se não for uma palavra comum de início ("Governo", "Vídeo", "Presidente"…) e se o corpus a usa como nome. O vocabulário do corpus está em `data/corpus/nomes_proprios.txt`: palavras que aparecem com maiúscula no meio de alegações e títulos mais vezes do que em minúscula. Siglas curtas contam ("STF", "EUA", "COP30"); palavras longas em caixa alta não ("URGENTE"). Assim, "Lula disse…" tem um nome, e "Aviões de caça…" não.
 - **Pontuação separa nomes** ("Arrependida, Cármen Lúcia…" não junta as palavras num nome só), e um nome colado a número fica inteiro ("COP30").
 
+**Ancoragem lexical (G2).** Depois dos termos-chave, a candidata ainda precisa dividir pelo menos uma palavra de conteúdo com a alegação checada (sem "Foto mostra") ou com o título (`content_overlap` em `etapa2.py`, mesmo prefixo de 5 letras, sem acentos e sem stopwords); senão é de outro assunto e cai antes do NLI. O texto inteiro da checagem não entra, porque fala de muita coisa. Motivo e números no ADR 4.
+
 ### Passo 3: NLI
 
 Funções: `normalize_claim` (`etapa2.py`), `classify` (`src/retrieval/nli.py`) e `claim_match_score` (`evidence.py`).
@@ -405,6 +407,7 @@ Ajustáveis por variável de ambiente (`src/retrieval/config.py`):
 | --- | --- | --- |
 | `EVIDENCE_SIM_THRESHOLD` | `0.55` | Similaridade mínima na busca (passo 1) |
 | `EVIDENCE_CLAIM_MATCH_MIN_PROB` | `0.8` | Entailment mínimo do NLI (passo 3); calibrado em 01/10, `0.5` volta ao valor antigo |
+| `EVIDENCE_MIN_CONTENT_OVERLAP` | `1` | Palavras de conteúdo que a frase divide com a alegação checada ou o título (passo 2, ancoragem lexical); `0` desliga |
 | `EVIDENCE_SEARCH_K` / `EVIDENCE_CLAIM_CANDIDATES` / `EVIDENCE_MAX_PER_SEGMENT` | `10` / `6` / `3` | Trechos buscados por frase / checagens avaliadas / evidências por frase |
 | `EVIDENCE_EMBEDDING_MODEL` / `EVIDENCE_NLI_MODEL` | `BAAI/bge-m3` / `MoritzLaurer/mDeBERTa-v3-base-mnli-xnli` | Modelos |
 | `EVIDENCE_DEVICE` | automático | `cuda` → `mps` → `cpu`; `cpu` força a CPU (as avaliações oficiais rodam assim) |

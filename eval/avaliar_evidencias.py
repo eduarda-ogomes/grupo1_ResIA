@@ -962,6 +962,7 @@ def configuracao_atual() -> dict:
         "device": config.pick_device(),
         "sim_threshold": config.SIM_THRESHOLD,
         "claim_match_min_prob": config.CLAIM_MATCH_MIN_PROB,
+        "min_content_overlap": config.MIN_CONTENT_OVERLAP,
         "search_k": config.SEARCH_K,
         "claim_candidates": config.CLAIM_CANDIDATES,
         "max_evidence_per_segment": config.MAX_EVIDENCE_PER_SEGMENT,

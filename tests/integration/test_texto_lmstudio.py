@@ -36,3 +36,17 @@ def test_caso_mamao_com_modelo_real():
     for marcador in relatorio.markers:
         assert marcador.excerpt in textos[marcador.segment_id]
     print(json.dumps(relatorio.model_dump(), ensure_ascii=False, indent=2))
+
+
+def test_noticia_de_desastre_nao_vira_adjetivacao_nem_urgencia():
+    with open("tests/fixtures/bordas/texto_noticia_desastre.json", encoding="utf-8") as f:
+        ingestor = json.load(f)
+    state = PipelineState(**initial_state("teste", **ingestor))
+
+    resultado = texto_node(state)
+
+    relatorio = resultado["text_report"]
+    assert relatorio is not None, resultado.get("warnings")
+    proibidos = ("carbonizad", "destruíd", "pesar")
+    assert not [m for m in relatorio.markers
+                if m.type in ("adjetivacao_extrema", "urgencia_artificial") and any(p in m.excerpt for p in proibidos)]

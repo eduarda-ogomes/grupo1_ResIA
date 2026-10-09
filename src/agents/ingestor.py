@@ -1,5 +1,6 @@
 import json
 import re
+import unicodedata
 import urllib.parse
 
 import requests
@@ -19,6 +20,18 @@ WARN_PAYWALL = "ingestor: conteúdo não extraído (paywall ou página vazia)"
 WARN_TIMEOUT = "ingestor: tempo esgotado ao baixar a página"
 WARN_JAVASCRIPT = "ingestor: página sem conteúdo legível (possivelmente renderizada por JavaScript)"
 WARN_TRUNCATED = "ingestor: texto truncado no limite de tokens"
+
+# Linhas de página que não são conteúdo da matéria (avisos, chamadas, rodapé).
+# Casadas em minúsculas e sem acento; a linha inteira sai se algum padrão bater.
+PADROES_BOILERPLATE = tuple(re.compile(p) for p in (
+    r"^(leia|veja) (tambem|mais)\b",
+    r"nao refletem necessariamente (a |o |as |os )?(opiniao|opinioes|ponto de vista|posicao|visao|linha editorial)",
+    r"todos os direitos reservados",
+    r"^(receba|assine)\b.*\b(newsletter|noticias|e-?mail)\b",
+    r"^siga\b.*\b(instagram|twitter|facebook|tiktok|youtube|redes sociais)\b",
+    r"^clique aqui\b",
+    r"^publicidade$",
+))
 
 # Inicializa o modelo de NLP para português de forma lazy (segura)
 nlp = None
@@ -81,6 +94,23 @@ def extract_text(html: str) -> tuple[str, str | None, str | None]:
     return text, title, None
 
 
+def _sem_acento(texto: str) -> str:
+    return "".join(c for c in unicodedata.normalize("NFD", texto) if unicodedata.category(c) != "Mn")
+
+
+def remover_boilerplate(texto: str) -> str:
+    """Tira as linhas de boilerplate (o trafilatura separa parágrafos por \\n) e colapsa as vazias."""
+    mantidas = []
+    for linha in texto.splitlines():
+        if not linha.strip():
+            continue
+        normalizada = _sem_acento(linha.strip().lower())
+        if any(padrao.search(normalizada) for padrao in PADROES_BOILERPLATE):
+            continue
+        mantidas.append(linha)
+    return "\n".join(mantidas)
+
+
 def truncate_words(text: str, max_words: int = MAX_WORDS) -> tuple[str, bool]:
     """Limita o texto a max_words, cortando no fim da última frase completa."""
     words = list(re.finditer(r"\S+", text))
@@ -140,6 +170,7 @@ def ingestor_node(state: PipelineState) -> dict:
         clean_text, title, published_at = extract_text(html)
         if not clean_text.strip():
             return _empty_result(WARN_JAVASCRIPT)
+        clean_text = remover_boilerplate(clean_text)
     else:
         clean_text = raw_input
 

@@ -47,6 +47,10 @@ def test_padroes_da_configuracao():
     assert config.CLAIM_CANDIDATES == 6 and config.MAX_EVIDENCE_PER_SEGMENT == 3
 
 
+def test_padrao_do_limiar_de_sobreposicao():
+    assert config.MIN_CONTENT_OVERLAP == 1
+
+
 # --- Passo 1: busca e agrupamento ------------------------------------------------
 
 def test_agrupa_por_checagem_com_limiar_e_link_obrigatorio():
@@ -57,12 +61,14 @@ def test_agrupa_por_checagem_com_limiar_e_link_obrigatorio():
 
 
 # Textos em minúsculas: sem nomes próprios, a checagem de termos-chave não interfere.
+# A alegação sintética repete "notícia" da frase: sem palavra em comum, a ancoragem lexical (G2) descarta.
 def test_avalia_ate_6_checagens_e_devolve_no_maximo_3(monkeypatch):
     frase = "a frase da notícia."
-    hits = [hit(f"t{i}", 0.9 - i * 0.01, f"https://x.org/{i}", claim_reviewed=f"a alegação {i}",
+    hits = [hit(f"t{i}", 0.9 - i * 0.01, f"https://x.org/{i}", claim_reviewed=f"a alegação {i} da notícia",
                 review_title=f"título {i}") for i in range(8)]
     # As 3 primeiras NÃO são a mesma alegação; a partir da 4ª, são.
-    probs = {pair: NEUTRAL for i in range(3) for pair in ((f"a alegação {i}", frase), (frase, f"a alegação {i}"))}
+    claims = [f"a alegação {i} da notícia" for i in range(3)]
+    probs = {pair: NEUTRAL for c in claims for pair in ((c, frase), (frase, c))}
     output, _ = _run_one(monkeypatch, frase, hits, probs)
     assert [e["source_url"] for e in output["evidence"]] == ["https://x.org/3", "https://x.org/4", "https://x.org/5"]
 
@@ -70,7 +76,7 @@ def test_avalia_ate_6_checagens_e_devolve_no_maximo_3(monkeypatch):
 def test_mesma_checagem_em_dois_enderecos_conta_uma_vez(monkeypatch):
     frase = "a frase da notícia."
     titles = ["Imagem de Fachin é falsa", "Imagem de Fachin é falsa", "Outro título"]
-    hits = [hit("t", 0.9 - i * 0.01, f"https://x.org/{i}", claim_reviewed="a alegação", review_title=t)
+    hits = [hit("t", 0.9 - i * 0.01, f"https://x.org/{i}", claim_reviewed="a alegação da notícia", review_title=t)
             for i, t in enumerate(titles)]
     output, _ = _run_one(monkeypatch, frase, hits)
     assert [e["source_url"] for e in output["evidence"]] == ["https://x.org/0", "https://x.org/2"]
@@ -81,9 +87,9 @@ def test_espelho_bol_perde_para_o_original_uol(monkeypatch):
     title = "Imagem de Fachin é falsa"
     bol = "https://www.bol.uol.com.br/noticias/x.htm"
     uol = "https://noticias.uol.com.br/confere/x.htm"
-    hits = [hit("t", 0.62, bol, "BOL - UOL", claim_reviewed="a alegação", review_title=title),
-            hit("t", 0.62, uol, "UOL Notícias", claim_reviewed="a alegação", review_title=title),
-            hit("t", 0.60, "https://x.org/2", claim_reviewed="a alegação", review_title="Outro título")]
+    hits = [hit("t", 0.62, bol, "BOL - UOL", claim_reviewed="a alegação da notícia", review_title=title),
+            hit("t", 0.62, uol, "UOL Notícias", claim_reviewed="a alegação da notícia", review_title=title),
+            hit("t", 0.60, "https://x.org/2", claim_reviewed="a alegação da notícia", review_title="Outro título")]
     output, _ = _run_one(monkeypatch, frase, hits)
     assert [e["source_url"] for e in output["evidence"]] == [uol, "https://x.org/2"]
 
@@ -139,6 +145,33 @@ def test_termos_chave_barram_troca_de_doenca_antes_do_nli(monkeypatch):
 
 
 # --- Passo 4: a evidência ------------------------------------------------------------
+
+def test_checagem_de_outro_assunto_e_descartada_mesmo_com_nli_alto(monkeypatch):
+    frase = "Isso resultou em acúmulo de material combustível."
+    hits = [hit("t", 0.9, "https://aosfatos.org/aeronave", claim_reviewed="Vídeo mostra aeronave tomada por névoa na Amazônia",
+                review_title="Vídeo de aeronave tomada por névoa foi gravado na China, não na Amazônia")]
+    output, classify = _run_one(monkeypatch, frase, hits, default=ENTAILMENT)
+    assert output["evidence"] == []
+    assert classify.calls == []          # descartada antes do NLI
+
+
+def test_palavra_em_comum_so_com_o_titulo_basta_para_ancorar(monkeypatch):
+    frase = "O fogo consumiu o material combustível."
+    hits = [hit("t", 0.9, "https://aosfatos.org/incendio", claim_reviewed="Vídeo mostra queimada na serra",
+                review_title="Incêndio consumiu material combustível")]
+    output, classify = _run_one(monkeypatch, frase, hits, default=ENTAILMENT)
+    assert [e["source_url"] for e in output["evidence"]] == ["https://aosfatos.org/incendio"]
+    assert len(classify.calls) == 1
+
+
+def test_limiar_de_sobreposicao_zero_desliga_o_filtro(monkeypatch):
+    monkeypatch.setattr(config, "MIN_CONTENT_OVERLAP", 0)
+    frase = "Isso resultou em acúmulo de material combustível."
+    hits = [hit("t", 0.9, "https://aosfatos.org/aeronave", claim_reviewed="Vídeo mostra aeronave tomada por névoa",
+                review_title="Vídeo de aeronave tomada por névoa foi gravado na China")]
+    output, _ = _run_one(monkeypatch, frase, hits, default=ENTAILMENT)
+    assert len(output["evidence"]) == 1
+
 
 @pytest.mark.parametrize(
     "verdict, stance",
@@ -256,6 +289,19 @@ def test_spans_do_evidencias_no_caso_do_mamao(spans, monkeypatch):
     assert attrs["evidencias.busca"]["pipeline.frases"] == 6
     assert attrs["evidencias.busca"]["openinference.span.kind"] == "RETRIEVER"
     assert attrs["evidencias.termos_chave"]["pipeline.candidatas"] == 2
+    assert attrs["evidencias.termos_chave"]["pipeline.sem_ancoragem"] == 0
     assert attrs["evidencias.termos_chave"]["pipeline.aprovadas"] == 2
     assert attrs["evidencias.nli"]["pipeline.pares"] == 4
     assert attrs["evidencias.nli"]["pipeline.evidencias"] == 2
+
+
+def test_span_conta_as_candidatas_sem_ancoragem_lexical(spans, monkeypatch):
+    frase = "Isso resultou em acúmulo de material combustível."
+    hits = [hit("t", 0.9, "https://aosfatos.org/aeronave", claim_reviewed="Vídeo mostra aeronave tomada por névoa",
+                review_title="Vídeo de aeronave tomada por névoa foi gravado na China")]
+    _run_one(monkeypatch, frase, hits)
+
+    attrs = {s.name: s.attributes for s in spans.get_finished_spans()}
+    assert attrs["evidencias.termos_chave"]["pipeline.candidatas"] == 1
+    assert attrs["evidencias.termos_chave"]["pipeline.sem_ancoragem"] == 1
+    assert attrs["evidencias.termos_chave"]["pipeline.aprovadas"] == 0

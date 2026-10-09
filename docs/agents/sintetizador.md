@@ -6,12 +6,16 @@
 
 Junta os três ramos (Evidências, Texto, Socrático) num dossiê em Markdown, sem veredito. A decisão final é do usuário.
 
-| Seção | Quem escreve | Arquivo |
-| --- | --- | --- |
-| `## O que as checagens dizem` | Código | `src/agents/dossie.py` |
-| `## Como o texto argumenta` | `qwen2.5-7b`, com fallback em código | `src/agents/synthesizer.py` |
-| `## Perguntas para pensar antes de decidir` | Código (copia o Socrático) | `src/agents/dossie.py` |
-| `## Limites desta análise` | Código, sempre presente | `src/agents/dossie.py` |
+Seis seções, nesta ordem (pirâmide invertida: o tamanho do problema primeiro, as referências por último). Texto exato, regras de singular/plural e casos degradados: [`docs/superpowers/specs/2026-10-08-dossie-final-design.md`](../superpowers/specs/2026-10-08-dossie-final-design.md).
+
+| # | Seção | Quem escreve | Arquivo |
+| --- | --- | --- | --- |
+| 1 | `## Resumo` | Código, só contagens | `src/agents/dossie.py` |
+| 2 | `## O que as checagens dizem` | Código, com legenda e referências numeradas | `src/agents/dossie.py` |
+| 3 | `## Como o texto argumenta` | `qwen2.5-7b`, com fallback em código (só o `$` é escapado, depois dos guardrails) | `src/agents/synthesizer.py` |
+| 4 | `## Perguntas para pensar antes de decidir` | Código (copia o Socrático, com Markdown escapado) | `src/agents/dossie.py` |
+| 5 | `## Limites desta análise` | Código, sempre presente | `src/agents/dossie.py` |
+| 6 | `## Fontes` | Código; só aparece quando há evidência | `src/agents/dossie.py` |
 
 ## Contrato
 

@@ -4,6 +4,9 @@ Cada nó passa por `proteger` (src/protecao.py): estourar o tempo ou levantar ex
 vira aviso em `warnings` e a saída de falha do nó, e o grafo sempre chega ao
 Sintetizador (Manual §3.4).
 
+Topologia: o Ingestor abre dois ramos, Evidências e Texto; depois do Texto, o `agente_argumento`
+(LLM) e o Socrático (LLM) rodam em paralelo; o Sintetizador só monta e espera os três.
+
 ATENÇÃO: o PipelineState é estrito (sem valores padrão). Quem chamar o grafo
 deve passar o estado completo criado por `initial_state(...)` (src/state.py):
     sistema_multiagente.invoke(initial_state("texto ou URL"))
@@ -15,12 +18,21 @@ from src import protecao
 from src.agents.evidence import run as evidencias_node
 from src.agents.ingestor import ingestor_node
 from src.agents.socratic import socratic_node as socratico_node
-from src.agents.synthesizer import dossie_sem_modelo
-from src.agents.synthesizer import synthesizer_node as sintetizador_node
+from src.agents.synthesizer import argumento_fallback, argumento_node, sintetizador_node
 from src.agents.text_analysis import texto_node
 from src.state import PipelineState
 
-RAMOS = ("agente_evidencias", "agente_texto", "agente_socratico")
+# Ordem de exibição dos nós (tabela de tempos do app) e quem precisa terminar antes de cada um
+# (src/medicao.py mede a duração de um nó a partir do fim dos predecessores)
+ORDEM_NOS = ("ingestor", "agente_evidencias", "agente_texto", "agente_argumento", "agente_socratico", "sintetizador")
+PREDECESSORES: dict[str, tuple[str, ...]] = {
+    "ingestor": (),
+    "agente_evidencias": ("ingestor",),
+    "agente_texto": ("ingestor",),
+    "agente_argumento": ("agente_texto",),
+    "agente_socratico": ("agente_texto",),
+    "sintetizador": ("agente_evidencias", "agente_argumento", "agente_socratico"),
+}
 
 
 def construir_grafo(
@@ -36,17 +48,24 @@ def construir_grafo(
     builder.add_node("agente_texto", protecao.proteger("texto", texto_node, timeout_ramo, {"text_report": None}))
     builder.add_node("agente_socratico", protecao.proteger("socratico", socratico_node, timeout_ramo, {"socratic_questions": None}))
     builder.add_node(
-        "sintetizador",
+        "agente_argumento",
         protecao.proteger(
-            "sintetizador", sintetizador_node, timeout_sintetizador, {"dossier": protecao.DOSSIE_INDISPONIVEL},
-            recuperar=dossie_sem_modelo,  # estourou o tempo esperando o LLM: monta o dossiê sem ele
+            "argumento", argumento_node, timeout_sintetizador, {"argument": None},
+            recuperar=argumento_fallback,  # estourou o tempo esperando o LLM: o argumento sai do fallback em código
         ),
+    )
+    builder.add_node(
+        "sintetizador",
+        protecao.proteger("sintetizador", sintetizador_node, timeout_sintetizador, {"dossier": protecao.DOSSIE_INDISPONIVEL}),
     )
 
     builder.add_edge(START, "ingestor")
-    for ramo in RAMOS:
-        builder.add_edge("ingestor", ramo)
-        builder.add_edge(ramo, "sintetizador")
+    builder.add_edge("ingestor", "agente_evidencias")
+    builder.add_edge("ingestor", "agente_texto")
+    builder.add_edge("agente_texto", "agente_argumento")
+    builder.add_edge("agente_texto", "agente_socratico")
+    # Lista de origens: o sintetizador espera as três e roda uma vez só
+    builder.add_edge(["agente_evidencias", "agente_argumento", "agente_socratico"], "sintetizador")
     builder.add_edge("sintetizador", END)
 
     return builder.compile()

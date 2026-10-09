@@ -1,4 +1,4 @@
-"""Agente Sintetizador (R5): junta os três ramos num dossiê neutro e citável, sem veredito.
+"""Agente Sintetizador (R5): junta os ramos num dossiê neutro e citável, sem veredito.
 
 Abordagem híbrida (Manual §4.5.1; design em docs/superpowers/specs/2026-10-01-agente-sintetizador-design.md):
 o código escreve tudo o que é fato (src/agents/dossie.py); o qwen2.5-7b escreve só a seção
@@ -6,8 +6,11 @@ o código escreve tudo o que é fato (src/agents/dossie.py); o qwen2.5-7b escrev
 Ordem das seções: Resumo, Checagens, Argumento, Perguntas, Limites, Fontes
 (docs/superpowers/specs/2026-10-08-dossie-final-design.md).
 
-Contrato: sintetizador_node(state) -> {"dossier": str}, mais "warnings" quando o problema
-é do próprio Sintetizador. Nunca devolve dossier = None.
+Dois nós (docs/superpowers/specs/2026-10-09-desempenho-agentes-design.md):
+- argumento_node(state) -> {"argument": list[str]}: o `agente_argumento`, depois do Agente de Texto,
+  em paralelo com o Socrático; "warnings" só quando o problema é dele.
+- sintetizador_node(state) -> {"dossier": str}: só monta, sem LLM; "warnings" só se a rede de
+  segurança das citações remover algo. Nunca devolve dossier = None.
 """
 from __future__ import annotations
 
@@ -114,58 +117,66 @@ def sintese_livre(state: PipelineState, ctx: dossie.Contexto) -> str:
     raise SinteseReprovada(problema)
 
 
-def secao_argumento(state: PipelineState, ctx: dossie.Contexto, usar_modelo: bool = True) -> tuple[list[str], list[str]]:
-    """Linhas da seção "Como o texto argumenta" e os avisos próprios gerados nela."""
+def linhas_argumento(state: PipelineState, ctx: dossie.Contexto) -> tuple[list[str], list[str]]:
+    """Linhas da seção "Como o texto argumenta" (sem o título) e os avisos próprios gerados nela."""
     sem_modelo = dossie.argumento_sem_modelo(state, ctx)
     if sem_modelo is not None:
-        return [dossie.TITULO_ARGUMENTO, *sem_modelo], []
-    if not usar_modelo:
-        return [dossie.TITULO_ARGUMENTO, *dossie.fallback_argumento(state, ctx)], []
+        return sem_modelo, []
     try:
         # Escapa depois dos guardrails, que conferem o texto como o modelo o escreveu
-        return [dossie.TITULO_ARGUMENTO, dossie.escapar_cifrao(sintese_livre(state, ctx))], []
+        return [dossie.escapar_cifrao(sintese_livre(state, ctx))], []
     except ModeloIndisponivel as e:
-        logger.warning("Sintetizador: modelo indisponível: %s", e)
+        logger.warning("Argumento: modelo indisponível: %s", e)
         aviso = WARN_MODELO_INDISPONIVEL
     except SinteseReprovada:
         aviso = WARN_GUARDRAILS
-    return [dossie.TITULO_ARGUMENTO, *dossie.fallback_argumento(state, ctx)], [aviso]
+    return dossie.fallback_argumento(state, ctx), [aviso]
 
 
-def _montar_dossie(state: PipelineState, usar_modelo: bool) -> dict:
+def argumento_node(state: PipelineState) -> dict:
+    """Nó `agente_argumento`: escreve as linhas de "Como o texto argumenta" em `argument`.
+
+    Chama o LLM só quando há o que descrever; modelo fora do ar ou reprovado nos guardrails
+    cai no fallback em código e avisa. Devolve "warnings" só quando o problema é dele.
+    """
+    linhas, avisos = linhas_argumento(state, dossie.preprocessar(state))
+    return {"argument": linhas, "warnings": avisos} if avisos else {"argument": linhas}
+
+
+def argumento_fallback(state: PipelineState) -> dict:
+    """As linhas do argumento sem chamar o LLM.
+
+    O grafo usa quando o `agente_argumento` estoura o tempo (src/graph.py) e o Sintetizador
+    quando `argument` não chegou: o usuário recebe a seção em fallback, não um dossiê vazio.
+    """
+    ctx = dossie.preprocessar(state)
+    sem_modelo = dossie.argumento_sem_modelo(state, ctx)
+    return {"argument": sem_modelo if sem_modelo is not None else dossie.fallback_argumento(state, ctx)}
+
+
+def sintetizador_node(state: PipelineState) -> dict:
+    """Nó `sintetizador`: só monta o dossiê; nunca chama o LLM.
+
+    O argumento vem pronto de `state.argument` (ou do fallback em código, se não chegou).
+    A rede de segurança das citações roda aqui e, se remover algo, também avisa.
+    """
     if not state.segments:
         return {"dossier": dossie.SEM_TEXTO}
 
     ctx = dossie.preprocessar(state)
     fontes = dossie.numerar_fontes(state, ctx)
-    argumento, avisos = secao_argumento(state, ctx, usar_modelo)
+    argumento = state.argument if state.argument is not None else argumento_fallback(state)["argument"]
     # Ordem: pirâmide invertida (spec do dossiê final); Fontes some quando não há evidência
     texto = dossie.montar(
         dossie.secao_resumo(state, ctx),
         dossie.secao_checagens(state, ctx, fontes),
-        argumento,
+        [dossie.TITULO_ARGUMENTO, *argumento],
         dossie.secao_perguntas(state),
         dossie.secao_limites(state),
         dossie.secao_fontes(state, ctx, fontes),
     )
     texto, removeu = dossie.remover_citacoes_invalidas(texto, state.evidence or [])
-    if removeu:
-        avisos.append(WARN_CITACAO_REMOVIDA)
-    return {"dossier": texto, "warnings": avisos} if avisos else {"dossier": texto}
-
-
-def sintetizador_node(state: PipelineState) -> dict:
-    return _montar_dossie(state, usar_modelo=True)
-
-
-def dossie_sem_modelo(state: PipelineState) -> dict:
-    """O dossiê inteiro sem chamar o LLM ("Como o texto argumenta" sai do fallback).
-
-    O grafo usa quando o Sintetizador estoura o tempo (src/graph.py): o usuário recebe as
-    checagens, as perguntas e os limites, que não dependem do modelo (spec: "timeout ->
-    fallback determinístico no argumento").
-    """
-    return _montar_dossie(state, usar_modelo=False)
+    return {"dossier": texto, "warnings": [WARN_CITACAO_REMOVIDA]} if removeu else {"dossier": texto}
 
 
 # Nomes usados pelo graph.py e pelas convenções do projeto

@@ -9,7 +9,7 @@ import os
 import streamlit as st
 from src import medicao
 from src.agents.dossie import escapar_markdown, tabela_frases
-from src.graph import RAMOS, sistema_multiagente
+from src.graph import ORDEM_NOS, sistema_multiagente
 from src.observabilidade import configurar_tracing
 from src.state import PipelineState, initial_state
 
@@ -84,7 +84,7 @@ if st.button("Analisar", type="primary"):
                     st.table(tabela_frases(validated))
 
             with st.expander("Detalhes técnicos"):
-                nos = [n for n in ("ingestor", *RAMOS, "sintetizador") if n in execucao.duracao_por_no]
+                nos = [n for n in ORDEM_NOS if n in execucao.duracao_por_no]
                 st.table({
                     "nó": nos + ["total"],
                     "segundos": [round(execucao.duracao_por_no[n], 1) for n in nos] + [round(execucao.total, 1)],

@@ -60,6 +60,7 @@ class PipelineState(BaseModel):
     evidence: list[Evidence] | None
     text_report: TextReport | None
     socratic_questions: list[str] | None
+    argument: list[str] | None     # linhas de "Como o texto argumenta", sem o título
     dossier: str | None
     warnings: Annotated[list[str], operator.add]
 
@@ -68,7 +69,7 @@ def initial_state(raw_input: str, **overrides) -> dict:
     """Estado inicial válido no schema estrito: entrada do usuário e o resto vazio.
 
     O LangGraph valida o estado de entrada, então todo campo precisa estar presente.
-    `evidence`, `text_report`, `socratic_questions` e `dossier` começam em None
+    `evidence`, `text_report`, `socratic_questions`, `argument` e `dossier` começam em None
     (ainda não produzidos); os nós dos ramos os preenchem.
     """
     return {
@@ -81,6 +82,7 @@ def initial_state(raw_input: str, **overrides) -> dict:
         "evidence": None,
         "text_report": None,
         "socratic_questions": None,
+        "argument": None,
         "dossier": None,
         "warnings": [],
         **overrides,

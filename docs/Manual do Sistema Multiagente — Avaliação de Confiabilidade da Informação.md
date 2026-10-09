@@ -129,6 +129,7 @@ class PipelineState(BaseModel):
     evidence: list[Evidence] | None
     text_report: TextReport | None
     socratic_questions: list[str] | None
+    argument: list[str] | None     # linhas de "Como o texto argumenta", sem o título (agente_argumento)
     dossier: str | None
     warnings: Annotated[list[str], operator.add]
 ```

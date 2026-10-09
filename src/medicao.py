@@ -12,7 +12,7 @@ from typing import Any, Callable
 from opentelemetry.trace import SpanContext
 
 from src.agents.ingestor import is_url
-from src.graph import RAMOS
+from src.graph import ORDEM_NOS, PREDECESSORES
 from src.observabilidade import span
 from src.state import PipelineState
 
@@ -31,18 +31,13 @@ def trace_id_de(contexto: SpanContext) -> str | None:
 
 
 def duracoes(fim_por_no: dict[str, float]) -> dict[str, float]:
-    """Etapas em sequência, ramos em paralelo: cada ramo conta a partir do fim do Ingestor,
-    e o Sintetizador a partir do fim do último ramo."""
-    resultado: dict[str, float] = {}
-    base = fim_por_no.get("ingestor", 0.0)
-    if "ingestor" in fim_por_no:
-        resultado["ingestor"] = base
-    ramos = [r for r in RAMOS if r in fim_por_no]
-    for ramo in ramos:
-        resultado[ramo] = fim_por_no[ramo] - base
-    if "sintetizador" in fim_por_no:
-        resultado["sintetizador"] = fim_por_no["sintetizador"] - max((fim_por_no[r] for r in ramos), default=base)
-    return resultado
+    """Duração de um nó = o fim dele menos o maior fim entre os predecessores que terminaram
+    (src/graph.py::PREDECESSORES); sem predecessor, conta desde o início da análise."""
+    return {
+        no: fim_por_no[no] - max((fim_por_no[p] for p in PREDECESSORES[no] if p in fim_por_no), default=0.0)
+        for no in ORDEM_NOS
+        if no in fim_por_no
+    }
 
 
 def executar(

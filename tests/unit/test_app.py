@@ -91,7 +91,7 @@ def test_app_mostra_tempos_por_etapa(monkeypatch):
     assert not at.exception
     assert any(e.label == "Detalhes técnicos" for e in at.expander)
     assert list(_tabela_de_tempos(at)["nó"]) == [
-        "ingestor", "agente_evidencias", "agente_texto", "agente_socratico", "sintetizador", "total"]
+        "ingestor", "agente_evidencias", "agente_texto", "agente_argumento", "agente_socratico", "sintetizador", "total"]
 
 
 def test_app_mostra_tempos_sem_trace_quando_tracing_desligado(monkeypatch):

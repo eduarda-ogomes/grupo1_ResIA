@@ -165,11 +165,51 @@ def test_apenas_novos_pula_ids_que_ja_estao_no_indice():
     assert build_index.only_new(records, {"a-tit", "a-000"}) == [{"id": "b-tit"}]
 
 
+# --- republicações (BOL) fora do índice -----------------------------------------
+
+@pytest.mark.parametrize("url, excluida", [
+    ("https://www.bol.uol.com.br/noticias/2022/09/16/imagem-de-flavio.htm", True),
+    ("https://bol.uol.com.br/noticias/2026/09/25/falso-imagem.amp.htm", True),
+    ("https://noticias.uol.com.br/confere/ultimas-noticias/2022/09/16/imagem-de-flavio.htm", False),
+    ("https://www.aosfatos.org/noticias/bol-uol-com-br/", False),
+])
+def test_url_excluida_so_pelo_dominio(url, excluida):
+    from src.retrieval import config
+    assert config.url_excluida(url) is excluida
+
+
+def test_republicacoes_nao_geram_trecho_e_sao_listadas_para_apagar():
+    claims = [{"source_url": "https://noticias.uol.com.br/a.htm", "review_title": "Original"},
+              {"source_url": "https://www.bol.uol.com.br/a.htm", "review_title": "Cópia"}]
+    articles = [{"source_url": "https://www.bol.uol.com.br/b.htm", "text": "x" * 100}]
+    claims_ok, articles_ok, excluidas = build_index.separar_excluidas(claims, articles)
+    assert [c["source_url"] for c in claims_ok] == ["https://noticias.uol.com.br/a.htm"]
+    assert articles_ok == []
+    assert excluidas == ["https://www.bol.uol.com.br/a.htm", "https://www.bol.uol.com.br/b.htm"]
+
+
 def test_trecho_registra_a_fonte_do_corpus():
     claims = [{"source_url": "https://x.org/1", "review_title": "Título", "corpus": "factckbr"},
               {"source_url": "https://x.org/2", "review_title": "Outro"}]
     corpus = {r["metadata"]["source_url"]: r["metadata"]["corpus"] for r in build_index.build_records(claims, [])}
     assert corpus == {"https://x.org/1": "factckbr", "https://x.org/2": "factcheck_api"}
+
+
+def test_checagem_antiga_leva_o_ano_no_nome_da_agencia():
+    antes = build_index.config.SOURCE_YEAR_BEFORE - 1
+    claims = [
+        {"source_url": "https://x.org/antiga", "source_name": "Aos Fatos", "review_title": "T",
+         "review_date": f"{antes}-05-02T00:00:00Z"},
+        {"source_url": "https://x.org/recente", "source_name": "Aos Fatos", "review_title": "T",
+         "review_date": f"{build_index.config.SOURCE_YEAR_BEFORE}-01-10T00:00:00Z"},
+        {"source_url": "https://x.org/sem-data", "source_name": "Aos Fatos", "review_title": "T"},
+        {"source_url": "https://x.org/factckbr", "source_name": "Agência Lupa (2018)", "review_title": "T",
+         "review_date": "2018-03-01"},
+    ]
+    nomes = {r["metadata"]["source_url"].split("/")[-1]: r["metadata"]["source_name"]
+             for r in build_index.build_records(claims, [])}
+    assert nomes == {"antiga": f"Aos Fatos ({antes})", "recente": "Aos Fatos",
+                     "sem-data": "Aos Fatos", "factckbr": "Agência Lupa (2018)"}
 
 
 # --- import_factckbr: filtros e correções ----------------------------------------

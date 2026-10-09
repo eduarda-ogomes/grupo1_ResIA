@@ -162,5 +162,5 @@ def test_sintetizador_travado_ainda_entrega_um_dossie(monkeypatch):
     # spec: timeout do modelo -> fallback determinístico no argumento, não um dossiê vazio
     assert out["warnings"] == ["sintetizador: timeout"]
     assert out["dossier"] != protecao.DOSSIE_INDISPONIVEL
-    assert out["dossier"].startswith(dossie.TITULO_CHECAGENS)
+    assert out["dossier"].startswith(dossie.TITULO_RESUMO)
     assert '- Juízo de valor: "Isso não tem comprovação." é uma opinião e não foi checada.' in out["dossier"]

@@ -49,9 +49,12 @@ def executar(
     grafo: Any,
     estado_inicial: dict,
     relogio: Callable[[], float] = time.monotonic,
-    ao_terminar_no: Callable[[str, float], None] | None = None,
+    ao_terminar_no: Callable[[str, float, list[str]], None] | None = None,
 ) -> Execucao:
-    """Roda o grafo por `stream`, junta as atualizações (warnings somados) e mede cada nó."""
+    """Roda o grafo por `stream`, junta as atualizações (warnings somados) e mede cada nó.
+
+    `ao_terminar_no(nó, segundos desde o início, avisos que esse nó deu)` é chamada a cada nó.
+    """
     entrada = "url" if is_url(estado_inicial["raw_input"].strip()) else "texto"
     with span("analise", entrada=entrada) as raiz:
         inicio = relogio()
@@ -63,7 +66,7 @@ def executar(
                 for chave, valor in (atualizacao or {}).items():
                     final[chave] = final["warnings"] + valor if chave == "warnings" else valor
                 if ao_terminar_no is not None:
-                    ao_terminar_no(no, agora)
+                    ao_terminar_no(no, agora, list((atualizacao or {}).get("warnings", [])))
 
         estado = PipelineState.model_validate(final)
         total = max(fim_por_no.values(), default=0.0)

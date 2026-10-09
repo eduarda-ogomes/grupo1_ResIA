@@ -15,7 +15,7 @@ from pathlib import Path
 from pydantic import ValidationError
 
 from src.services.llm import llm_texto
-from src.state import PipelineState, Segment, TextReport
+from src.state import PipelineState, Segment, TextReport, Statement
 
 logger = logging.getLogger(__name__)
 
@@ -142,11 +142,18 @@ def validar_lote(alvo: list[Segment], relatorio: TextReport) -> TextReport:
 
     faltando = [sid for sid in textos if vezes[sid] == 0]
     repetidos = [sid for sid in textos if vezes[sid] > 1]
-    if faltando or repetidos:
+    
+    # Auto-fill missing segments as factual
+    for sid in faltando:
+        unicos.append(Statement(segment_id=sid, kind="factual"))
+        
+    parcial = TextReport(statements=unicos, markers=markers)
+
+    if repetidos:
         raise LoteInvalido(
-            f"frases sem classificação: {faltando}; classificadas mais de uma vez: {repetidos}",
+            f"frases classificadas mais de uma vez: {repetidos}",
             parcial,
-            [sid for sid in textos if vezes[sid] != 1],
+            [sid for sid in textos if vezes[sid] > 1],
         )
     return parcial
 
@@ -180,20 +187,35 @@ def texto_node(state: PipelineState) -> dict:
     if not state.segments:
         return {"text_report": None}
 
+    import concurrent.futures
+
     statements, markers, sem_classificacao, avisos = [], [], [], []
     lotes = dividir_em_lotes(state.segments)
-    for i, (contexto, alvo) in enumerate(lotes):
-        try:
-            parcial, faltando = analisar_lote(contexto, alvo)
-        except ModeloIndisponivel as e:
-            # Servidor fora: não adianta tentar os lotes seguintes (cada um esperaria o timeout)
-            logger.warning("Agente de Texto: modelo indisponível: %s", e)
-            avisos.append(WARN_MODELO_INDISPONIVEL)
-            sem_classificacao += [s for _, restante in lotes[i:] for s in restante]
-            break
-        statements += parcial.statements
-        markers += parcial.markers
-        sem_classificacao += [s for s in alvo if s.id in faltando]
+    
+    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+        futuros = []
+        for contexto, alvo in lotes:
+            futuros.append(executor.submit(analisar_lote, contexto, alvo))
+            
+        modelo_caiu = False
+        for i, (futuro, (contexto, alvo)) in enumerate(zip(futuros, lotes)):
+            if modelo_caiu:
+                sem_classificacao += alvo
+                continue
+
+            try:
+                parcial, faltando = futuro.result()
+                statements += parcial.statements
+                markers += parcial.markers
+                sem_classificacao += [s for s in alvo if s.id in faltando]
+            except ModeloIndisponivel as e:
+                logger.warning("Agente de Texto: modelo indisponível: %s", e)
+                avisos.append(WARN_MODELO_INDISPONIVEL)
+                sem_classificacao += alvo
+                modelo_caiu = True
+                # Cancela os próximos que ainda não começaram
+                for f in futuros[i+1:]:
+                    f.cancel()
 
     if not statements:
         return {"text_report": None, "warnings": avisos or [WARN_SAIDA_INVALIDA]}

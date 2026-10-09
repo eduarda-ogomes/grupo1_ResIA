@@ -10,6 +10,7 @@ from __future__ import annotations
 import os
 import re
 from pathlib import Path
+from urllib.parse import urlparse
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
@@ -24,6 +25,10 @@ RAW_DIR = Path(os.getenv("EVIDENCE_RAW_DIR", str(REPO_ROOT / "data" / "corpus" /
 # calibração) e confirmado no split de teste; ver o ADR em docs/agents/evidencias_decisoes.md.
 SIM_THRESHOLD = float(os.getenv("EVIDENCE_SIM_THRESHOLD", 0.55))              # similaridade mínima na busca
 CLAIM_MATCH_MIN_PROB = float(os.getenv("EVIDENCE_CLAIM_MATCH_MIN_PROB", 0.8))  # entailment mínimo na etapa 2
+
+# Ancoragem lexical (G2): mínimo de radicais de palavras de conteúdo que a frase divide com a
+# alegação checada e o título da checagem. 0 desliga o filtro. Ver o ADR de 08/10.
+MIN_CONTENT_OVERLAP = int(os.getenv("EVIDENCE_MIN_CONTENT_OVERLAP", 1))
 
 SEARCH_K = int(os.getenv("EVIDENCE_SEARCH_K", 10))                   # trechos buscados por frase
 CLAIM_CANDIDATES = int(os.getenv("EVIDENCE_CLAIM_CANDIDATES", 6))    # checagens avaliadas na etapa 2
@@ -40,6 +45,21 @@ EXCERPT_MAX_CHARS = 300
 CHUNK_MAX_CHARS = 800        # trechos do índice: parágrafos agrupados até este tamanho
 CHUNK_OVERLAP_PARAGRAPHS = 1
 MIN_PARAGRAPH_CHARS = 40
+# Checagens publicadas antes deste ano levam o ano no source_name ("Aos Fatos (2019)"):
+# o Evidence não tem campo de data, e uma checagem antiga não pode parecer atual no dossiê.
+SOURCE_YEAR_BEFORE = 2024
+
+
+# Domínios que não entram no corpus. O BOL republica o UOL Confere (525 das 531 checagens
+# coletadas em 08/10/2026 tinham o original no UOL) e chega pela busca de noticias.uol.com.br;
+# as cópias ocupavam vagas do top 5 na busca. Ver evidencias_decisoes.md.
+DOMINIOS_EXCLUIDOS = ("bol.uol.com.br",)
+
+
+def url_excluida(url: str) -> bool:
+    """True se a URL é de um domínio em DOMINIOS_EXCLUIDOS (ou subdomínio dele)."""
+    host = urlparse(url).netloc.lower().removeprefix("www.")
+    return any(host == d or host.endswith("." + d) for d in DOMINIOS_EXCLUIDOS)
 
 
 def collection_name(model_name: str | None = None) -> str:

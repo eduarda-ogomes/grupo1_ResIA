@@ -24,6 +24,17 @@ def sem_modelos(monkeypatch):
     monkeypatch.setattr(evidence, "search", _recusa)
 
 
+@pytest.fixture(autouse=True)
+def sem_tracing_do_ambiente(monkeypatch):
+    """PHOENIX_TRACING=1 exportado no terminal (como o README ensina) não pode vazar para os testes.
+
+    Sem isto, o app chamaria o `register` real do Phoenix, que toma o provider global
+    (a fixture `spans` deixa de funcionar) e tenta exportar os spans de teste pela rede.
+    Os testes que precisam do tracing ligado fazem `setenv` depois desta fixture.
+    """
+    monkeypatch.delenv("PHOENIX_TRACING", raising=False)
+
+
 _EXPORTADOR = None
 
 

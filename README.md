@@ -32,7 +32,8 @@ O projeto utiliza **LangGraph** para orquestrar 5 agentes em um grafo de estados
 ```text
 grupo1_ResIA/
 ├── app/
-│   └── app.py                  # Interface gráfica web (Streamlit)
+│   ├── app.py                  # Interface gráfica web (Streamlit)
+│   └── sala/                   # Sala dos agentes: animação pixel art da análise (st.components.v2)
 ├── data/
 │   ├── corpus/
 │   │   └── seed_db.py          # Script de inserção no banco de dados vetorial
@@ -113,3 +114,28 @@ pytest tests/integration/test_grafo_lmstudio.py -v -s
 
 ---
 *Este projeto foi arquitetado focado em escalabilidade, transparência explicável (XAI) e privacidade (inferência 100% local).*
+
+### 6. Observabilidade (Phoenix local)
+
+Cada análise pode virar um *trace* no [Arize Phoenix](https://github.com/Arize-ai/phoenix), rodando na sua máquina (os dados não saem dela). O tracing é desligado por padrão.
+
+```bash
+pip install -r requirements.txt          # inclui arize-phoenix e o instrumentador do LangChain
+phoenix serve                            # em outro terminal; interface em http://localhost:6006
+PHOENIX_TRACING=1 LLM_MODEL=<id> streamlit run app/app.py
+```
+
+No projeto `grupo1-resia` do Phoenix, cada análise aparece como um trace com:
+
+- `analise` (raiz): tipo de entrada, número de frases, avisos e tempo total;
+- um span por nó (`no.ingestor`, `no.evidencias`, `no.texto`, `no.socratico`, `no.sintetizador`) com o resultado (`ok`, `timeout` ou `erro`) e os avisos;
+- as chamadas ao LLM (`ChatOpenAI`) com prompt, resposta, tokens e tempo, dentro do nó de cada agente;
+- as etapas do Ingestor (`ingestor.baixar`, `ingestor.segmentar`) e do Evidências (`evidencias.busca`, `evidencias.termos_chave`, `evidencias.nli`) com as contagens.
+
+O Streamlit mostra os tempos de cada etapa ("Tempos por etapa") e, com o tracing ligado, o ID do trace. Se o Phoenix estiver fora do ar, a análise segue normalmente.
+
+Para medir a latência (Manual §7.1, meta p50 < 3 min), com o LM Studio e o índice disponíveis:
+
+```bash
+LLM_MODEL=<id> python eval/medir_latencia.py --repeticoes 3    # resultado em eval/resultados/latencia_<data>.json
+```

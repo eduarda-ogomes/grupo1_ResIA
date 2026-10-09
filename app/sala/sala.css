@@ -1,0 +1,250 @@
+/* Sala dos agentes (sala.js). Cores e tipografia seguem a interface do Dossiê (app/app.py). */
+
+.sala {
+  position: relative;
+  font-family: 'Inter', system-ui, sans-serif;
+  color: #111;
+  background: #FFFFFF;
+  border: 1px solid #EAEAEA;
+  border-radius: 12px;
+  padding: 1.25rem 1.25rem 1rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
+  margin-bottom: 1.5rem;
+}
+
+.sala-topo {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.sala-titulo {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: #7C2128;
+}
+
+.sala-situacao {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  color: #555;
+}
+
+.sala-situacao::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #7C2128;
+  animation: pulso 1.2s ease-in-out infinite;
+}
+
+.sala[data-situacao='pronta'] .sala-situacao::before { background: #3F7D4E; animation: none; }
+.sala[data-situacao='interrompida'] .sala-situacao::before { animation: none; }
+
+.sala-cena {
+  position: relative;
+  container-type: inline-size;
+  max-width: 880px;
+  margin: 0 auto;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #F3ECE2;
+}
+
+.sala-cena svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  shape-rendering: crispEdges;
+}
+
+.sala-legenda {
+  list-style: none;
+  margin: 0.9rem 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.agente {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+  padding: 0.6rem 0.7rem;
+  border: 1px solid #EAEAEA;
+  border-radius: 8px;
+  background: #FAFAFA;
+  transition: border-color 0.3s ease, background-color 0.3s ease;
+}
+
+.agente-nome {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.agente-cor {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+}
+
+.agente-papel {
+  font-size: 0.75rem;
+  color: #666;
+}
+
+.agente-estado {
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: #666;
+  font-variant-numeric: tabular-nums;
+}
+
+.agente[data-fase='trabalhando'],
+.agente[data-fase='entregando'] {
+  border-color: #7C2128;
+  background: #FFFFFF;
+}
+
+.agente[data-fase='trabalhando'] .agente-estado,
+.agente[data-fase='entregando'] .agente-estado,
+.agente[data-fase='interrompido'] .agente-estado { color: #7C2128; }
+.agente[data-fase='concluido'] .agente-estado { color: #3F7D4E; }
+.agente.com-aviso[data-fase='concluido'] .agente-estado { color: #8A5D0E; }
+
+.sala-anuncio {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+@media (max-width: 720px) {
+  .sala { padding: 1rem; }
+  .sala-legenda { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+/* Balão "Análise concluída" sobre a cabeça do Sintetizador (--x, --y vêm do sala.js).
+   O rabicho fica em --ancora da largura, então o balão cresce para a esquerda e não sai da cena. */
+.fala-sintetizador {
+  --ancora: 75%;
+  display: none;
+  position: absolute;
+  left: var(--x);
+  bottom: var(--y);
+  transform: translate(calc(-1 * var(--ancora)), -8px);
+  padding: 0.3em 0.65em;
+  font-size: clamp(0.62rem, 1.5vw, 0.85rem);
+  font-weight: 600;
+  line-height: 1.2;
+  white-space: nowrap;
+  color: #7C2128;
+  background: #FFFDF8;
+  border: 2px solid #2B2024;
+  box-shadow: 2px 2px 0 rgba(43, 32, 36, 0.18);
+}
+
+.fala-sintetizador::after,
+.fala-sintetizador::before {
+  content: '';
+  position: absolute;
+  left: var(--ancora);
+  top: 100%;
+  border-style: solid;
+  border-color: transparent;
+  transform: translateX(-50%);
+}
+
+.fala-sintetizador::before { border-width: 8px 7px 0; border-top-color: #2B2024; }
+.fala-sintetizador::after { border-width: 5px 4px 0; border-top-color: #FFFDF8; }
+
+.sala[data-dossie='fechado'] .fala-sintetizador {
+  display: block;
+  animation: surgir 0.36s steps(3) both;
+}
+
+/* o balão toma o lugar do selo do Sintetizador */
+.sala[data-dossie='fechado'] .pessoa[data-id='sintetizador'] .selo { display: none; }
+
+@keyframes surgir {
+  from { opacity: 0; transform: translate(calc(-1 * var(--ancora)), 0); }
+  to { opacity: 1; transform: translate(calc(-1 * var(--ancora)), -8px); }
+}
+
+/* Cena estreita (celular): uma palavra por linha, sem cobrir o Socrático */
+@container (max-width: 520px) {
+  .fala-sintetizador {
+    --ancora: 55%;
+    width: min-content;
+    white-space: normal;
+    text-align: center;
+  }
+}
+
+/* ---------------------------------------------------------------- sprites */
+
+.q,
+.piscar,
+.papel-na-mao,
+.balao,
+.selo,
+.pasta-fechada,
+.brilhos { display: none; }
+
+.pessoa[data-pose='parado'] .q-parado,
+.pessoa[data-pose='andando'] .q-parado,
+.pessoa[data-pose='andando'] .q-andar,
+.pessoa[data-pose='digitando'] .q-digitarA,
+.pessoa[data-pose='digitando'] .q-digitarB { display: inline; }
+
+.pessoa[data-pose='andando'] .q-parado,
+.pessoa[data-pose='digitando'] .q-digitarA { animation: quadro-a 0.4s steps(1) infinite; }
+.pessoa[data-pose='andando'] .q-andar,
+.pessoa[data-pose='digitando'] .q-digitarB { visibility: hidden; animation: quadro-b 0.4s steps(1) infinite; }
+
+.pessoa:not([data-pose='andando']) .piscar { display: inline; visibility: hidden; animation: piscar 4.2s steps(1) infinite; }
+
+.carregando .papel-na-mao { display: inline; }
+
+.pessoa[data-fase='trabalhando'] .balao { display: inline; animation: flutuar 1.2s steps(1) infinite; }
+.pessoa[data-selo='ok'] .selo-ok,
+.pessoa[data-selo='aviso'] .selo-aviso,
+.pessoa[data-selo='erro'] .selo-erro { display: inline; }
+
+.sala[data-dossie='fechado'] .pasta-aberta,
+.sala[data-dossie='fechado'] .pilha { display: none; }
+.sala[data-dossie='fechado'] .pasta-fechada,
+.sala[data-dossie='fechado'] .brilhos { display: inline; }
+.brilho { visibility: hidden; animation: brilhar 1.5s steps(1) infinite; }
+
+@keyframes quadro-a { 0% { visibility: visible; } 50% { visibility: hidden; } }
+@keyframes quadro-b { 0% { visibility: hidden; } 50% { visibility: visible; } }
+@keyframes piscar { 0% { visibility: hidden; } 95% { visibility: visible; } 98% { visibility: hidden; } }
+@keyframes flutuar { 0% { transform: translateY(0); } 50% { transform: translateY(-1px); } }
+@keyframes brilhar { 0% { visibility: visible; } 50% { visibility: hidden; } }
+@keyframes pulso { 50% { opacity: 0.35; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .sala *,
+  .sala *::before { animation: none !important; }
+  .pessoa[data-pose='andando'] .q-andar,
+  .pessoa[data-pose='digitando'] .q-digitarB,
+  .pessoa .piscar { visibility: hidden; }
+  .brilho { visibility: visible; }
+}

@@ -86,6 +86,17 @@ def chunk_id(url: str, index: int | str) -> str:
     return f"{hashlib.sha1(url.encode('utf-8')).hexdigest()[:16]}-{suffix}"
 
 
+def source_name_with_year(name: str, review_date: str) -> str:
+    """Acrescenta o ano ao nome da agência quando a checagem é anterior a SOURCE_YEAR_BEFORE.
+
+    Nome que já traz o ano (o FACTCK.BR, "Agência Lupa (2018)") e checagem sem data ficam como estão.
+    """
+    m = re.match(r"(\d{4})", review_date or "")
+    if not name or not m or name.endswith(")") or int(m.group(1)) >= config.SOURCE_YEAR_BEFORE:
+        return name
+    return f"{name} ({m.group(1)})"
+
+
 def build_records(claims: list[dict], articles: list[dict]) -> list[dict]:
     """Um registro por trecho: id, texto e metadados (só str/int/bool, exigência do Chroma).
 
@@ -103,7 +114,8 @@ def build_records(claims: list[dict], articles: list[dict]) -> list[dict]:
         title = " ".join(str(meta.get("review_title") or "").split())
         base = {
             "source_url": url,
-            "source_name": meta.get("source_name") or meta.get("publisher_site") or "",
+            "source_name": source_name_with_year(meta.get("source_name") or meta.get("publisher_site") or "",
+                                                 meta.get("review_date") or ""),
             "agency_verdict": meta.get("agency_verdict") or "",
             "review_date": meta.get("review_date") or "",
             "claim_reviewed": meta.get("claim_reviewed") or "",
@@ -134,6 +146,26 @@ def write_name_vocabulary(claims: list[dict], path: Path | None = None) -> int:
     vocabulary = sorted(build_name_vocabulary(texts))
     path.write_text("\n".join(vocabulary) + "\n", encoding="utf-8")
     return len(vocabulary)
+
+
+def separar_excluidas(claims: list[dict], articles: list[dict]) -> tuple[list[dict], list[dict], list[str]]:
+    """Tira as checagens de domínios excluídos (config.DOMINIOS_EXCLUIDOS) e devolve as URLs delas."""
+    excluidas = [r["source_url"] for r in [*claims, *articles] if config.url_excluida(r["source_url"])]
+    claims = [c for c in claims if not config.url_excluida(c["source_url"])]
+    articles = [a for a in articles if not config.url_excluida(a["source_url"])]
+    return claims, articles, list(dict.fromkeys(excluidas))
+
+
+def remove_urls(urls: list[str], batch_size: int = 200) -> None:
+    """Apaga do índice os trechos dessas URLs (os que já tinham sido indexados)."""
+    from src.retrieval.indice import get_collection
+
+    collection = get_collection(create=True)
+    antes = collection.count()
+    for start in range(0, len(urls), batch_size):
+        collection.delete(where={"source_url": {"$in": urls[start : start + batch_size]}})
+    if antes - collection.count():
+        print(f"  {antes - collection.count()} trechos de domínios excluídos apagados do índice.")
 
 
 def only_new(records: list[dict], existing_ids: set[str]) -> list[dict]:
@@ -185,6 +217,9 @@ def main() -> None:
         claims, articles = claims + fk_claims, articles + fk_articles
     if not claims and not articles:
         sys.exit(f"Nada em {args.claims} nem em {args.articles}. Rode antes collect_factcheck_api.py.")
+    claims, articles, excluidas = separar_excluidas(claims, articles)
+    if excluidas:
+        print(f"{len(excluidas)} checagens de domínios excluídos ({', '.join(config.DOMINIOS_EXCLUIDOS)}) ficam fora.")
 
     n_nomes = write_name_vocabulary(claims)
     print(f"Vocabulário de nomes próprios: {n_nomes} palavras em data/corpus/nomes_proprios.txt")
@@ -202,6 +237,8 @@ def main() -> None:
     )
     print("Checagens por agência:", dict(by_agency.most_common()))
     print(f"Modelo: {config.EMBEDDING_MODEL} | coleção: {config.collection_name()} | caminho: {config.CHROMA_PATH}")
+    if excluidas and not args.reset:
+        remove_urls(excluidas)
     total = index_records(records, reset=args.reset, apenas_novos=args.apenas_novos)
     print(f"Coleção com {total} trechos.")
 

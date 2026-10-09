@@ -1,0 +1,24 @@
+{
+  "clean_text": "Um avião de pequeno porte que havia desaparecido na quinta-feira foi localizado neste sábado em uma área de mata. Segundo o Corpo de Bombeiros, a aeronave ficou totalmente destruída e os dois ocupantes morreram carbonizados. Em nota, a família de um dos ocupantes afirmou: \"É com profundo pesar que recebemos hoje a notícia do falecimento do nosso filho.\" As causas do acidente serão investigadas pelo Cenipa.",
+  "title": null,
+  "published_at": null,
+  "truncated": false,
+  "segments": [
+    {
+      "id": "s01",
+      "text": "Um avião de pequeno porte que havia desaparecido na quinta-feira foi localizado neste sábado em uma área de mata."
+    },
+    {
+      "id": "s02",
+      "text": "Segundo o Corpo de Bombeiros, a aeronave ficou totalmente destruída e os dois ocupantes morreram carbonizados."
+    },
+    {
+      "id": "s03",
+      "text": "Em nota, a família de um dos ocupantes afirmou: \"É com profundo pesar que recebemos hoje a notícia do falecimento do nosso filho.\""
+    },
+    {
+      "id": "s04",
+      "text": "As causas do acidente serão investigadas pelo Cenipa."
+    }
+  ]
+}

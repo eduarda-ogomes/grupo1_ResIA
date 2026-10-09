@@ -11,6 +11,7 @@ from typing import List
 
 from pydantic import BaseModel, Field, ValidationError
 
+from src.guardrails.ancoragem import termos_fora_do_contexto
 from src.services.llm import llm_socratico
 from src.state import PipelineState
 
@@ -63,17 +64,35 @@ def carregar_exemplos() -> list[dict]:
     return json.loads(caminho.read_text(encoding="utf-8")) if caminho.exists() else []
 
 
-def validar_perguntas(perguntas: list[str]) -> list[str]:
-    """Valida quantidade e qualidade reflexiva das perguntas geradas."""
+def validar_perguntas(perguntas: list[str], clean_text: str) -> list[str]:
+    """Valida quantidade e qualidade reflexiva das perguntas geradas.
+
+    Ordem: limpar, descartar a pergunta com nome, número ou doença que a notícia não traz (G4, com aviso
+    no log), exigir no mínimo 2, cortar em 3 e aplicar as regras de tamanho, indução e veredito.
+    """
     if not isinstance(perguntas, list):
         raise PerguntaInvalida("A saída deve ser uma lista de perguntas.")
 
     limpas = [p.strip() for p in perguntas if isinstance(p, str) and p.strip()]
-    if len(limpas) < 2:
-        raise PerguntaInvalida(f"Esperado no mínimo 2 perguntas, obtido {len(limpas)}")
 
-    limpas = limpas[:3]  # O contrato aceita no máximo 3 perguntas
+    mantidas: list[str] = []
+    descartadas: list[tuple[str, str]] = []  # (pergunta, primeiro termo de fora)
     for p in limpas:
+        fora = termos_fora_do_contexto(p, clean_text)
+        if fora:
+            logger.warning("Agente Socrático: pergunta descartada, menciona '%s' (fora da notícia): %s", fora[0], p)
+            descartadas.append((p, fora[0]))
+        else:
+            mantidas.append(p)
+
+    if len(mantidas) < 2:
+        if descartadas:
+            pergunta, termo = descartadas[0]
+            raise PerguntaInvalida(f"Pergunta menciona '{termo}', que não aparece na notícia: '{pergunta}'")
+        raise PerguntaInvalida(f"Esperado no mínimo 2 perguntas, obtido {len(mantidas)}")
+
+    mantidas = mantidas[:3]  # O contrato aceita no máximo 3 perguntas
+    for p in mantidas:
         if len(p) < 10:
             raise PerguntaInvalida(f"Pergunta excessivamente curta: '{p}'")
         if RE_INDUTIVO.search(p):
@@ -81,7 +100,7 @@ def validar_perguntas(perguntas: list[str]) -> list[str]:
         if RE_VEREDITO.search(p):
             raise PerguntaInvalida(f"Pergunta contém veredito proibido: '{p}'")
 
-    return limpas
+    return mantidas
 
 
 def montar_mensagens(clean_text: str, erro_anterior: str | None = None) -> list[tuple[str, str]]:
@@ -120,8 +139,10 @@ def chamar_modelo(mensagens: list[tuple[str, str]]) -> str:
         return llm_socratico.invoke(mensagens).content
 
 
-def extrair_e_validar(bruto: str) -> list[str]:
-    """Decodifica e valida o JSON, tolerando variações de chave ('perguntas' ou 'socratic_questions')."""
+def extrair_e_validar(bruto: str, clean_text: str) -> list[str]:
+    """Decodifica e valida o JSON, tolerando variações de chave ('perguntas' ou 'socratic_questions').
+
+    `clean_text` é a notícia contra a qual cada pergunta é checada (G4)."""
     dados = json.loads(remover_cercas(bruto))
     if not isinstance(dados, dict):
         raise PerguntaInvalida("A saída não é um objeto JSON.")
@@ -130,7 +151,7 @@ def extrair_e_validar(bruto: str) -> list[str]:
         dados["socratic_questions"] = dados["perguntas"]
 
     relatorio = SocraticReport.model_validate(dados)
-    return validar_perguntas(relatorio.socratic_questions)
+    return validar_perguntas(relatorio.socratic_questions, clean_text)
 
 
 def analisar_texto(clean_text: str) -> list[str]:
@@ -142,7 +163,7 @@ def analisar_texto(clean_text: str) -> list[str]:
             raise ModeloIndisponivel(str(e)) from e
 
         try:
-            return extrair_e_validar(bruto)
+            return extrair_e_validar(bruto, clean_text)
         except (ValidationError, PerguntaInvalida, json.JSONDecodeError) as e:
             erro = str(e)[:500]
             logger.warning("Agente Socrático: resposta rejeitada: %s", erro)

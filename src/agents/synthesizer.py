@@ -3,6 +3,8 @@
 Abordagem híbrida (Manual §4.5.1; design em docs/superpowers/specs/2026-10-01-agente-sintetizador-design.md):
 o código escreve tudo o que é fato (src/agents/dossie.py); o qwen2.5-7b escreve só a seção
 "Como o texto argumenta", com guardrails (src/guardrails/), 1 retry e fallback em código.
+Ordem das seções: Resumo, Checagens, Argumento, Perguntas, Limites, Fontes
+(docs/superpowers/specs/2026-10-08-dossie-final-design.md).
 
 Contrato: sintetizador_node(state) -> {"dossier": str}, mais "warnings" quando o problema
 é do próprio Sintetizador. Nunca devolve dossier = None.
@@ -13,6 +15,7 @@ import logging
 from pathlib import Path
 
 from src.agents import dossie
+from src.guardrails.ancoragem import citacoes_nao_literais, termos_fora_do_contexto
 from src.guardrails.citacoes import extrair_urls, neutralizar_urls
 from src.guardrails.veredito import termos_de_veredito
 from src.services.llm import llm_sintetizador
@@ -71,8 +74,13 @@ def limpar_resposta(bruto: str) -> str:
     return "\n".join(linhas).strip()
 
 
-def problema_da_sintese(texto: str) -> str | None:
-    """Guardrails sobre o texto do modelo; devolve o problema nomeado para o retry, ou None."""
+def problema_da_sintese(texto: str, frases: list[str]) -> str | None:
+    """Guardrails sobre o texto do modelo; devolve o problema nomeado para o retry, ou None.
+
+    `frases` são os textos dos segmentos já passados por neutralizar_urls, os mesmos que o modelo recebeu:
+    G3 exige que todo trecho entre aspas esteja literalmente numa delas; G4, que nomes, números e doenças
+    apareçam nelas. Os rótulos fixos do prompt (dossie.ROTULOS, "Juízo de valor") não contam como termos.
+    """
     if not texto:
         return "Seu texto veio vazio."
     termos = termos_de_veredito(texto)
@@ -80,10 +88,18 @@ def problema_da_sintese(texto: str) -> str | None:
         return f"Seu texto usou o termo '{termos[0]}'."
     if extrair_urls(texto):
         return "Seu texto incluiu um link."
+    trechos = citacoes_nao_literais(texto, frases)
+    if trechos:
+        return f'Seu texto citou "{trechos[0]}", que não está em nenhuma frase da notícia.'
+    ignorar = list(dossie.ROTULOS.values()) + ["Juízo de valor"]
+    fora = termos_fora_do_contexto(texto, " ".join(frases), ignorar)
+    if fora:
+        return f"Seu texto mencionou '{fora[0]}', que não aparece na notícia."
     return None
 
 
 def sintese_livre(state: PipelineState, ctx: dossie.Contexto) -> str:
+    frases = [neutralizar_urls(s.text) for s in state.segments]
     problema = None
     for _ in range(2):  # 1 tentativa + 1 retry
         try:
@@ -91,7 +107,7 @@ def sintese_livre(state: PipelineState, ctx: dossie.Contexto) -> str:
         except Exception as e:
             raise ModeloIndisponivel(str(e)) from e
         texto = limpar_resposta(bruto)
-        problema = problema_da_sintese(texto)
+        problema = problema_da_sintese(texto, frases)
         if problema is None:
             return texto
         logger.warning("Sintetizador: síntese livre rejeitada: %s", problema)
@@ -106,7 +122,8 @@ def secao_argumento(state: PipelineState, ctx: dossie.Contexto, usar_modelo: boo
     if not usar_modelo:
         return [dossie.TITULO_ARGUMENTO, *dossie.fallback_argumento(state, ctx)], []
     try:
-        return [dossie.TITULO_ARGUMENTO, sintese_livre(state, ctx)], []
+        # Escapa depois dos guardrails, que conferem o texto como o modelo o escreveu
+        return [dossie.TITULO_ARGUMENTO, dossie.escapar_cifrao(sintese_livre(state, ctx))], []
     except ModeloIndisponivel as e:
         logger.warning("Sintetizador: modelo indisponível: %s", e)
         aviso = WARN_MODELO_INDISPONIVEL
@@ -120,12 +137,16 @@ def _montar_dossie(state: PipelineState, usar_modelo: bool) -> dict:
         return {"dossier": dossie.SEM_TEXTO}
 
     ctx = dossie.preprocessar(state)
+    fontes = dossie.numerar_fontes(state, ctx)
     argumento, avisos = secao_argumento(state, ctx, usar_modelo)
+    # Ordem: pirâmide invertida (spec do dossiê final); Fontes some quando não há evidência
     texto = dossie.montar(
-        dossie.secao_checagens(state, ctx),
+        dossie.secao_resumo(state, ctx),
+        dossie.secao_checagens(state, ctx, fontes),
         argumento,
         dossie.secao_perguntas(state),
         dossie.secao_limites(state),
+        dossie.secao_fontes(state, ctx, fontes),
     )
     texto, removeu = dossie.remover_citacoes_invalidas(texto, state.evidence or [])
     if removeu:

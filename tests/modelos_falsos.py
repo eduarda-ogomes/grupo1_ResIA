@@ -6,8 +6,9 @@ from src.agents import evidence, socratic, synthesizer, text_analysis
 
 FIXTURES_MAMAO = Path(__file__).resolve().parent / "fixtures" / "caso_mamao_dengue"
 
-# Passa nos dois guardrails: sem termo de veredito e sem link
-RESPOSTA_SINTETIZADOR = '- Urgência: "URGENTE" pede ação imediata, sem indicar um prazo real.'
+# Passa em todos os guardrails (veredito, link, G3, G4) tanto no caso do mamão quanto no TEXTO_LIVRE:
+# "cura a dengue" é literal nos dois textos, e o rótulo "Adjetivação extrema" é fixo do prompt
+RESPOSTA_SINTETIZADOR = '- Adjetivação extrema: "cura a dengue" promete um resultado garantido, sem apresentar fonte.'
 
 
 def carregar_mamao(nome: str) -> dict:

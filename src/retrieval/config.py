@@ -10,6 +10,7 @@ from __future__ import annotations
 import os
 import re
 from pathlib import Path
+from urllib.parse import urlparse
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
@@ -43,6 +44,18 @@ MIN_PARAGRAPH_CHARS = 40
 # Checagens publicadas antes deste ano levam o ano no source_name ("Aos Fatos (2019)"):
 # o Evidence não tem campo de data, e uma checagem antiga não pode parecer atual no dossiê.
 SOURCE_YEAR_BEFORE = 2024
+
+
+# Domínios que não entram no corpus. O BOL republica o UOL Confere (525 das 531 checagens
+# coletadas em 08/10/2026 tinham o original no UOL) e chega pela busca de noticias.uol.com.br;
+# as cópias ocupavam vagas do top 5 na busca. Ver evidencias_decisoes.md.
+DOMINIOS_EXCLUIDOS = ("bol.uol.com.br",)
+
+
+def url_excluida(url: str) -> bool:
+    """True se a URL é de um domínio em DOMINIOS_EXCLUIDOS (ou subdomínio dele)."""
+    host = urlparse(url).netloc.lower().removeprefix("www.")
+    return any(host == d or host.endswith("." + d) for d in DOMINIOS_EXCLUIDOS)
 
 
 def collection_name(model_name: str | None = None) -> str:

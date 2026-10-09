@@ -68,12 +68,10 @@ agil
 agnaldo
 agostinho
 agrevefoiumfiasco
-agricultura
 agrishow
 agu
 aguia
 aguiar
-ah
 ahmadinejad
 ahronot
 aids
@@ -463,7 +461,6 @@ bieber
 bienal
 big
 bild
-bilenky
 biles
 bilhete
 bill
@@ -502,7 +499,6 @@ body
 boechat
 boeing
 bolero
-bolhosa
 bolivariana
 bolivia
 bolosonaro
@@ -521,7 +517,6 @@ bonita
 bonito
 bonner
 book
-boost
 bope
 bora
 borba
@@ -544,7 +539,6 @@ bowl
 boyko
 bozo
 bozobanana
-bozzo
 bpa
 bpc
 br
@@ -817,7 +811,6 @@ chimbote
 china
 chiquinho
 choquei
-choro
 chris
 christi
 christian
@@ -1260,7 +1253,6 @@ eslovaquia
 eslovenia
 esondeu
 espanha
-espantoesta
 esperanca
 espirito
 esplanada
@@ -1277,7 +1269,6 @@ estela
 ester
 estero
 esteves
-esto
 estocolmo
 estonia
 estrasburgo
@@ -1346,7 +1337,6 @@ fantastico
 farah
 farc
 farelo
-faremos
 farias
 farm
 farmacia
@@ -1395,6 +1385,7 @@ fhc
 fi
 fiat
 fic
+ficha
 fidel
 fiel
 fies
@@ -1417,7 +1408,6 @@ fiumicino
 fla
 flamengo
 flavia
-flavinho
 flavio
 fleury
 flight
@@ -1472,7 +1462,6 @@ frazao
 fred
 frederik
 free
-frei
 freire
 freitas
 freixo
@@ -1848,7 +1837,6 @@ ibirite
 ibis
 ibiza
 ibope
-ibopeglobo
 ibpg
 ibrahimovic
 ibs
@@ -2079,7 +2067,6 @@ jorginho
 jornal
 jose
 joseph
-joserainha
 josi
 journal
 jr
@@ -2192,7 +2179,6 @@ kyiv
 l
 l7
 lab
-ladro
 lady
 lago
 lagoas
@@ -2343,7 +2329,6 @@ luiza
 lula
 luladrao
 lulaladrao
-lulamanifestante
 lule
 luleco
 lulinha
@@ -2442,6 +2427,7 @@ manzano
 manzotti
 maome
 maps
+mar
 mara
 maracaibo
 maracana
@@ -2663,6 +2649,7 @@ monta
 montalvao
 montana
 montano
+monte
 monteiro
 montel
 montenegro
@@ -2966,7 +2953,6 @@ parelheiros
 paris
 parkinson
 parlamento
-pas
 paschoal
 pascoa
 pascoal
@@ -3016,7 +3002,6 @@ penha
 pensilvania
 pequim
 perakov
-percebo
 pereira
 peres
 perhson
@@ -3114,7 +3099,6 @@ polo
 polonia
 polyana
 ponce
-ponta
 porchat
 porciuncula
 portiolli
@@ -3143,13 +3127,11 @@ preto
 pretti
 prev
 previdencia
-previdenciapessoas
 prf
 prigozhin
 princesa
 priscila
 priscilla
-priso
 probank
 proclamacao
 procon
@@ -3158,7 +3140,6 @@ producoes
 profetico
 project
 prole
-promotores
 pronatec
 prostituta
 protogenes
@@ -3200,7 +3181,6 @@ quito
 quixote
 r
 r15
-raa
 rabelo
 radcliffe
 rael
@@ -3291,7 +3271,6 @@ rett
 reuters
 revalida
 revolucionaria
-revolucionario
 rey
 rezende
 rfb
@@ -3373,7 +3352,6 @@ rose
 roseana
 rosinha
 rossi
-rota
 rothschild
 rouanet
 round
@@ -3522,7 +3500,6 @@ sertania
 serva
 servia
 seul
-severo
 shadow
 shakira
 sham
@@ -3851,7 +3828,6 @@ ue2020
 uefa
 uerj
 ufc
-ufes
 uff
 ufmg
 ufpa
@@ -3883,7 +3859,6 @@ unifesp
 unifesspa
 unimed
 unionpay
-universal
 university
 universo
 univesp
@@ -3919,9 +3894,7 @@ v
 vaers
 vaids
 val
-vala
 valadao
-valas
 valdemar
 valdemiro
 valdes
@@ -3931,7 +3904,6 @@ valeurs
 vamo
 vaqueiro
 var
-vara
 varela
 varella
 vargas
@@ -4002,7 +3974,6 @@ viviane
 vladimir
 vlt
 voa
-voc
 vocario
 voepass
 vogue

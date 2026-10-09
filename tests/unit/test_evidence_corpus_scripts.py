@@ -189,6 +189,60 @@ def test_republicacoes_nao_geram_trecho_e_sao_listadas_para_apagar():
     assert excluidas == ["https://www.bol.uol.com.br/a.htm", "https://www.bol.uol.com.br/b.htm"]
 
 
+# --- variantes de URL da mesma página (UOL: .htm, .ghtm, .amp.htm) ------------------
+
+@pytest.mark.parametrize("url, canonica", [
+    ("https://noticias.uol.com.br/confere/2024/12/20/nikolas.htm", "https://noticias.uol.com.br/confere/2024/12/20/nikolas"),
+    ("https://noticias.uol.com.br/confere/2024/12/20/nikolas.ghtm", "https://noticias.uol.com.br/confere/2024/12/20/nikolas"),
+    ("https://noticias.uol.com.br/confere/2024/12/20/nikolas.amp.htm", "https://noticias.uol.com.br/confere/2024/12/20/nikolas"),
+    ("https://noticias.uol.com.br/a/b.htm?cmpid=x", "https://noticias.uol.com.br/a/b"),
+    ("https://www.estadao.com.br/estadao-verifica/x/", "https://www.estadao.com.br/estadao-verifica/x"),
+    ("https://saude.uol.com.br/noticias/doenca.html", "https://saude.uol.com.br/noticias/doenca.html"),  # .html fica
+])
+def test_url_canonica_junta_as_variantes(url, canonica):
+    assert build_index.url_canonica(url) == canonica
+
+
+def test_unifica_variantes_mantem_htm_e_completa_campos_vazios():
+    base = "https://noticias.uol.com.br/confere/2024/12/20/nikolas"
+    claims = [
+        {"source_url": base + ".amp.htm", "review_title": "É falso que Nikolas…", "review_date": "2024-12-20"},
+        {"source_url": base + ".htm", "review_title": "É falso que Nikolas…", "review_date": ""},
+        {"source_url": base + ".ghtm", "review_title": "É falso que Nikolas…", "review_date": "2024-12-20"},
+        {"source_url": "https://www.aosfatos.org/noticias/outra/", "review_title": "Outra"},
+    ]
+    articles = [{"source_url": base + ".ghtm", "text": "Texto baixado pela variante .ghtm."}]
+    claims_ok, articles_ok, removidas = build_index.unificar_variantes(claims, articles)
+    assert [c["source_url"] for c in claims_ok] == [base + ".htm", "https://www.aosfatos.org/noticias/outra/"]
+    assert claims_ok[0]["review_date"] == "2024-12-20"                   # veio de outra variante
+    assert articles_ok == [{"source_url": base + ".htm", "text": "Texto baixado pela variante .ghtm."}]
+    assert sorted(removidas) == [base + ".amp.htm", base + ".ghtm"]
+
+
+def test_mesma_url_em_duas_fontes_nao_e_removida_nem_misturada():
+    url = "https://www.aosfatos.org/noticias/insulina/"
+    claims = [{"source_url": url, "review_title": "Da API", "claim_reviewed": ""},
+              {"source_url": url, "review_title": "Do FACTCK.BR", "claim_reviewed": "Alegação", "corpus": "factckbr"},
+              {"source_url": url.rstrip("/"), "review_title": "Sem barra"}]
+    claims_ok, _, removidas = build_index.unificar_variantes(claims, [])
+    assert claims_ok == [{"source_url": url, "review_title": "Da API", "claim_reviewed": ""}]   # como antes
+    assert removidas == [url.rstrip("/")]                       # a URL que fica nunca é apagada do índice
+
+
+def test_textos_da_mesma_url_passam_como_estao():
+    url = "https://www.aosfatos.org/noticias/comprovante/"
+    articles = [{"source_url": url, "text": "Texto da API."}, {"source_url": url, "text": "Texto do FACTCK.BR."}]
+    _, articles_ok, _ = build_index.unificar_variantes([{"source_url": url, "review_title": "T"}], articles)
+    assert articles_ok == articles          # build_records continua usando o último, como antes
+
+
+def test_unifica_variantes_sem_htm_fica_a_ghtm():
+    base = "https://noticias.uol.com.br/confere/2026/09/25/video"
+    claims = [{"source_url": base + ".amp.htm", "review_title": "T"}, {"source_url": base + ".ghtm", "review_title": "T"}]
+    claims_ok, _, removidas = build_index.unificar_variantes(claims, [])
+    assert [c["source_url"] for c in claims_ok] == [base + ".ghtm"] and removidas == [base + ".amp.htm"]
+
+
 def test_trecho_registra_a_fonte_do_corpus():
     claims = [{"source_url": "https://x.org/1", "review_title": "Título", "corpus": "factckbr"},
               {"source_url": "https://x.org/2", "review_title": "Outro"}]

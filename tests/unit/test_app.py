@@ -5,8 +5,14 @@ from streamlit.testing.v1 import AppTest
 APP = str(Path(__file__).resolve().parents[2] / "app" / "app.py")
 
 
-def analisar(texto):
+def pagina_analisar():
     at = AppTest.from_file(APP, default_timeout=120)
+    at.query_params["page"] = "analisar"
+    return at
+
+
+def analisar(texto):
+    at = pagina_analisar()
     at.run()
     at.text_area[0].set_value(texto)
     at.button[0].click()
@@ -18,7 +24,7 @@ def test_app_analisa_texto_sem_excecao():
     at = analisar("O suco de mamão cura a dengue. Isso não tem comprovação.")
 
     assert not at.exception
-    assert at.header[0].value == "Texto Inserido Manualmente"
+    assert any("Texto Inserido Manualmente" in m.value for m in at.markdown)
     assert any("Todas as frases analisadas" in e.label for e in at.expander)
 
 
@@ -51,12 +57,18 @@ def test_app_mostra_o_aviso_de_cada_ramo_que_falhou():
         assert prefixo in avisos
 
 
-def test_app_cita_o_lm_studio_e_nao_o_ollama():
-    at = AppTest.from_file(APP, default_timeout=120)
-    at.run()
+def test_app_cita_o_lm_studio_e_nao_o_ollama(monkeypatch):
+    from src import medicao
 
-    textos = " ".join(m.value for m in at.markdown)
-    assert "LM Studio" in textos
+    def falha(*args, **kwargs):
+        raise RuntimeError("modelo fora do ar")
+
+    monkeypatch.setattr(medicao, "executar", falha)
+
+    at = analisar("O suco de mamão cura a dengue. Isso não tem comprovação.")
+
+    assert any("LM Studio" in i.value for i in at.info)
+    textos = " ".join(m.value for m in [*at.markdown, *at.info, *at.error])
     assert "Ollama" not in textos
 
 

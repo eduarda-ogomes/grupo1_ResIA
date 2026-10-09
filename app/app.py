@@ -500,6 +500,7 @@ def render_analisar():
             except Exception as e:
                 status.update(label="Erro na execução", state="error")
                 st.error(f"Erro ao executar o pipeline: {str(e)}")
+                st.info("Dica: verifique se o LM Studio está rodando em localhost:1234 com o qwen2.5-7b carregado.")
                 st.stop()
         
         validated = execucao.estado

@@ -1,0 +1,1247 @@
+{
+  "data": "2026-10-09T11:10:34",
+  "split": "todos",
+  "gold": "data\\gold\\evidencias.json",
+  "gold_versao": 1,
+  "configuracao": {
+    "embedding_model": "BAAI/bge-m3",
+    "nli_model": "MoritzLaurer/mDeBERTa-v3-base-mnli-xnli",
+    "device": "cuda",
+    "sim_threshold": 0.55,
+    "claim_match_min_prob": 0.8,
+    "search_k": 10,
+    "claim_candidates": 6,
+    "max_evidence_per_segment": 3,
+    "recall_k": 5,
+    "recall_k_busca": 30,
+    "colecao": "checagens__baai-bge-m3",
+    "trechos_no_indice": 127311,
+    "chromadb": "1.5.9",
+    "python": "3.14.7",
+    "git_commit": "b77c150ce206e03b1df279fd53bdcf522121d4b6",
+    "git_alteracoes_locais": true
+  },
+  "tempos": {
+    "busca_s": 17.469,
+    "agente_primeira_entrada_s": 3.847,
+    "agente_demais_entradas_s": [
+      0.582,
+      0.739,
+      0.48,
+      0.645,
+      0.606,
+      0.579,
+      0.716,
+      0.617,
+      0.583,
+      0.527,
+      0.651,
+      0.477,
+      0.526
+    ],
+    "observacao": "a busca inclui o carregamento do modelo de embeddings; a primeira entrada do agente, o do NLI"
+  },
+  "metricas": {
+    "n_frases": 42,
+    "n_por_tipo": {
+      "com_checagem": 23,
+      "sem_checagem": 12,
+      "desmente": 2,
+      "fato_parecido": 3,
+      "troca_numero": 2
+    },
+    "recall_at_5": {
+      "acertos": 22,
+      "total": 23,
+      "valor": 0.9565217391304348
+    },
+    "cobertura": {
+      "acertos": 19,
+      "total": 23,
+      "valor": 0.8260869565217391
+    },
+    "macro_f1": {
+      "valor": 0.7391941391941392,
+      "classes_na_media": [
+        "apoia",
+        "contradiz",
+        "insuficiente"
+      ],
+      "por_classe": {
+        "apoia": {
+          "precisao": 1.0,
+          "revocacao": 0.6666666666666666,
+          "f1": 0.8,
+          "suporte": 6,
+          "previstas": 4
+        },
+        "contradiz": {
+          "precisao": 1.0,
+          "revocacao": 0.7333333333333333,
+          "f1": 0.846153846153846,
+          "suporte": 15,
+          "previstas": 11
+        },
+        "insuficiente": {
+          "precisao": 0.4,
+          "revocacao": 1.0,
+          "f1": 0.5714285714285715,
+          "suporte": 4,
+          "previstas": 10
+        }
+      },
+      "n": 25,
+      "avisos": []
+    },
+    "stance_cobertas": {
+      "acertos": 19,
+      "total": 19,
+      "valor": 1.0
+    },
+    "matriz_confusao": {
+      "apoia": {
+        "apoia": 4,
+        "contradiz": 0,
+        "insuficiente": 2
+      },
+      "contradiz": {
+        "apoia": 0,
+        "contradiz": 11,
+        "insuficiente": 4
+      },
+      "insuficiente": {
+        "apoia": 0,
+        "contradiz": 0,
+        "insuficiente": 4
+      }
+    },
+    "evidencia_inventada": {
+      "acertos": 0,
+      "total": 12,
+      "valor": 0.0
+    },
+    "casamento_errado": {
+      "evidencias": 7,
+      "frases": 5,
+      "por_tipo": {
+        "com_checagem": 6,
+        "troca_numero": 1
+      }
+    },
+    "por_frase": [
+      {
+        "chave": "ev01/s01",
+        "tipo": "com_checagem",
+        "texto": "Durante os quatro anos de mandato, Jair Bolsonaro não moveu uma pedra na ponte do Rio Araguaia, que ficou abandonada.",
+        "aceitas": [
+          "https://noticias.uol.com.br/comprova/ultimas-noticias/2025/11/27/ponte-que-liga-para-e-tocantins-comecou-no-governo-bolsonaro.htm",
+          "https://projetocomprova.com.br/publica%C3%A7%C3%B5es/ponte-que-liga-para-e-tocantins-comecou-a-ser-construida-no-governo-bolsonaro/",
+          "https://www.aosfatos.org/noticias/direita-esquerda-compartilham-mentiras-ponte-entre-para-e-tocantins/"
+        ],
+        "stance_esperada": "contradiz",
+        "ranking_top5": [
+          "https://www.estadao.com.br/estadao-verifica/governo-lula-ponte-araguaia-tocantins-para/",
+          "https://www.aosfatos.org/noticias/direita-esquerda-compartilham-mentiras-ponte-entre-para-e-tocantins/",
+          "https://www.estadao.com.br/estadao-verifica/e-falso-que-ponte-sobre-o-rio-araguaia-tenha-sido-embargada-pelo-governo-lula/",
+          "https://projetocomprova.com.br/publica%C3%A7%C3%B5es/e-falso-que-ponte-sobre-o-rio-araguaia-tenha-sido-embargada-pelo-governo-lula/",
+          "https://projetocomprova.com.br/publica%C3%A7%C3%B5es/governo-lula-tenta-resolver-impasse-na-justica-para-concluir-ponte-entre-tocantins-e-para/"
+        ],
+        "posicao_aceita": 2,
+        "evidencias": [
+          {
+            "source_url": "https://www.aosfatos.org/noticias/direita-esquerda-compartilham-mentiras-ponte-entre-para-e-tocantins/",
+            "stance": "contradiz",
+            "agency_verdict": "Falso"
+          }
+        ],
+        "urls_nao_aceitas": [],
+        "no_top5": true,
+        "coberta": true,
+        "stance_prevista": "contradiz",
+        "citou_aceita": true
+      },
+      {
+        "chave": "ev01/s02",
+        "tipo": "com_checagem",
+        "texto": "O governo apagou a página oficial sobre a Lei das Bets para que ninguém lembre que foi Lula quem assinou a lei.",
+        "aceitas": [
+          "https://www.aosfatos.org/noticias/lei-bets-regra-eleitoral/"
+        ],
+        "stance_esperada": "insuficiente",
+        "ranking_top5": [
+          "https://www.aosfatos.org/noticias/lei-bets-regra-eleitoral/",
+          "https://www.estadao.com.br/estadao-verifica/enganoso-bets-criadas-governo-lula-presidente-sancionou-lei-regulamentando-apostas/",
+          "https://www.aosfatos.org/noticias/temer-lula-bets/",
+          "https://www.estadao.com.br/estadao-verifica/video-nao-mostra-torcida-do-flamengo-protestando-contra-lula-e-sim-chegando-ao-maracana-para-jogo/",
+          "https://www.aosfatos.org/noticias/checamos-live-flavio-bolsonaro/"
+        ],
+        "posicao_aceita": 1,
+        "evidencias": [
+          {
+            "source_url": "https://www.aosfatos.org/noticias/lei-bets-regra-eleitoral/",
+            "stance": "insuficiente",
+            "agency_verdict": "Não é bem assim"
+          }
+        ],
+        "urls_nao_aceitas": [],
+        "no_top5": true,
+        "coberta": true,
+        "stance_prevista": "insuficiente",
+        "citou_aceita": true
+      },
+      {
+        "chave": "ev01/s03",
+        "tipo": "com_checagem",
+        "texto": "No Arkansas, as urnas eletrônicas trocavam sozinhas os votos dados a Donald Trump por votos em Kamala Harris.",
+        "aceitas": [
+          "https://checamos.afp.com/doc.afp.com.36LM6ZQ",
+          "https://www.aosfatos.org/noticias/falso-urnas-arkansas-impediram-voto-trump/"
+        ],
+        "stance_esperada": "contradiz",
+        "ranking_top5": [
+          "https://www.aosfatos.org/noticias/falso-urnas-arkansas-impediram-voto-trump/",
+          "https://www.aosfatos.org/noticias/falso-voto-para-trump-foi-computado-kamala/",
+          "https://www.estadao.com.br/estadao-verifica/urna-eletronica-kentucky-troca-voto-kamala-trump-enganoso/",
+          "https://www.agencialupa.org/jornalismo/2024/11/01/e-falso-que-urnas-de-kentucky-estejam-trocando-votos-de-trump-por-kamala/",
+          "https://www.estadao.com.br/estadao-verifica/primeira-urna-eua-vitoria-trump-kamala-enganoso/"
+        ],
+        "posicao_aceita": 1,
+        "evidencias": [],
+        "urls_nao_aceitas": [],
+        "no_top5": true,
+        "coberta": false,
+        "stance_prevista": "insuficiente",
+        "citou_aceita": false
+      },
+      {
+        "chave": "ev02/s01",
+        "tipo": "com_checagem",
+        "texto": "Em Roma, a primeira-dama Janja saiu escondida, no meio da noite, do hotel em que Macron se hospedava.",
+        "aceitas": [
+          "https://noticias.uol.com.br/comprova/ultimas-noticias/2025/05/06/post-inventa-encontro-noturno-entre-janja-e-macron-em-roma.htm",
+          "https://projetocomprova.com.br/publica%C3%A7%C3%B5es/post-inventa-encontro-noturno-entre-janja-e-macron-em-roma/",
+          "https://www.estadao.com.br/estadao-verifica/falso-encontro-noturno-janja-macron-roma/"
+        ],
+        "stance_esperada": "contradiz",
+        "ranking_top5": [
+          "https://projetocomprova.com.br/publica%C3%A7%C3%B5es/post-inventa-encontro-noturno-entre-janja-e-macron-em-roma/",
+          "https://www.estadao.com.br/estadao-verifica/falso-encontro-noturno-janja-macron-roma/",
+          "https://noticias.uol.com.br/comprova/ultimas-noticias/2025/05/06/post-inventa-encontro-noturno-entre-janja-e-macron-em-roma.htm",
+          "https://www.estadao.com.br/estadao-verifica/macron-beija-janja-na-boca-falso/",
+          "https://www.agencialupa.org/jornalismo/2024/07/25/e-falso-que-janja-foi-expulsa-dos-jogos-olimpicos-de-paris-2024/"
+        ],
+        "posicao_aceita": 1,
+        "evidencias": [],
+        "urls_nao_aceitas": [],
+        "no_top5": true,
+        "coberta": false,
+        "stance_prevista": "insuficiente",
+        "citou_aceita": false
+      },
+      {
+        "chave": "ev02/s02",
+        "tipo": "com_checagem",
+        "texto": "Basta um aplicativo e um cabo USB para turbinar a internet de casa sem pagar nada a mais.",
+        "aceitas": [
+          "https://www.estadao.com.br/estadao-verifica/aumentar-velocidade-internet-gratis-falso/"
+        ],
+        "stance_esperada": "contradiz",
+        "ranking_top5": [
+          "https://www.estadao.com.br/estadao-verifica/aumentar-velocidade-internet-gratis-falso/",
+          "https://www.aosfatos.org/noticias/falso-starlink-internet-gratis-aplicativo/",
+          "https://www.estadao.com.br/estadao-verifica/codigo-secreto-internet-gratuita-falso/",
+          "https://noticias.uol.com.br/confere/ultimas-noticias/2024/09/03/nao-e-possivel-ter-internet-da-starlink-sem-contratar-o-servico.htm",
+          "https://www.estadao.com.br/estadao-verifica/starlink-celular-satelite-sem-antena-falta-contexto/"
+        ],
+        "posicao_aceita": 1,
+        "evidencias": [
+          {
+            "source_url": "https://www.estadao.com.br/estadao-verifica/aumentar-velocidade-internet-gratis-falso/",
+            "stance": "contradiz",
+            "agency_verdict": "Falso"
+          }
+        ],
+        "urls_nao_aceitas": [],
+        "no_top5": true,
+        "coberta": true,
+        "stance_prevista": "contradiz",
+        "citou_aceita": true
+      },
+      {
+        "chave": "ev02/s03",
+        "tipo": "sem_checagem",
+        "texto": "O Ministério das Comunicações abriu consulta pública sobre o leilão de novas faixas de 5G para cidades do interior.",
+        "aceitas": [],
+        "stance_esperada": null,
+        "ranking_top5": [
+          "https://www.agencialupa.org/jornalismo/2021/04/20/verificamos-bolsonaro-fabrica-tecnologia-5g-brasil/",
+          "https://www.aosfatos.org/noticias/checamos-bolsonaro-assembleia-geral-onu/",
+          "https://www.aosfatos.org/noticias/bolsonaro-nao-construiu-secretamente-industrias-de-vacina-e-de-tecnologia-5g/",
+          "https://www.agencialupa.org/jornalismo/2020/12/03/verificamos-vacina-covid-dna/",
+          "https://www.agencialupa.org/jornalismo/2020/08/04/verificamos-vacina-5g-microchip/"
+        ],
+        "posicao_aceita": null,
+        "evidencias": [],
+        "urls_nao_aceitas": [],
+        "inventada": false
+      },
+      {
+        "chave": "ev03/s01",
+        "tipo": "desmente",
+        "texto": "Ao contrário do que circula nas redes, Lula não virou réu em nenhuma corte internacional.",
+        "aceitas": [
+          "https://noticias.uol.com.br/comprova/ultimas-noticias/2024/10/14/lula-nao-e-reu-em-tribunal-internacional-post-usa-audio-fora-de-contexto.htm",
+          "https://projetocomprova.com.br/publica%C3%A7%C3%B5es/lula-nao-e-reu-em-tribunal-internacional-post-usa-audio-fora-de-contexto/",
+          "https://www.estadao.com.br/estadao-verifica/lula-reu-supremo-tribunal-internacional-falso/"
+        ],
+        "stance_esperada": "apoia",
+        "ranking_top5": [
+          "https://noticias.uol.com.br/comprova/ultimas-noticias/2024/10/14/lula-nao-e-reu-em-tribunal-internacional-post-usa-audio-fora-de-contexto.htm",
+          "https://projetocomprova.com.br/publica%C3%A7%C3%B5es/lula-nao-e-reu-em-tribunal-internacional-post-usa-audio-fora-de-contexto/",
+          "https://www.estadao.com.br/estadao-verifica/lula-reu-supremo-tribunal-internacional-falso/",
+          "https://noticias.uol.com.br/comprova/ultimas-noticias/2023/07/21/lula-nao-e-procurado-pela-justica-estrangeira.htm",
+          "https://www.agencialupa.org/jornalismo/2024/10/11/e-falso-que-lula-sera-julgado-por-supremo-tribunal-internacional-corte-nao-existe/"
+        ],
+        "posicao_aceita": 1,
+        "evidencias": [],
+        "urls_nao_aceitas": [],
+        "stance_prevista": "insuficiente",
+        "citou_aceita": false
+      },
+      {
+        "chave": "ev03/s02",
+        "tipo": "sem_checagem",
+        "texto": "O Parlamento português aprovou nesta semana novas regras para a renovação de vistos de trabalho de brasileiros.",
+        "aceitas": [],
+        "stance_esperada": null,
+        "ranking_top5": [
+          "https://projetocomprova.com.br/publica%C3%A7%C3%B5es/post-usa-noticia-de-2019-para-parabenizar-bolsonaro-por-acordo-mercosul-ue-mas-negociacoes-estao-paradas/",
+          "https://projetocomprova.com.br/publica%C3%A7%C3%B5es/influenciador-portugues-engana-ao-afirmar-que-globo-noticiou-sobre-urnas-eletronicas-brasileiras-hackeadas-nos-eua/",
+          "https://www.estadao.com.br/estadao-verifica/influenciador-portugues-globo-urnas-eletronicas-hackeadas-eua/",
+          "https://www.aosfatos.org/noticias/novas-regras-estrangeiros-sem-visto/",
+          "https://www.aosfatos.org/noticias/video-de-medica-reune-diversas-informacoes-falsas-sobre-mais-medicos/"
+        ],
+        "posicao_aceita": null,
+        "evidencias": [],
+        "urls_nao_aceitas": [],
+        "inventada": false
+      },
+      {
+        "chave": "ev03/s03",
+        "tipo": "com_checagem",
+        "texto": "Militantes de esquerda colocaram veneno na água de André Ventura durante um comício em Portugal.",
+        "aceitas": [
+          "https://www.estadao.com.br/estadao-verifica/andre-ventura-portugal-passou-mal-beber-agua/"
+        ],
+        "stance_esperada": "insuficiente",
+        "ranking_top5": [
+          "https://www.estadao.com.br/estadao-verifica/andre-ventura-portugal-passou-mal-beber-agua/",
+          "https://www.aosfatos.org/noticias/deputado-extrema-direita-presidente-portugal-proibir-entrada-lula/",
+          "https://www.aosfatos.org/noticias/falso-presidente-portugal-brasil-recusou-doacoes/",
+          "https://www.aosfatos.org/noticias/video-deputado-portugues-xinga-lula-gravado-janeiro-nao-abril/",
+          "https://www.estadao.com.br/estadao-verifica/andre-ventura-vence-eleicao-portugal-vai-proibir-entrada-lula-enganoso/"
+        ],
+        "posicao_aceita": 1,
+        "evidencias": [
+          {
+            "source_url": "https://www.estadao.com.br/estadao-verifica/andre-ventura-portugal-passou-mal-beber-agua/",
+            "stance": "insuficiente",
+            "agency_verdict": "Enganoso"
+          }
+        ],
+        "urls_nao_aceitas": [],
+        "no_top5": true,
+        "coberta": true,
+        "stance_prevista": "insuficiente",
+        "citou_aceita": true
+      },
+      {
+        "chave": "ev04/s01",
+        "tipo": "com_checagem",
+        "texto": "A Justiça americana derrubou o tarifaço de Donald Trump, numa derrota dura para o presidente.",
+        "aceitas": [
+          "https://projetocomprova.com.br/publica%C3%A7%C3%B5es/tarifas-de-trump-seguem-em-vigor-video-no-x-espalha-informacao-desatualizada/",
+          "https://www.estadao.com.br/estadao-verifica/tarifas-de-trump-seguem-em-vigor-video-no-x-espalha-informacao-desatualizada/"
+        ],
+        "stance_esperada": "insuficiente",
+        "ranking_top5": [
+          "https://www.estadao.com.br/estadao-verifica/trump-cancela-tarifaco-brasil-enganoso/",
+          "https://www.aosfatos.org/noticias/nao-e-verdade-que-trump-cancelou-tarifaco-de-produtos-brasileiros/",
+          "https://www.aosfatos.org/noticias/trump-nao-cancelou-tarifa/",
+          "https://www.estadao.com.br/estadao-verifica/tarifas-de-trump-seguem-em-vigor-video-no-x-espalha-informacao-desatualizada/",
+          "https://www.estadao.com.br/estadao-verifica/kamala-fingiu-conversa-telefone-eleitor-enganoso/"
+        ],
+        "posicao_aceita": 4,
+        "evidencias": [
+          {
+            "source_url": "https://www.estadao.com.br/estadao-verifica/tarifas-de-trump-seguem-em-vigor-video-no-x-espalha-informacao-desatualizada/",
+            "stance": "insuficiente",
+            "agency_verdict": "Enganoso"
+          },
+          {
+            "source_url": "https://projetocomprova.com.br/publica%C3%A7%C3%B5es/tarifas-de-trump-seguem-em-vigor-video-no-x-espalha-informacao-desatualizada/",
+            "stance": "insuficiente",
+            "agency_verdict": "Enganoso"
+          }
+        ],
+        "urls_nao_aceitas": [],
+        "no_top5": true,
+        "coberta": true,
+        "stance_prevista": "insuficiente",
+        "citou_aceita": true
+      },
+      {
+        "chave": "ev04/s02",
+        "tipo": "sem_checagem",
+        "texto": "A Neo Química Arena vai receber em dezembro a final da Copa do Brasil feminina.",
+        "aceitas": [],
+        "stance_esperada": null,
+        "ranking_top5": [
+          "https://www.aosfatos.org/noticias/regra-da-conmebol-impediu-que-jogadora-do-brasil-levasse-bandeira-ao-podio/",
+          "https://www.aosfatos.org/noticias/postagens-distorcem-informacoes-sobre-andamento-de-obra-de-condominio-do-mtst/",
+          "https://projetocomprova.com.br/publica%C3%A7%C3%B5es/video-de-abordagem-da-pm-a-torcedores-do-sport-nao-tem-relacao-com-lula/",
+          "https://www.agencialupa.org/jornalismo/2025/06/18/e-falso-que-a-fifa-excluiu-os-eua-como-pais-sede-da-copa-de-2026/",
+          "https://www.aosfatos.org/noticias/foto-de-torcida-do-flamengo-no-rio-e-atribuida-protesto-contra-bolsonaro/"
+        ],
+        "posicao_aceita": null,
+        "evidencias": [],
+        "urls_nao_aceitas": [],
+        "inventada": false
+      },
+      {
+        "chave": "ev04/s03",
+        "tipo": "com_checagem",
+        "texto": "Moraes respondeu a torcedores com um gesto obsceno quando estava no estádio vendo o Corinthians.",
+        "aceitas": [
+          "https://noticias.uol.com.br/confere/ultimas-noticias/2025/08/01/moraes-fez-sim-gesto-obsceno-durante-jogo-do-corinthians.htm"
+        ],
+        "stance_esperada": "apoia",
+        "ranking_top5": [
+          "https://noticias.uol.com.br/confere/ultimas-noticias/2025/08/01/moraes-fez-sim-gesto-obsceno-durante-jogo-do-corinthians.htm",
+          "https://checamos.afp.com/doc.afp.com.68UF4KE",
+          "https://noticias.uol.com.br/confere/ultimas-noticias/2025/08/05/torcida-do-corinthians-nao-se-manifestou-contra-alexandre-de-moraes-em-jogo.htm",
+          "https://www.aosfatos.org/noticias/torcida-corinthians-nao-entoou-cantico-contra-alexandre-moraes-durante-jogo/",
+          "https://www.estadao.com.br/estadao-verifica/falso-suica-protesto-contra-alexandre-de-moraes/"
+        ],
+        "posicao_aceita": 1,
+        "evidencias": [
+          {
+            "source_url": "https://noticias.uol.com.br/confere/ultimas-noticias/2025/08/01/moraes-fez-sim-gesto-obsceno-durante-jogo-do-corinthians.htm",
+            "stance": "apoia",
+            "agency_verdict": "Verdadeiro"
+          }
+        ],
+        "urls_nao_aceitas": [],
+        "no_top5": true,
+        "coberta": true,
+        "stance_prevista": "apoia",
+        "citou_aceita": true
+      },
+      {
+        "chave": "ev05/s01",
+        "tipo": "fato_parecido",
+        "texto": "O Itamaraty avisou que fecharia a embaixada dos Estados Unidos caso Flávio Dino fosse punido por Washington.",
+        "aceitas": [],
+        "stance_esperada": null,
+        "ranking_top5": [
+          "https://www.aosfatos.org/noticias/brasil-nao-ameacou-fechar-embaixadas-americanas-caso-moraes-seja-alvo-de-sancoes-pelos-eua/",
+          "https://www.aosfatos.org/noticias/jornal-nacional-nao-noticiou-eua-aplicarao-sancoes-brasil-bolsonaro-preso/",
+          "https://www.estadao.com.br/estadao-verifica/flavio-dino-fechar-congresso-com-apoio-do-stf/",
+          "https://www.aosfatos.org/noticias/flavio-bolsonaro-impeachment-dino/",
+          "https://www.estadao.com.br/estadao-verifica/netanyahu-critica-lula-israel-ira-fora-de-contexto/"
+        ],
+        "posicao_aceita": null,
+        "evidencias": [],
+        "urls_nao_aceitas": []
+      },
+      {
+        "chave": "ev05/s02",
+        "tipo": "com_checagem",
+        "texto": "O colegiado de ética dos deputados correu para cassar Glauber Braga, mas engavetou até agora o caso de Chiquinho Brazão.",
+        "aceitas": [
+          "https://www.aosfatos.org/noticias/falso-conselho-de-etica-nao-recomendou-cassacao-brazao/"
+        ],
+        "stance_esperada": "contradiz",
+        "ranking_top5": [
+          "https://www.aosfatos.org/noticias/falso-conselho-de-etica-nao-recomendou-cassacao-brazao/",
+          "https://www.aosfatos.org/noticias/checamos-guilherme-boulos-flow/",
+          "https://www.agencialupa.org/jornalismo/2024/04/05/e-falso-que-alexandre-de-moraes-mandou-soltar-o-deputado-chiquinho-brazao/",
+          "https://www.aosfatos.org/noticias/falso-stf-decidiu-chiquinho-brazao-nao-pode-ser-preso/",
+          "https://www.estadao.com.br/estadao-verifica/stf-nao-determinou-que-chiquinho-brazao-nao-pode-ser-preso-post-tira-de-contexto-trecho-de-jornal/"
+        ],
+        "posicao_aceita": 1,
+        "evidencias": [
+          {
+            "source_url": "https://www.aosfatos.org/noticias/falso-conselho-de-etica-nao-recomendou-cassacao-brazao/",
+            "stance": "contradiz",
+            "agency_verdict": "Falso"
+          }
+        ],
+        "urls_nao_aceitas": [],
+        "no_top5": true,
+        "coberta": true,
+        "stance_prevista": "contradiz",
+        "citou_aceita": true
+      },
+      {
+        "chave": "ev05/s03",
+        "tipo": "sem_checagem",
+        "texto": "A Câmara criou uma frente parlamentar para acompanhar a qualidade da merenda nas escolas públicas.",
+        "aceitas": [],
+        "stance_esperada": null,
+        "ranking_top5": [
+          "https://www.estadao.com.br/estadao-verifica/video-criancas-fila-foto-lanche-venezuela-enganoso/",
+          "https://www.aosfatos.org/noticias/checamos-o-segundo-debate-presidencial/",
+          "https://www.aosfatos.org/noticias/video-mostra-fraude-entrega-merendas-colombia-nao-venezuela/",
+          "https://www.aosfatos.org/noticias/nunes-boulos-desinformacao-pre-campanha/",
+          "https://www.aosfatos.org/noticias/checagens-em-tempo-real-do-debate-de-segundo-turno-da-record-entre-doria-e-franca/"
+        ],
+        "posicao_aceita": null,
+        "evidencias": [],
+        "urls_nao_aceitas": [],
+        "inventada": false
+      },
+      {
+        "chave": "ev06/s01",
+        "tipo": "fato_parecido",
+        "texto": "Michelle Bolsonaro prometeu elevar o salário mínimo para mais de R$ 3.000 se chegar à Presidência.",
+        "aceitas": [],
+        "stance_esperada": null,
+        "ranking_top5": [
+          "https://www.aosfatos.org/noticias/posts-enganam-aumento-energia-eletrica-governo-lula/",
+          "https://www.aosfatos.org/noticias/falso-bolsonaro-reajuste-salario-minimo-6-reais/",
+          "https://projetocomprova.com.br/publica%C3%A7%C3%B5es/flavio-bolsonaro-nao-prometeu-salario-minimo-de-r-3-mil-informacao-circula-em-videos-com-ia/",
+          "https://www.aosfatos.org/noticias/reajustes-bolsa-familia-salario-minimo/",
+          "https://www.aosfatos.org/noticias/o-que-e-fato-no-pronunciamento-de-temer-pelo-dia-do-trabalho/"
+        ],
+        "posicao_aceita": null,
+        "evidencias": [],
+        "urls_nao_aceitas": []
+      },
+      {
+        "chave": "ev06/s02",
+        "tipo": "com_checagem",
+        "texto": "Bolsonaro foi parar no hospital depois de ser envenenado dentro da cela da Papudinha.",
+        "aceitas": [
+          "https://noticias.uol.com.br/confere/ultimas-noticias/2026/03/20/falso-bolsonaro-internado-envenenamento-chumbo-prisao.ghtm",
+          "https://www.estadao.com.br/estadao-verifica/bolsonaro-internado-envenenado-falso/"
+        ],
+        "stance_esperada": "contradiz",
+        "ranking_top5": [
+          "https://www.estadao.com.br/estadao-verifica/bolsonaro-internado-envenenado-falso/",
+          "https://www.agencialupa.org/verificacao/2026/04/01/e-falso-que-bolsonaro-foi-envenenado-com-chumbo/",
+          "https://www.estadao.com.br/estadao-verifica/video-em-que-bolsonaro-circula-em-corredor-de-hospital-foi-feito-apos-cirurgia-em-2025-nao-agora/",
+          "https://www.agencialupa.org/jornalismo/2021/07/20/verificamos-falso-enfermeiro-bolsonaro/",
+          "https://www.aosfatos.org/noticias/video-bolsonaro-caminhando-hospital-2025-nao-atual/"
+        ],
+        "posicao_aceita": 1,
+        "evidencias": [
+          {
+            "source_url": "https://www.estadao.com.br/estadao-verifica/bolsonaro-internado-envenenado-falso/",
+            "stance": "contradiz",
+            "agency_verdict": "Falso"
+          },
+          {
+            "source_url": "https://www.estadao.com.br/estadao-verifica/video-em-que-bolsonaro-circula-em-corredor-de-hospital-foi-feito-apos-cirurgia-em-2025-nao-agora/",
+            "stance": "insuficiente",
+            "agency_verdict": "Enganoso"
+          }
+        ],
+        "urls_nao_aceitas": [
+          "https://www.estadao.com.br/estadao-verifica/video-em-que-bolsonaro-circula-em-corredor-de-hospital-foi-feito-apos-cirurgia-em-2025-nao-agora/"
+        ],
+        "no_top5": true,
+        "coberta": true,
+        "stance_prevista": "contradiz",
+        "citou_aceita": true
+      },
+      {
+        "chave": "ev06/s03",
+        "tipo": "sem_checagem",
+        "texto": "A equipe médica informou que o ex-presidente fará sessões diárias de fisioterapia respiratória.",
+        "aceitas": [],
+        "stance_esperada": null,
+        "ranking_top5": [
+          "https://www.aosfatos.org/noticias/e-falso-que-bolsonaro-alegou-ter-alzheimer-em-pedido-de-prisao-domiciliar/",
+          "https://www.estadao.com.br/estadao-verifica/sirio-libanes-certidao-obito-lula/",
+          "https://www.agencialupa.org/jornalismo/2024/12/11/e-falso-que-hospital-sirio-libanes-confirmou-a-morte-cerebral-de-lula/",
+          "https://www.estadao.com.br/estadao-verifica/bolsonaro-internado-envenenado-falso/",
+          "https://www.estadao.com.br/estadao-verifica/quem-assinou-lula-diario-oficial-internado-uti/"
+        ],
+        "posicao_aceita": null,
+        "evidencias": [],
+        "urls_nao_aceitas": [],
+        "inventada": false
+      },
+      {
+        "chave": "ev07/s01",
+        "tipo": "troca_numero",
+        "texto": "Silvio Almeida, que deixou o ministério após denúncias de assédio, apareceu em gravação apoiando Guilherme Boulos na disputa de 2026.",
+        "aceitas": [],
+        "stance_esperada": null,
+        "ranking_top5": [
+          "https://projetocomprova.com.br/publica%C3%A7%C3%B5es/video-de-2022-foi-editado-para-insinuar-que-silvio-almeida-pede-votos-para-boulos-nas-eleicoes-de-2024/",
+          "https://www.aosfatos.org/noticias/video-nao-mostra-silvio-almeida-pedindo-voto-em-boulos-eleicoes-2024/",
+          "https://www.estadao.com.br/estadao-verifica/silvio-almeida-pede-votos-boulos-prefeitura-de-sp-falso-2022/",
+          "https://checamos.afp.com/doc.afp.com.36KB9VJ",
+          "https://noticias.uol.com.br/comprova/ultimas-noticias/2024/10/17/video-de-2022-editado-insinua-que-silvio-almeida-pede-votos-para-boulos.htm"
+        ],
+        "posicao_aceita": null,
+        "evidencias": [
+          {
+            "source_url": "https://projetocomprova.com.br/publica%C3%A7%C3%B5es/video-de-2022-foi-editado-para-insinuar-que-silvio-almeida-pede-votos-para-boulos-nas-eleicoes-de-2024/",
+            "stance": "contradiz",
+            "agency_verdict": "Falso"
+          }
+        ],
+        "urls_nao_aceitas": [
+          "https://projetocomprova.com.br/publica%C3%A7%C3%B5es/video-de-2022-foi-editado-para-insinuar-que-silvio-almeida-pede-votos-para-boulos-nas-eleicoes-de-2024/"
+        ]
+      },
+      {
+        "chave": "ev07/s02",
+        "tipo": "com_checagem",
+        "texto": "Um tremor de magnitude 6,7 sacudiu o Peru e foi sentido em diversas cidades do país.",
+        "aceitas": [
+          "https://checamos.afp.com/doc.afp.com.C6EP4T3",
+          "https://checamos.afp.com/doc.afp.com.C6R99CR",
+          "https://www.aosfatos.org/noticias/imagens-terremoto-colombia-peru/"
+        ],
+        "stance_esperada": "contradiz",
+        "ranking_top5": [
+          "https://www.aosfatos.org/noticias/imagens-terremoto-colombia-peru/",
+          "https://www.aosfatos.org/noticias/video-terremoto-japao/",
+          "https://www.estadao.com.br/estadao-verifica/terremoto-venezuela-video-desabamento-resgate-ia-falso/",
+          "https://www.estadao.com.br/estadao-verifica/tsunami-la-guaira-venezuela-japao/",
+          "https://www.aosfatos.org/noticias/video-ia-desabamento-colombia/"
+        ],
+        "posicao_aceita": 1,
+        "evidencias": [
+          {
+            "source_url": "https://www.aosfatos.org/noticias/imagens-terremoto-colombia-peru/",
+            "stance": "contradiz",
+            "agency_verdict": "Falso"
+          }
+        ],
+        "urls_nao_aceitas": [],
+        "no_top5": true,
+        "coberta": true,
+        "stance_prevista": "contradiz",
+        "citou_aceita": true
+      },
+      {
+        "chave": "ev07/s03",
+        "tipo": "sem_checagem",
+        "texto": "O Instituto Geofísico do Peru registrou mais de 40 réplicas nas 24 horas seguintes ao tremor.",
+        "aceitas": [],
+        "stance_esperada": null,
+        "ranking_top5": [
+          "https://www.aosfatos.org/noticias/imagens-terremoto-colombia-peru/",
+          "https://www.aosfatos.org/noticias/video-ia-desabamento-colombia/",
+          "https://www.estadao.com.br/estadao-verifica/mega-terremoto-brasil-setembro-2026-falso/",
+          "https://www.estadao.com.br/estadao-verifica/foto-predio-desabando-anterior-terremoto-venezuela/",
+          "https://www.aosfatos.org/noticias/cachorro-protege-bebe-terremoto-venezuela/"
+        ],
+        "posicao_aceita": null,
+        "evidencias": [],
+        "urls_nao_aceitas": [],
+        "inventada": false
+      },
+      {
+        "chave": "ev08/s01",
+        "tipo": "sem_checagem",
+        "texto": "O PT marcou para novembro o encontro nacional que vai definir as diretrizes do programa de governo.",
+        "aceitas": [],
+        "stance_esperada": null,
+        "ranking_top5": [
+          "https://www.aosfatos.org/noticias/video-mostra-resolucoes-encontro-pt-nao-plano-governo/",
+          "https://www.agencialupa.org/jornalismo/2022/10/31/falso-poder360-lula-chamou-caminhoneiros-de-vagabundos-fascistas/",
+          "https://www.aosfatos.org/noticias/pt-diz-que-50-de-seus-cargos-sao-ocupados-por-mulheres-mas-numero-real-e-de-38/",
+          "https://www.aosfatos.org/noticias/checagens-em-tempo-real-do-debate-da-tv-record-com-os-candidatos-ao-planalto/",
+          "https://www.aosfatos.org/noticias/checagens-em-tempo-real-do-debate-presidencial-da-record/"
+        ],
+        "posicao_aceita": null,
+        "evidencias": [],
+        "urls_nao_aceitas": [],
+        "inventada": false
+      },
+      {
+        "chave": "ev08/s02",
+        "tipo": "com_checagem",
+        "texto": "Lula admitiu que pretende implantar o socialismo no Brasil, e a CNN cortou a transmissão no mesmo instante.",
+        "aceitas": [
+          "https://checamos.afp.com/doc.afp.com.68QG2G3",
+          "https://noticias.uol.com.br/confere/ultimas-noticias/2025/08/12/lula-nao-disse-que-quer-implementar-o-socialismo-no-brasil.htm"
+        ],
+        "stance_esperada": "insuficiente",
+        "ranking_top5": [
+          "https://www.agencialupa.org/jornalismo/2024/07/16/e-falso-que-lula-disse-que-quer-implementar-o-comunismo-chines-no-brasil/",
+          "https://noticias.uol.com.br/confere/ultimas-noticias/2025/08/12/lula-nao-disse-que-quer-implementar-o-socialismo-no-brasil.htm",
+          "https://projetocomprova.com.br/publica%C3%A7%C3%B5es/lula-nao-disse-querer-implantar-comunismo-chines-no-brasil-entrevista-de-ex-presidente-ja-foi-deturpada-antes/",
+          "https://projetocomprova.com.br/publica%C3%A7%C3%B5es/ao-contrario-do-que-afirma-video-lula-nao-disse-que-vai-implantar-ditadura-no-brasil-em-entrevista-a-canal-chines/",
+          "https://projetocomprova.com.br/publica%C3%A7%C3%B5es/video-e-tirado-de-contexto-para-acusar-governo-lula-de-querer-dar-comida-estragada-a-populacao/"
+        ],
+        "posicao_aceita": 2,
+        "evidencias": [
+          {
+            "source_url": "https://noticias.uol.com.br/confere/ultimas-noticias/2025/08/12/lula-nao-disse-que-quer-implementar-o-socialismo-no-brasil.htm",
+            "stance": "insuficiente",
+            "agency_verdict": "Distorcido"
+          }
+        ],
+        "urls_nao_aceitas": [],
+        "no_top5": true,
+        "coberta": true,
+        "stance_prevista": "insuficiente",
+        "citou_aceita": true
+      },
+      {
+        "chave": "ev08/s03",
+        "tipo": "troca_numero",
+        "texto": "Pablo Marçal passou 3 horas e 20 minutos sem receber nenhum voto na apuração, algo matematicamente impossível.",
+        "aceitas": [],
+        "stance_esperada": null,
+        "ranking_top5": [
+          "https://noticias.uol.com.br/confere/ultimas-noticias/2024/10/31/falso-pablo-marcal-1h-sem-voto.htm",
+          "https://www.estadao.com.br/estadao-verifica/boulos-subiu-2-suspeito-falso/",
+          "https://noticias.uol.com.br/confere/ultimas-noticias/2024/10/08/falso-que-campanha-de-pablo-marcal-teve-custo-zero.htm",
+          "https://www.aosfatos.org/noticias/checamos-roda-viva-guilherme-boulos/",
+          "https://www.aosfatos.org/noticias/checamos-pablo-marcal-flow-podcast/"
+        ],
+        "posicao_aceita": null,
+        "evidencias": [],
+        "urls_nao_aceitas": []
+      },
+      {
+        "chave": "ev09/s01",
+        "tipo": "sem_checagem",
+        "texto": "A Primeira Turma do STF marcou para a próxima terça o julgamento de um recurso sobre a execução de emendas parlamentares.",
+        "aceitas": [],
+        "stance_esperada": null,
+        "ranking_top5": [
+          "https://www.aosfatos.org/noticias/video-manifestacao-contra-bolsonaro-avenida-paulista-setembro-nao-atual/",
+          "https://www.estadao.com.br/estadao-verifica/alexandre-moraes-minuta-golpe-versoes/",
+          "https://www.aosfatos.org/noticias/site-divulga-informacao-falsa-sobre-dinheiro-para-emendas-de-bolsonaro/",
+          "https://projetocomprova.com.br/publica%C3%A7%C3%B5es/saiba-o-que-e-e-como-funciona-o-orcamento-secreto/",
+          "https://www.aosfatos.org/noticias/falso-protestos-carnaval-2023/"
+        ],
+        "posicao_aceita": null,
+        "evidencias": [],
+        "urls_nao_aceitas": [],
+        "inventada": false
+      },
+      {
+        "chave": "ev09/s02",
+        "tipo": "com_checagem",
+        "texto": "Em postagem, o deputado Nikolas Ferreira garantiu que a oposição levará a moeda americana a R$ 7.",
+        "aceitas": [
+          "https://noticias.uol.com.br/confere/ultimas-noticias/2024/12/20/nao-ha-evidencias-de-que-nikolas-ferreira-falou-que-fara-dolar-subir-a-r-7.htm",
+          "https://www.aosfatos.org/noticias/falso-post-nikolas-ferreira-oposicao-dolar/",
+          "https://www.estadao.com.br/estadao-verifica/nikolas-ferreira-dolar-7-reais-governo-lula-falso/"
+        ],
+        "stance_esperada": "contradiz",
+        "ranking_top5": [
+          "https://www.aosfatos.org/noticias/falso-post-nikolas-ferreira-oposicao-dolar/",
+          "https://www.estadao.com.br/estadao-verifica/nikolas-ferreira-dolar-7-reais-governo-lula-falso/",
+          "https://noticias.uol.com.br/confere/ultimas-noticias/2024/12/20/nao-ha-evidencias-de-que-nikolas-ferreira-falou-que-fara-dolar-subir-a-r-7.htm",
+          "https://www.aosfatos.org/noticias/nikolas-ferreira-nao-votou-para-derrubar-veto-de-lula-e-deixar-luz-mais-cara/",
+          "https://www.estadao.com.br/estadao-verifica/nikolas-ferreira-serasa/"
+        ],
+        "posicao_aceita": 1,
+        "evidencias": [
+          {
+            "source_url": "https://www.aosfatos.org/noticias/falso-post-nikolas-ferreira-oposicao-dolar/",
+            "stance": "contradiz",
+            "agency_verdict": "Falso"
+          },
+          {
+            "source_url": "https://noticias.uol.com.br/confere/ultimas-noticias/2024/12/20/nao-ha-evidencias-de-que-nikolas-ferreira-falou-que-fara-dolar-subir-a-r-7.htm",
+            "stance": "contradiz",
+            "agency_verdict": "Falso"
+          }
+        ],
+        "urls_nao_aceitas": [],
+        "no_top5": true,
+        "coberta": true,
+        "stance_prevista": "contradiz",
+        "citou_aceita": true
+      },
+      {
+        "chave": "ev09/s03",
+        "tipo": "com_checagem",
+        "texto": "Arrependida, Cármen Lúcia admitiu que agora defende a anistia para os condenados pela trama golpista.",
+        "aceitas": [
+          "https://noticias.uol.com.br/confere/ultimas-noticias/2025/10/01/falso-carmen-lucia-defende-anistia-trama-golpista.htm",
+          "https://www.estadao.com.br/estadao-verifica/carmen-lucia-apoiar-anistia-que-tramita-no-congresso-falso/"
+        ],
+        "stance_esperada": "contradiz",
+        "ranking_top5": [
+          "https://noticias.uol.com.br/confere/ultimas-noticias/2025/10/01/falso-carmen-lucia-defende-anistia-trama-golpista.htm",
+          "https://noticias.uol.com.br/confere/ultimas-noticias/2025/10/01/falso-carmen-lucia-defende-anistia-trama-golpista.amp.htm",
+          "https://www.estadao.com.br/estadao-verifica/carmen-lucia-apoiar-anistia-que-tramita-no-congresso-falso/",
+          "https://www.aosfatos.org/noticias/video-nao-mostra-voto-de-carmen-lucia-que-beneficia-bolsonaro/",
+          "https://www.estadao.com.br/estadao-verifica/miriam-leitao-assalto-a-banco-ditadura-anistia-falso/"
+        ],
+        "posicao_aceita": 1,
+        "evidencias": [],
+        "urls_nao_aceitas": [],
+        "no_top5": true,
+        "coberta": false,
+        "stance_prevista": "insuficiente",
+        "citou_aceita": false
+      },
+      {
+        "chave": "ev10/s01",
+        "tipo": "com_checagem",
+        "texto": "Quem nasceu entre 1960 e 2006 pode pedir uma indenização do governo como forma de desculpas oficiais.",
+        "aceitas": [
+          "https://noticias.uol.com.br/confere/ultimas-noticias/2025/02/20/nao-existe-indenizacao-para-quem-nasceu-entre-1960-e-2006-e-golpe.htm",
+          "https://www.estadao.com.br/estadao-verifica/cleitinho-golpe-indenizacao-nascidos-entre-1960-e-2006/",
+          "https://www.estadao.com.br/estadao-verifica/indenizacao-pessoas-nascidas-1960-2006-falso/",
+          "https://www.estadao.com.br/estadao-verifica/restituicao-brasileiros-pedido-desculpas-nascidos-1960-2006-decreto-falso/"
+        ],
+        "stance_esperada": "contradiz",
+        "ranking_top5": [
+          "https://www.agencialupa.org/jornalismo/2025/02/25/e-falso-que-pessoas-nascidas-entre-1960-e-2006-tem-indenizacao-a-receber/",
+          "https://www.estadao.com.br/estadao-verifica/indenizacao-pessoas-nascidas-1960-2006-falso/",
+          "https://www.estadao.com.br/estadao-verifica/restituicao-brasileiros-pedido-desculpas-nascidos-1960-2006-decreto-falso/",
+          "https://noticias.uol.com.br/confere/ultimas-noticias/2025/02/20/nao-existe-indenizacao-para-quem-nasceu-entre-1960-e-2006-e-golpe.htm",
+          "https://www.estadao.com.br/estadao-verifica/cleitinho-golpe-indenizacao-nascidos-entre-1960-e-2006/"
+        ],
+        "posicao_aceita": 2,
+        "evidencias": [
+          {
+            "source_url": "https://www.agencialupa.org/jornalismo/2025/02/25/e-falso-que-pessoas-nascidas-entre-1960-e-2006-tem-indenizacao-a-receber/",
+            "stance": "contradiz",
+            "agency_verdict": "Falso"
+          },
+          {
+            "source_url": "https://www.estadao.com.br/estadao-verifica/restituicao-brasileiros-pedido-desculpas-nascidos-1960-2006-decreto-falso/",
+            "stance": "contradiz",
+            "agency_verdict": "Falso"
+          },
+          {
+            "source_url": "https://noticias.uol.com.br/confere/ultimas-noticias/2025/02/20/nao-existe-indenizacao-para-quem-nasceu-entre-1960-e-2006-e-golpe.htm",
+            "stance": "contradiz",
+            "agency_verdict": "Falso"
+          }
+        ],
+        "urls_nao_aceitas": [
+          "https://www.agencialupa.org/jornalismo/2025/02/25/e-falso-que-pessoas-nascidas-entre-1960-e-2006-tem-indenizacao-a-receber/"
+        ],
+        "no_top5": true,
+        "coberta": true,
+        "stance_prevista": "contradiz",
+        "citou_aceita": true
+      },
+      {
+        "chave": "ev10/s02",
+        "tipo": "com_checagem",
+        "texto": "Donald Trump mandou um aviso ao governo brasileiro por causa da extradição de Carla Zambelli.",
+        "aceitas": [
+          "https://projetocomprova.com.br/publica%C3%A7%C3%B5es/trump-nao-enviou-recado-ao-brasil-sobre-extradicao-de-zambelli-ao-contrario-do-que-afirma-video-viral/",
+          "https://www.estadao.com.br/estadao-verifica/trump-mandou-recado-carla-zambelli-extradicao-falso/"
+        ],
+        "stance_esperada": "contradiz",
+        "ranking_top5": [
+          "https://projetocomprova.com.br/publica%C3%A7%C3%B5es/trump-nao-enviou-recado-ao-brasil-sobre-extradicao-de-zambelli-ao-contrario-do-que-afirma-video-viral/",
+          "https://www.estadao.com.br/estadao-verifica/trump-mandou-recado-carla-zambelli-extradicao-falso/",
+          "https://noticias.uol.com.br/comprova/ultimas-noticias/2025/06/16/trump-nao-enviou-recado-ao-brasil-sobre-extradicao-de-zambelli.htm",
+          "https://www.estadao.com.br/estadao-verifica/enganoso-trump-ameacou-prender-lula-departamento-estado/",
+          "https://www.aosfatos.org/noticias/video-em-que-trump-critica-moraes-e-o-stf-foi-manipulado-por-ia/"
+        ],
+        "posicao_aceita": 1,
+        "evidencias": [
+          {
+            "source_url": "https://projetocomprova.com.br/publica%C3%A7%C3%B5es/trump-nao-enviou-recado-ao-brasil-sobre-extradicao-de-zambelli-ao-contrario-do-que-afirma-video-viral/",
+            "stance": "contradiz",
+            "agency_verdict": "Falso"
+          },
+          {
+            "source_url": "https://www.estadao.com.br/estadao-verifica/trump-mandou-recado-carla-zambelli-extradicao-falso/",
+            "stance": "contradiz",
+            "agency_verdict": "Falso"
+          }
+        ],
+        "urls_nao_aceitas": [],
+        "no_top5": true,
+        "coberta": true,
+        "stance_prevista": "contradiz",
+        "citou_aceita": true
+      },
+      {
+        "chave": "ev10/s03",
+        "tipo": "sem_checagem",
+        "texto": "A Polícia Federal prendeu em Goiânia um grupo suspeito de desviar dinheiro de aposentados com empréstimos consignados.",
+        "aceitas": [],
+        "stance_esperada": null,
+        "ranking_top5": [
+          "https://www.agencialupa.org/jornalismo/2025/06/10/e-falso-que-nao-houve-prisoes-por-fraude-no-inss/",
+          "https://www.estadao.com.br/estadao-verifica/video-engana-ao-listar-crimes-de-corrupcao-atribuidos-aos-governos-petistas/",
+          "https://www.aosfatos.org/noticias/nao-e-verdade-que-policia-prendeu-frances-acusado-de-lavar-dinheiro-para-o-foro-de-sao-paulo/",
+          "https://www.estadao.com.br/estadao-verifica/150-bilhoes-fraude-inss-enganoso/",
+          "https://www.aosfatos.org/noticias/posts-distorcem-acao-sugerir-lula-cancelar-indenizacoes-aposentados/"
+        ],
+        "posicao_aceita": null,
+        "evidencias": [],
+        "urls_nao_aceitas": [],
+        "inventada": false
+      },
+      {
+        "chave": "ev11/s01",
+        "tipo": "com_checagem",
+        "texto": "Aviões de caça F-15 americanos aterrissaram na base da FAB em Natal para participar do exercício CRUZEX 2024.",
+        "aceitas": [
+          "https://projetocomprova.com.br/publica%C3%A7%C3%B5es/aeronaves-estrangeiras-mostradas-em-video-participavam-de-simulacao-da-fab-entenda/",
+          "https://www.estadao.com.br/estadao-verifica/fab-cacas-f-15-eua-treinamento/"
+        ],
+        "stance_esperada": "apoia",
+        "ranking_top5": [
+          "https://www.estadao.com.br/estadao-verifica/fab-cacas-f-15-eua-treinamento/",
+          "https://projetocomprova.com.br/publica%C3%A7%C3%B5es/aeronaves-estrangeiras-mostradas-em-video-participavam-de-simulacao-da-fab-entenda/",
+          "https://noticias.uol.com.br/confere/ultimas-noticias/2026/05/13/falso-porta-avioes-eua-invasao-brasil.ghtm",
+          "https://www.estadao.com.br/estadao-verifica/tapio-2025-exercicio-militar-americano-ocorre-desde-2018-sob-comando-da-fab/",
+          "https://noticias.uol.com.br/comprova/ultimas-noticias/2024/11/18/aeronaves-estrangeiras-mostradas-em-video-participavam-de-simulacao-da-fab.htm"
+        ],
+        "posicao_aceita": 1,
+        "evidencias": [
+          {
+            "source_url": "https://www.estadao.com.br/estadao-verifica/fab-cacas-f-15-eua-treinamento/",
+            "stance": "apoia",
+            "agency_verdict": "Verdadeiro"
+          },
+          {
+            "source_url": "https://projetocomprova.com.br/publica%C3%A7%C3%B5es/aeronaves-estrangeiras-mostradas-em-video-participavam-de-simulacao-da-fab-entenda/",
+            "stance": "insuficiente",
+            "agency_verdict": "Contextualizando"
+          }
+        ],
+        "urls_nao_aceitas": [],
+        "no_top5": true,
+        "coberta": true,
+        "stance_prevista": "apoia",
+        "citou_aceita": true
+      },
+      {
+        "chave": "ev11/s02",
+        "tipo": "com_checagem",
+        "texto": "Indígenas protestaram na COP30 exigindo um barco como o de Janja em vez de caminhonetes Hilux.",
+        "aceitas": [
+          "https://checamos.afp.com/doc.afp.com.83YB3WE",
+          "https://noticias.uol.com.br/confere/ultimas-noticias/2025/11/14/e-ia-video-de-indigenas-pedindo-navio-igual-ao-de-janja-na-cop30.amp.htm",
+          "https://noticias.uol.com.br/confere/ultimas-noticias/2025/11/14/e-ia-video-de-indigenas-pedindo-navio-igual-ao-de-janja-na-cop30.htm",
+          "https://www.aosfatos.org/noticias/video-que-mostra-protesto-de-indigenas-pedindo-um-navio-igual-ao-da-janja-foi-gerado-por-ia/"
+        ],
+        "stance_esperada": "contradiz",
+        "ranking_top5": [
+          "https://www.aosfatos.org/noticias/video-que-mostra-protesto-de-indigenas-pedindo-um-navio-igual-ao-da-janja-foi-gerado-por-ia/",
+          "https://noticias.uol.com.br/confere/ultimas-noticias/2025/11/14/e-ia-video-de-indigenas-pedindo-navio-igual-ao-de-janja-na-cop30.htm",
+          "https://noticias.uol.com.br/confere/ultimas-noticias/2025/11/14/e-ia-video-de-indigenas-pedindo-navio-igual-ao-de-janja-na-cop30.amp.htm",
+          "https://www.estadao.com.br/estadao-verifica/indigena-chama-governo-de-enfraquecido-cop30-enganoso/",
+          "https://checamos.afp.com/doc.afp.com.83YB3WE"
+        ],
+        "posicao_aceita": 1,
+        "evidencias": [
+          {
+            "source_url": "https://www.aosfatos.org/noticias/video-que-mostra-protesto-de-indigenas-pedindo-um-navio-igual-ao-da-janja-foi-gerado-por-ia/",
+            "stance": "contradiz",
+            "agency_verdict": "Falso"
+          },
+          {
+            "source_url": "https://noticias.uol.com.br/confere/ultimas-noticias/2025/11/14/e-ia-video-de-indigenas-pedindo-navio-igual-ao-de-janja-na-cop30.htm",
+            "stance": "contradiz",
+            "agency_verdict": "Falso"
+          },
+          {
+            "source_url": "https://checamos.afp.com/doc.afp.com.83YB3WE",
+            "stance": "contradiz",
+            "agency_verdict": "Falso"
+          }
+        ],
+        "urls_nao_aceitas": [],
+        "no_top5": true,
+        "coberta": true,
+        "stance_prevista": "contradiz",
+        "citou_aceita": true
+      },
+      {
+        "chave": "ev11/s03",
+        "tipo": "sem_checagem",
+        "texto": "A Prefeitura de Belém anunciou a ampliação das linhas de ônibus que ligam o centro aos bairros da periferia.",
+        "aceitas": [],
+        "stance_esperada": null,
+        "ranking_top5": [
+          "https://www.aosfatos.org/noticias/um-ano-de-sair-do-cargo-pezao-descumpre-6-das-10-principais-promessas-de-campanha/",
+          "https://www.aosfatos.org/noticias/checamos-tabata-amaral-flow-podcast/",
+          "https://www.aosfatos.org/noticias/checamos-debate-flow-candidatos-prefeitura-de-sao-paulo/",
+          "https://www.aosfatos.org/noticias/video-que-mostra-urubus-nos-arredores-do-mercado-ver-o-peso-em-belem-e-de-2023/",
+          "https://www.aosfatos.org/noticias/presos-nao-vao-monitorar-populacao-em-pontos-de-onibus-no-para/"
+        ],
+        "posicao_aceita": null,
+        "evidencias": [],
+        "urls_nao_aceitas": [],
+        "inventada": false
+      },
+      {
+        "chave": "ev12/s01",
+        "tipo": "desmente",
+        "texto": "É mentira que Haddad, num encontro do BTG, tenha atribuído ao governo Bolsonaro todos os problemas do país.",
+        "aceitas": [
+          "https://noticias.uol.com.br/comprova/ultimas-noticias/2025/09/29/post-inventa-declaracao-de-haddad-culpando-a-gestao-anterior-por-economia.htm",
+          "https://projetocomprova.com.br/publica%C3%A7%C3%B5es/post-inventa-declaracao-de-haddad-culpando-exclusivamente-a-gestao-anterior-por-problemas-economicos/"
+        ],
+        "stance_esperada": "apoia",
+        "ranking_top5": [
+          "https://projetocomprova.com.br/publica%C3%A7%C3%B5es/post-inventa-declaracao-de-haddad-culpando-exclusivamente-a-gestao-anterior-por-problemas-economicos/",
+          "https://www.aosfatos.org/noticias/falso-haddad-disse-plano-governo-lula-taxar-tudo/",
+          "https://www.aosfatos.org/noticias/desinformacao-estatais-lula-bolsonaro-ciro/",
+          "https://www.estadao.com.br/estadao-verifica/audio-haddad-taxar-tudo-comprar-apoio-falso/",
+          "https://checamos.afp.com/doc.afp.com.79FC79J"
+        ],
+        "posicao_aceita": 1,
+        "evidencias": [],
+        "urls_nao_aceitas": [],
+        "stance_prevista": "insuficiente",
+        "citou_aceita": false
+      },
+      {
+        "chave": "ev12/s02",
+        "tipo": "sem_checagem",
+        "texto": "O Ministério da Fazenda prevê que a receita com impostos federais cresça 3% acima da inflação no próximo ano.",
+        "aceitas": [],
+        "stance_esperada": null,
+        "ranking_top5": [
+          "https://www.estadao.com.br/estadao-verifica/carga-tributaria-brasil-nao-cresceu-24-janeiro-2023/",
+          "https://www.estadao.com.br/estadao-verifica/haddad-nao-disse-que-pais-ficara-sem-dinheiro-para-pagar-funcionalismo-publico-a-partir-de-junho/",
+          "https://www.aosfatos.org/noticias/checamos-o-balanco-do-primeiro-ano-de-temer-na-presidencia/",
+          "https://www.estadao.com.br/estadao-verifica/carga-tributaria-maior-35-anos-enganoso/",
+          "https://www.estadao.com.br/estadao-verifica/brasil-maior-iva-mundo-eua-europa-enganoso/"
+        ],
+        "posicao_aceita": null,
+        "evidencias": [],
+        "urls_nao_aceitas": [],
+        "inventada": false
+      },
+      {
+        "chave": "ev12/s03",
+        "tipo": "com_checagem",
+        "texto": "Flávio Bolsonaro apareceu usando uma camiseta que insulta os nordestinos.",
+        "aceitas": [
+          "https://checamos.afp.com/doc.afp.com.C9AE4G3",
+          "https://noticias.uol.com.br/confere/ultimas-noticias/2026/09/25/falso-imagem-flavio-bolsonaro-camisa-ofensa-nordestinos.ghtm"
+        ],
+        "stance_esperada": "contradiz",
+        "ranking_top5": [
+          "https://checamos.afp.com/doc.afp.com.32HT2NW",
+          "https://noticias.uol.com.br/confere/ultimas-noticias/2022/09/16/imagem-de-flavio-bolsonaro-com-camisa-contra-nordestinos-e-montagem.htm",
+          "https://www.agencialupa.org/jornalismo/2018/10/06/verificamos-flavio-bolsonaro-nordestinos/",
+          "https://www.agencialupa.org/jornalismo/2026/09/23/e-falso-que-flavio-bolsonaro-usou-camiseta-com-frase-contra-nordestinos/",
+          "https://www.aosfatos.org/noticias/flavio-bolsonaro-nao-usou-camiseta-com-frases-contra-nordestinos-imagem-e-falsa/"
+        ],
+        "posicao_aceita": null,
+        "evidencias": [
+          {
+            "source_url": "https://checamos.afp.com/doc.afp.com.32HT2NW",
+            "stance": "contradiz",
+            "agency_verdict": "Montagem"
+          },
+          {
+            "source_url": "https://noticias.uol.com.br/confere/ultimas-noticias/2022/09/16/imagem-de-flavio-bolsonaro-com-camisa-contra-nordestinos-e-montagem.htm",
+            "stance": "contradiz",
+            "agency_verdict": "Falso"
+          },
+          {
+            "source_url": "https://www.agencialupa.org/jornalismo/2026/09/23/e-falso-que-flavio-bolsonaro-usou-camiseta-com-frase-contra-nordestinos/",
+            "stance": "contradiz",
+            "agency_verdict": "Falso"
+          }
+        ],
+        "urls_nao_aceitas": [
+          "https://checamos.afp.com/doc.afp.com.32HT2NW",
+          "https://noticias.uol.com.br/confere/ultimas-noticias/2022/09/16/imagem-de-flavio-bolsonaro-com-camisa-contra-nordestinos-e-montagem.htm",
+          "https://www.agencialupa.org/jornalismo/2026/09/23/e-falso-que-flavio-bolsonaro-usou-camiseta-com-frase-contra-nordestinos/"
+        ],
+        "no_top5": false,
+        "coberta": false,
+        "stance_prevista": "insuficiente",
+        "citou_aceita": false
+      },
+      {
+        "chave": "ev13/s01",
+        "tipo": "com_checagem",
+        "texto": "Um grupo de pessoas espancou em Osasco o segurança do Carrefour responsável pela morte do cachorro.",
+        "aceitas": [
+          "https://www.agencialupa.org/jornalismo/2018/12/07/verificamos-seguranca-carrefour-agredido-osasco/"
+        ],
+        "stance_esperada": "contradiz",
+        "ranking_top5": [
+          "https://www.agencialupa.org/jornalismo/2018/12/07/verificamos-seguranca-carrefour-agredido-osasco/",
+          "https://checamos.afp.com/o-que-se-sabe-sobre-o-homem-que-matou-o-cachorro-no-carrefour-de-osasco",
+          "https://checamos.afp.com/lojas-do-carrefour-ficaram-temporariamente-fechadas-em-respeito-morte-de-cliente-espancado",
+          "https://www.aosfatos.org/noticias/e-falso-que-loja-do-carrefour-em-porto-alegre-fechou-e-funcionarios-foram-demitidos/",
+          "https://checamos.afp.com/nao-ha-evidencias-de-que-funcionario-que-matou-cachorro-no-carrefour-em-osasco-tenha-sido-linchado"
+        ],
+        "posicao_aceita": 1,
+        "evidencias": [
+          {
+            "source_url": "https://www.agencialupa.org/jornalismo/2018/12/07/verificamos-seguranca-carrefour-agredido-osasco/",
+            "stance": "contradiz",
+            "agency_verdict": "Falso"
+          },
+          {
+            "source_url": "https://checamos.afp.com/nao-ha-evidencias-de-que-funcionario-que-matou-cachorro-no-carrefour-em-osasco-tenha-sido-linchado",
+            "stance": "insuficiente",
+            "agency_verdict": "Sem evidências"
+          }
+        ],
+        "urls_nao_aceitas": [
+          "https://checamos.afp.com/nao-ha-evidencias-de-que-funcionario-que-matou-cachorro-no-carrefour-em-osasco-tenha-sido-linchado"
+        ],
+        "no_top5": true,
+        "coberta": true,
+        "stance_prevista": "contradiz",
+        "citou_aceita": true
+      },
+      {
+        "chave": "ev13/s02",
+        "tipo": "com_checagem",
+        "texto": "Deltan Dallagnol fez elogios a Glenn Greenwald em postagem nas redes sociais.",
+        "aceitas": [
+          "https://www.agencialupa.org/jornalismo/2019/06/13/verificamos-dallagnol-post-glenn/"
+        ],
+        "stance_esperada": "apoia",
+        "ranking_top5": [
+          "https://www.agencialupa.org/jornalismo/2019/06/13/verificamos-dallagnol-post-glenn/",
+          "https://www.estadao.com.br/estadao-verifica/deltan-dallagnol-cassado-renan-calheiros/",
+          "https://checamos.afp.com/o-jornalista-e-advogado-americano-glenn-greenwald-defendeu-liberdade-de-expressao-de-um-lider",
+          "https://www.agencialupa.org/jornalismo/2019/07/08/verificamos-jean-wyllys-intercept/",
+          "https://www.aosfatos.org/noticias/e-falso-que-glenn-greenwald-foi-preso-pela-pf-ao-embarcar-em-aeroporto/"
+        ],
+        "posicao_aceita": 1,
+        "evidencias": [
+          {
+            "source_url": "https://www.agencialupa.org/jornalismo/2019/06/13/verificamos-dallagnol-post-glenn/",
+            "stance": "apoia",
+            "agency_verdict": "Verdadeiro"
+          }
+        ],
+        "urls_nao_aceitas": [],
+        "no_top5": true,
+        "coberta": true,
+        "stance_prevista": "apoia",
+        "citou_aceita": true
+      },
+      {
+        "chave": "ev13/s03",
+        "tipo": "sem_checagem",
+        "texto": "O Conselho Nacional do Ministério Público publicou novas regras sobre a conduta de procuradores nas redes sociais.",
+        "aceitas": [],
+        "stance_esperada": null,
+        "ranking_top5": [
+          "https://projetocomprova.com.br/publica%C3%A7%C3%B5es/ministro-nao-pediu-anulacao-de-eleicoes-para-conselhos-tutelares-porque-a-direita-venceu/",
+          "https://www.estadao.com.br/estadao-verifica/ministro-direitos-humanos-anulacao-eleicoes-conselhos-tutelares/",
+          "https://www.agencialupa.org/jornalismo/2023/01/10/e-falso-que-stf-autorizou-monitoramento-de-todas-as-mensagens-de-whatsapp/",
+          "https://www.agencialupa.org/jornalismo/2023/03/10/e-falso-que-governo-vai-monitorar-telefonemas-whatsapp-e-redes-sociais-a-partir-de-amanha/",
+          "https://projetocomprova.com.br/publica%C3%A7%C3%B5es/congresso-dos-eua-nao-investiga-ministros-do-stf-nem-pode-puni-los/"
+        ],
+        "posicao_aceita": null,
+        "evidencias": [],
+        "urls_nao_aceitas": [],
+        "inventada": false
+      },
+      {
+        "chave": "ev14/s01",
+        "tipo": "com_checagem",
+        "texto": "Agentes federais encontraram um saldo de R$ 200 milhões mantido por Bolsonaro no sistema bancário da Suíça.",
+        "aceitas": [
+          "https://www.agencialupa.org/jornalismo/2019/01/10/verificamos-bolsonaro-suica/"
+        ],
+        "stance_esperada": "contradiz",
+        "ranking_top5": [
+          "https://www.agencialupa.org/jornalismo/2019/01/10/verificamos-bolsonaro-suica/",
+          "https://www.agencialupa.org/jornalismo/2020/08/26/verificamos-bolsonaro-conta-bc/",
+          "https://www.estadao.com.br/estadao-verifica/video-bolsonaro-pede-comprar-livro/",
+          "https://www.aosfatos.org/noticias/e-falso-que-bolsonaro-tenha-descoberto-600-bilhoes-escondidos-no-banco-central/",
+          "https://www.agencialupa.org/jornalismo/2019/01/21/verificamos-10-anos-bolsonaro-patrimonio/"
+        ],
+        "posicao_aceita": 1,
+        "evidencias": [
+          {
+            "source_url": "https://www.agencialupa.org/jornalismo/2019/01/10/verificamos-bolsonaro-suica/",
+            "stance": "contradiz",
+            "agency_verdict": "Falso"
+          }
+        ],
+        "urls_nao_aceitas": [],
+        "no_top5": true,
+        "coberta": true,
+        "stance_prevista": "contradiz",
+        "citou_aceita": true
+      },
+      {
+        "chave": "ev14/s02",
+        "tipo": "com_checagem",
+        "texto": "Por causa da realização do Enem, a interdição da Avenida Paulista para carros começará mais tarde neste domingo.",
+        "aceitas": [
+          "https://www.agencialupa.org/jornalismo/2018/11/04/verificamos-enem-paulista-fecha-13h/"
+        ],
+        "stance_esperada": "apoia",
+        "ranking_top5": [
+          "https://www.agencialupa.org/jornalismo/2018/11/04/verificamos-enem-paulista-fecha-13h/",
+          "https://www.agencialupa.org/jornalismo/2018/11/04/verificamosenem-suspensao-ruidos-rj/",
+          "https://www.estadao.com.br/estadao-verifica/manifestacao-boulos-paulista-esvaziada/",
+          "https://www.estadao.com.br/estadao-verifica/obra-dutra-barrar-bolsonaristas-sao-paulo/",
+          "https://www.estadao.com.br/estadao-verifica/ato-anistia-paulista-comemoracao-prisao-bolsonaro/"
+        ],
+        "posicao_aceita": 1,
+        "evidencias": [
+          {
+            "source_url": "https://www.agencialupa.org/jornalismo/2018/11/04/verificamos-enem-paulista-fecha-13h/",
+            "stance": "apoia",
+            "agency_verdict": "Verdadeiro"
+          }
+        ],
+        "urls_nao_aceitas": [],
+        "no_top5": true,
+        "coberta": true,
+        "stance_prevista": "apoia",
+        "citou_aceita": true
+      },
+      {
+        "chave": "ev14/s03",
+        "tipo": "fato_parecido",
+        "texto": "O Telegram confirmou que hackers manipularam as conversas vazadas entre Sergio Moro e Eduardo Cunha.",
+        "aceitas": [],
+        "stance_esperada": null,
+        "ranking_top5": [
+          "https://www.aosfatos.org/noticias/telegram-nao-disse-que-hackers-alteraram-mensagens-vazadas-da-lava-jato/",
+          "https://www.agencialupa.org/jornalismo/2019/06/13/verificamos-telegram-hacker-manipulou-conversas-moro-dallagnol/",
+          "https://www.aosfatos.org/noticias/e-falsa-conversa-em-que-moro-pede-dallagnol-que-barre-candidatura-de-haddad/",
+          "https://www.agencialupa.org/jornalismo/2019/07/12/verificamos-tuite-paulo-guedes-vazamento-conversas-moro-procuradores/",
+          "https://www.aosfatos.org/noticias/lula-erika-hilton-discurso/"
+        ],
+        "posicao_aceita": null,
+        "evidencias": [],
+        "urls_nao_aceitas": []
+      }
+    ],
+    "erros": [
+      "[ev01/s03] No Arkansas, as urnas eletrônicas trocavam sozinhas os votos dados a Donald Trump por voto\n    Cobertura: o agente não emitiu a checagem esperada",
+      "[ev01/s03] No Arkansas, as urnas eletrônicas trocavam sozinhas os votos dados a Donald Trump por voto\n    Stance: esperada contradiz, prevista insuficiente",
+      "[ev02/s01] Em Roma, a primeira-dama Janja saiu escondida, no meio da noite, do hotel em que Macron se\n    Cobertura: o agente não emitiu a checagem esperada",
+      "[ev02/s01] Em Roma, a primeira-dama Janja saiu escondida, no meio da noite, do hotel em que Macron se\n    Stance: esperada contradiz, prevista insuficiente",
+      "[ev03/s01] Ao contrário do que circula nas redes, Lula não virou réu em nenhuma corte internacional.\n    Stance: esperada apoia, prevista insuficiente",
+      "[ev06/s02] Bolsonaro foi parar no hospital depois de ser envenenado dentro da cela da Papudinha.\n    Casamento errado: https://www.estadao.com.br/estadao-verifica/video-em-que-bolsonaro-circula-em-corredor-de-hospital-foi-feito-apos-cirurgia-em-2025-nao-agora/",
+      "[ev07/s01] Silvio Almeida, que deixou o ministério após denúncias de assédio, apareceu em gravação ap\n    Casamento errado: https://projetocomprova.com.br/publica%C3%A7%C3%B5es/video-de-2022-foi-editado-para-insinuar-que-silvio-almeida-pede-votos-para-boulos-nas-eleicoes-de-2024/",
+      "[ev09/s03] Arrependida, Cármen Lúcia admitiu que agora defende a anistia para os condenados pela tram\n    Cobertura: o agente não emitiu a checagem esperada",
+      "[ev09/s03] Arrependida, Cármen Lúcia admitiu que agora defende a anistia para os condenados pela tram\n    Stance: esperada contradiz, prevista insuficiente",
+      "[ev10/s01] Quem nasceu entre 1960 e 2006 pode pedir uma indenização do governo como forma de desculpa\n    Casamento errado: https://www.agencialupa.org/jornalismo/2025/02/25/e-falso-que-pessoas-nascidas-entre-1960-e-2006-tem-indenizacao-a-receber/",
+      "[ev12/s01] É mentira que Haddad, num encontro do BTG, tenha atribuído ao governo Bolsonaro todos os p\n    Stance: esperada apoia, prevista insuficiente",
+      "[ev12/s03] Flávio Bolsonaro apareceu usando uma camiseta que insulta os nordestinos.\n    Recall@5: nenhuma URL aceita no top 5",
+      "[ev12/s03] Flávio Bolsonaro apareceu usando uma camiseta que insulta os nordestinos.\n    Cobertura: o agente não emitiu a checagem esperada",
+      "[ev12/s03] Flávio Bolsonaro apareceu usando uma camiseta que insulta os nordestinos.\n    Stance: esperada contradiz, prevista insuficiente",
+      "[ev12/s03] Flávio Bolsonaro apareceu usando uma camiseta que insulta os nordestinos.\n    Casamento errado: https://checamos.afp.com/doc.afp.com.32HT2NW, https://noticias.uol.com.br/confere/ultimas-noticias/2022/09/16/imagem-de-flavio-bolsonaro-com-camisa-contra-nordestinos-e-montagem.htm, https://www.agencialupa.org/jornalismo/2026/09/23/e-falso-que-flavio-bolsonaro-usou-camiseta-com-frase-contra-nordestinos/",
+      "[ev13/s01] Um grupo de pessoas espancou em Osasco o segurança do Carrefour responsável pela morte do \n    Casamento errado: https://checamos.afp.com/nao-ha-evidencias-de-que-funcionario-que-matou-cachorro-no-carrefour-em-osasco-tenha-sido-linchado"
+    ]
+  }
+}

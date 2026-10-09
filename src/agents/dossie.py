@@ -96,6 +96,20 @@ def preprocessar(state: PipelineState) -> Contexto:
     )
 
 
+def tabela_frases(state: PipelineState) -> dict[str, list]:
+    """Tabela do expander do app: cada frase, se é fato ou opinião e quantas checagens ela tem."""
+    ctx = preprocessar(state)
+    rotulo = {"factual": "Fato", "valor": "Opinião"}
+    contagem: dict[str, int] = {}
+    for ev in ctx.evidencias:
+        contagem[ev.segment_id] = contagem.get(ev.segment_id, 0) + 1
+    return {
+        "frase": [s.text for s in state.segments],
+        "tipo": [rotulo.get(ctx.tipo_por_frase.get(s.id), "Sem classificação") for s in state.segments],
+        "checagens": [contagem.get(s.id, 0) for s in state.segments],
+    }
+
+
 # --- Texto da notícia dentro do Markdown ------------------------------------------
 
 def escapar_markdown(texto: str) -> str:

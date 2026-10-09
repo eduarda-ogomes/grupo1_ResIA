@@ -19,7 +19,7 @@ def test_app_analisa_texto_sem_excecao():
 
     assert not at.exception
     assert at.header[0].value == "Texto Inserido Manualmente"
-    assert any("Frases segmentadas" in e.label for e in at.expander)
+    assert any("Todas as frases analisadas" in e.label for e in at.expander)
 
 
 def test_app_mostra_aviso_quando_ingestor_nao_extrai(monkeypatch):
@@ -89,7 +89,7 @@ def test_app_mostra_tempos_por_etapa(monkeypatch):
     at = analisar(falsos.TEXTO_LIVRE)
 
     assert not at.exception
-    assert any(e.label == "Tempos por etapa" for e in at.expander)
+    assert any(e.label == "Detalhes técnicos" for e in at.expander)
     assert list(_tabela_de_tempos(at)["nó"]) == [
         "ingestor", "agente_evidencias", "agente_texto", "agente_socratico", "sintetizador", "total"]
 
@@ -107,7 +107,7 @@ def test_app_mostra_tempos_sem_trace_quando_tracing_desligado(monkeypatch):
 
     at = analisar(falsos.TEXTO_LIVRE)
 
-    assert any(e.label == "Tempos por etapa" for e in at.expander)
+    assert any(e.label == "Detalhes técnicos" for e in at.expander)
     assert not any("Phoenix" in c.value for c in at.caption)
 
 
@@ -121,3 +121,12 @@ def test_app_mostra_o_trace_quando_ha_trace_id(monkeypatch):
     at = analisar(falsos.TEXTO_LIVRE)
 
     assert any("0af7651916cd43dd8448eb211c80319c" in c.value and "Phoenix" in c.value for c in at.caption)
+
+
+def test_app_mostra_so_o_dossie_e_os_expanders():
+    at = analisar("O suco de mamão cura a dengue. Isso não tem comprovação.")
+    assert not at.exception
+    assert [s.value for s in at.subheader] == []
+    rotulos = [e.label for e in at.expander]
+    assert any(r.startswith("Todas as frases analisadas (") for r in rotulos)
+    assert "Detalhes técnicos" in rotulos

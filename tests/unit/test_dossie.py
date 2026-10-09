@@ -571,3 +571,9 @@ def test_fallback_e_limites_escapam_trecho_e_frase_da_noticia():
     assert linhas[1] == '- Juízo de valor: "Paga R\\$ 5 por mês." é uma opinião e não foi checada.'
     assert ('- Estas frases não puderam ser classificadas como fato ou opinião: "Frase\\_sem classificar.".'
             in dossie.secao_limites(state))
+
+
+def test_tabela_frases_do_mamao():
+    tabela = dossie.tabela_frases(estado_mamao())
+    assert tabela["tipo"] == ["Fato", "Fato", "Fato", "Fato", "Opinião", "Opinião"]
+    assert tabela["checagens"] == [0, 1, 1, 0, 0, 0]

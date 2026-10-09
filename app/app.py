@@ -8,6 +8,7 @@ import os
 
 import streamlit as st
 from src import medicao
+from src.agents.dossie import tabela_frases
 from src.graph import RAMOS, sistema_multiagente
 from src.observabilidade import configurar_tracing
 from src.state import PipelineState, initial_state
@@ -61,55 +62,35 @@ if st.button("Analisar", type="primary"):
         if final_state:
             title = final_state.get('title') or 'Sem título'
             published_at = final_state.get('published_at')
-            date_str = f" - Publicado em: {published_at}" if published_at else ""
 
             st.header(f"{title}")
-            st.markdown(f"**Fonte/Ingestão**: {date_str}")
+            if published_at:
+                st.caption(f"Publicado em {published_at}")
 
             for aviso in final_state.get('warnings', []):
                 st.warning(aviso, icon=":material/warning:")
 
             segments = final_state.get('segments', [])
-            if segments:
-                with st.expander(f"Frases segmentadas pelo Ingestor ({len(segments)})"):
-                    st.table({"id": [s.id for s in segments], "frase": [s.text for s in segments]})
-            else:
+            if not segments:
                 st.error("O Ingestor não extraiu nenhum texto. Cole o texto da matéria manualmente.", icon=":material/error:")
 
-            col1, col2 = st.columns(2)
-            
-            with col1:
-                st.subheader("Dossiê Sintetizado")
-                dossier = final_state.get('dossier')
-                if dossier:
-                    # As perguntas do Agente Socrático já vêm dentro do dossiê
-                    # ("Perguntas para pensar antes de decidir"); não repetir aqui.
-                    st.write(dossier)
-            
-            with col2:
-                st.subheader("Evidências Analisadas")
-                evidencias = final_state.get('evidence') or []
-                for ev in evidencias:
-                    # 'ev' is a Pydantic object
-                    cor = "green" if ev.stance == "apoia" else "red" if ev.stance == "contradiz" else "orange"
-                    st.markdown(f"- **<span style='color:{cor}'>{ev.stance.upper()}</span>**: *\"{ev.excerpt}\"*", unsafe_allow_html=True)
-                    
-                st.subheader("Marcadores de Texto (Viés/Falácia)")
-                text_report = final_state.get('text_report')
-                if text_report and text_report.markers:
-                    for m in text_report.markers:
-                        st.markdown(f"**{m.type}**: *{m.excerpt}*  \n_{m.explanation}_")
-                else:
-                    st.write("Nenhum marcador específico extraído.")
+            # As perguntas do Agente Socrático já vêm dentro do dossiê
+            dossier = final_state.get('dossier')
+            if dossier:
+                st.markdown(dossier)
 
-            with st.expander("Tempos por etapa"):
+            if segments:
+                with st.expander(f"Todas as frases analisadas ({len(segments)})"):
+                    st.table(tabela_frases(validated))
+
+            with st.expander("Detalhes técnicos"):
                 nos = [n for n in ("ingestor", *RAMOS, "sintetizador") if n in execucao.duracao_por_no]
                 st.table({
                     "nó": nos + ["total"],
                     "segundos": [round(execucao.duracao_por_no[n], 1) for n in nos] + [round(execucao.total, 1)],
                 })
-            if execucao.trace_id:
-                endereco = os.environ.get("PHOENIX_COLLECTOR_ENDPOINT", "http://localhost:6006")
-                st.caption(f"Trace desta análise: `{execucao.trace_id}` · [Ver o trace no Phoenix]({endereco})")
+                if execucao.trace_id:
+                    endereco = os.environ.get("PHOENIX_COLLECTOR_ENDPOINT", "http://localhost:6006")
+                    st.caption(f"Trace desta análise: `{execucao.trace_id}` · [Ver o trace no Phoenix]({endereco})")
     else:
         st.warning("Por favor, insira um texto para analisar.")

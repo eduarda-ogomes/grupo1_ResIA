@@ -496,13 +496,17 @@ def render_analisar():
     
     col_vazia, col_texto, col_btn = st.columns([1.5, 1.5, 1])
     with col_texto:
-        render_html("<p style='font-size:0.85rem; color:#666; margin-top:0.8rem;'>Nenhuma notícia enviada. Veja um exemplo ilustrativo abaixo.</p>")
+        lugar_da_dica = st.empty()  # preenchido depois do botão: só se sabe do clique quando ele é desenhado
     with col_btn:
         analisar_clicado = st.button("Gerar Dossiê →", type="primary", use_container_width=True)
-        
+    vai_analisar = analisar_clicado and text_input.strip()
+    if not vai_analisar:
+        with lugar_da_dica:
+            render_html("<p style='font-size:0.85rem; color:#666; margin-top:0.8rem;'>Nenhuma notícia enviada. Veja um exemplo ilustrativo abaixo.</p>")
+
     render_html("</div>")
-    
-    if analisar_clicado and text_input.strip():
+
+    if vai_analisar:
         # Fluxo Real com LangGraph
         estado_inicial = initial_state(text_input)
         progresso = Progresso(uuid.uuid4().hex)

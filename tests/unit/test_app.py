@@ -145,6 +145,23 @@ def test_app_mostra_so_o_dossie_e_os_expanders():
     assert "Detalhes técnicos" in rotulos
 
 
+SEM_NOTICIA = "Nenhuma notícia enviada"
+
+
+def test_dica_de_exemplo_aparece_antes_de_analisar():
+    at = pagina_analisar()
+    at.run()
+
+    assert any(SEM_NOTICIA in m.value for m in at.markdown)
+
+
+def test_dica_de_exemplo_some_ao_gerar_o_dossie():
+    at = analisar("O suco de mamão cura a dengue. Isso não tem comprovação.")
+
+    assert not at.exception
+    assert not any(SEM_NOTICIA in m.value for m in at.markdown)
+
+
 # --- sala dos agentes (app/sala/) ---
 
 def _sala(at):

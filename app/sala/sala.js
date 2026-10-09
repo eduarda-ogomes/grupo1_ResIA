@@ -247,6 +247,14 @@ class Sala {
     this.svg = el('svg', { viewBox: `0 0 ${LARGURA} ${ALTURA}`, 'aria-hidden': 'true', focusable: 'false' });
     cena.append(this.svg);
 
+    // Balão de fala do Sintetizador no fim. Em HTML, e não em pixels, para o texto continuar
+    // legível no celular; a posição é a da cabeça dele, em % da cena (o CSS usa as variáveis).
+    const fala = html('div', 'fala-sintetizador', 'Análise concluída');
+    fala.setAttribute('aria-hidden', 'true'); // o topo da sala já anuncia "Dossiê pronto"
+    fala.style.setProperty('--x', `${((CENA.sintetizador.x + 6) / LARGURA) * 100}%`);
+    fala.style.setProperty('--y', `${((ALTURA - CENA.sintetizador.y + 2) / ALTURA) * 100}%`);
+    cena.append(fala);
+
     this.legenda = html('ol', 'sala-legenda');
     this.anuncio = html('p', 'sala-anuncio');
     this.anuncio.setAttribute('aria-live', 'polite');
@@ -381,7 +389,7 @@ class Sala {
   criarAgente(id) {
     const def = PERSONAGENS[id];
     const pos = CENA[id];
-    const g = el('g', {}, 'pessoa');
+    const g = el('g', { 'data-id': id }, 'pessoa');
     const corpo = el('g', {}, 'corpo');
     const q = quadros(def);
     corpo.append(pixels(['..kkkkkkkk..'], { k: 'rgba(43,32,36,.16)' }, 0, 20, 'sombra'),

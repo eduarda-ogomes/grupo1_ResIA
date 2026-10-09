@@ -181,7 +181,7 @@ def main() -> None:
                                                args.page_size, args.delay, query):
                         total += 1
                         url = review["source_url"].strip()
-                        if not url or url in seen:
+                        if not url or url in seen or config.url_excluida(url):
                             continue
                         seen.add(url)
                         out.write(json.dumps(review, ensure_ascii=False) + "\n")

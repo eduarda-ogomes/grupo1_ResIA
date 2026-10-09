@@ -148,6 +148,26 @@ def write_name_vocabulary(claims: list[dict], path: Path | None = None) -> int:
     return len(vocabulary)
 
 
+def separar_excluidas(claims: list[dict], articles: list[dict]) -> tuple[list[dict], list[dict], list[str]]:
+    """Tira as checagens de domínios excluídos (config.DOMINIOS_EXCLUIDOS) e devolve as URLs delas."""
+    excluidas = [r["source_url"] for r in [*claims, *articles] if config.url_excluida(r["source_url"])]
+    claims = [c for c in claims if not config.url_excluida(c["source_url"])]
+    articles = [a for a in articles if not config.url_excluida(a["source_url"])]
+    return claims, articles, list(dict.fromkeys(excluidas))
+
+
+def remove_urls(urls: list[str], batch_size: int = 200) -> None:
+    """Apaga do índice os trechos dessas URLs (os que já tinham sido indexados)."""
+    from src.retrieval.indice import get_collection
+
+    collection = get_collection(create=True)
+    antes = collection.count()
+    for start in range(0, len(urls), batch_size):
+        collection.delete(where={"source_url": {"$in": urls[start : start + batch_size]}})
+    if antes - collection.count():
+        print(f"  {antes - collection.count()} trechos de domínios excluídos apagados do índice.")
+
+
 def only_new(records: list[dict], existing_ids: set[str]) -> list[dict]:
     """Trechos cujo id ainda não está no índice (os ids são determinísticos)."""
     return [r for r in records if r["id"] not in existing_ids]
@@ -197,6 +217,9 @@ def main() -> None:
         claims, articles = claims + fk_claims, articles + fk_articles
     if not claims and not articles:
         sys.exit(f"Nada em {args.claims} nem em {args.articles}. Rode antes collect_factcheck_api.py.")
+    claims, articles, excluidas = separar_excluidas(claims, articles)
+    if excluidas:
+        print(f"{len(excluidas)} checagens de domínios excluídos ({', '.join(config.DOMINIOS_EXCLUIDOS)}) ficam fora.")
 
     n_nomes = write_name_vocabulary(claims)
     print(f"Vocabulário de nomes próprios: {n_nomes} palavras em data/corpus/nomes_proprios.txt")
@@ -214,6 +237,8 @@ def main() -> None:
     )
     print("Checagens por agência:", dict(by_agency.most_common()))
     print(f"Modelo: {config.EMBEDDING_MODEL} | coleção: {config.collection_name()} | caminho: {config.CHROMA_PATH}")
+    if excluidas and not args.reset:
+        remove_urls(excluidas)
     total = index_records(records, reset=args.reset, apenas_novos=args.apenas_novos)
     print(f"Coleção com {total} trechos.")
 

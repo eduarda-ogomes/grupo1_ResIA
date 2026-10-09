@@ -44,7 +44,6 @@ adpf
 adriana
 adriano
 adsuara
-adultizacao
 advocacia
 adwan
 aecio
@@ -1750,6 +1749,7 @@ hopkins
 horizonnte
 horizonte
 horse
+hour
 house
 houthi
 hpmv
@@ -2217,7 +2217,6 @@ literatura
 lito
 lituania
 liverpool
-livre
 llj
 llosa
 loba
@@ -2291,6 +2290,7 @@ macedo
 maceio
 machado
 macleod
+maconaria
 macri
 macron
 madagascar
@@ -2353,6 +2353,7 @@ manuela
 manzano
 manzotti
 maome
+mar
 maracaibo
 maracana
 maradona
@@ -2704,6 +2705,7 @@ northam
 noruega
 notari
 notre
+nova
 novak
 novalgina
 novinha
@@ -3001,7 +3003,6 @@ polonia
 polyana
 ponce
 ponta
-popular
 porchat
 porciuncula
 portiolli
@@ -3430,7 +3431,6 @@ sm
 smart
 smartla
 smartmatic
-smartphone
 smith
 sms
 snoop

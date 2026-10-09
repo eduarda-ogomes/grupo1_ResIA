@@ -141,12 +141,44 @@ def test_efeito_vazio_conta_como_reprovado(monkeypatch):
     assert modelo.prompts[1].endswith("O efeito do marcador 1 foi rejeitado. Seu texto veio vazio.")
 
 
-def test_resposta_que_nao_e_json_deixa_todos_sem_efeito_sem_retry_nem_aviso(monkeypatch):
-    modelo = falsos.SintetizadorFalso("- Urgência: pede pressa.").instalar(monkeypatch)
+def test_json_dentro_de_cerca_e_aceito_sem_retry_nem_aviso(monkeypatch):
+    cercado = f"```json\n{resposta((1, 'pede pressa.'))}\n```"
+    modelo = falsos.SintetizadorFalso(cercado).instalar(monkeypatch)
 
     saida = synthesizer.argumento_node(estado_mamao())
 
-    assert saida == {"argument": dossie.linhas_argumento(estado_mamao(), {})} and len(modelo.prompts) == 1
+    assert saida["argument"][0] == '- Urgência: "URGENTE" pede pressa.'
+    assert "warnings" not in saida and len(modelo.prompts) == 1
+
+
+def test_resposta_ilegivel_provoca_um_retry_e_vale_a_segunda(monkeypatch):
+    modelo = falsos.SintetizadorFalso("- Urgência: pede pressa.", resposta((1, "pede pressa."))).instalar(monkeypatch)
+
+    saida = synthesizer.argumento_node(estado_mamao())
+
+    assert len(modelo.prompts) == 2
+    assert modelo.prompts[1].endswith("Sua resposta não era um JSON no formato pedido.")
+    assert saida["argument"][0] == '- Urgência: "URGENTE" pede pressa.'
+    assert "warnings" not in saida
+
+
+def test_resposta_ilegivel_duas_vezes_deixa_todos_sem_efeito_e_avisa(monkeypatch):
+    modelo = falsos.SintetizadorFalso("não sei", '{"efeitos": 3}').instalar(monkeypatch)
+
+    saida = synthesizer.argumento_node(estado_mamao())
+
+    assert len(modelo.prompts) == 2
+    assert saida["argument"] == dossie.linhas_argumento(estado_mamao(), {})
+    assert saida["warnings"] == [synthesizer.WARN_SAIDA_INVALIDA]
+
+
+def test_retry_ilegivel_mantem_os_efeitos_aprovados_da_primeira_tentativa(monkeypatch):
+    falsos.SintetizadorFalso(resposta((1, "pede pressa."), (2, "é uma mentira.")), "lixo").instalar(monkeypatch)
+
+    saida = synthesizer.argumento_node(estado_mamao())
+
+    assert saida["argument"][0] == '- Urgência: "URGENTE" pede pressa.'
+    assert saida["warnings"] == [synthesizer.WARN_GUARDRAILS, synthesizer.WARN_SAIDA_INVALIDA]
 
 
 def test_sem_text_report_nao_chama_o_modelo(monkeypatch):

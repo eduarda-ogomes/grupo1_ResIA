@@ -33,7 +33,11 @@ PROMPTS_DIR = Path(__file__).resolve().parents[1] / "prompts"
 
 WARN_MODELO_INDISPONIVEL = "sintetizador: falha ao chamar o modelo (o LM Studio está rodando?)"
 WARN_GUARDRAILS = "sintetizador: efeito do argumento reprovado nos guardrails após 1 retry"
+WARN_SAIDA_INVALIDA = "sintetizador: saída inválida após 1 retry"
 WARN_CITACAO_REMOVIDA = "sintetizador: citação removida (URL fora das evidências)"
+
+# Última linha da mensagem de retry quando a resposta não pôde ser lida
+PROBLEMA_ILEGIVEL = "Sua resposta não era um JSON no formato pedido."
 
 
 class Efeito(BaseModel):
@@ -142,47 +146,77 @@ def efeitos_validos(resposta: RespostaArgumento, n_marcadores: int, frases: list
     return aprovados, _frase_do_problema(*primeiro) if primeiro else None
 
 
-def _pedir_efeitos(state: PipelineState, marcadores: list[TextMarker], problema: str | None) -> RespostaArgumento:
+def remover_cercas(bruto: str) -> str:
+    """Tira a cerca ```json ... ``` que modelos pequenos às vezes colocam em volta do JSON."""
+    texto = bruto.strip()
+    if texto.startswith("```"):
+        texto = texto.split("\n", 1)[1] if "\n" in texto else ""
+        texto = texto.rsplit("```", 1)[0]
+    return texto.strip()
+
+
+def _pedir_efeitos(state: PipelineState, marcadores: list[TextMarker], problema: str | None) -> RespostaArgumento | None:
     """Uma chamada ao modelo. Falha de chamada vira ModeloIndisponivel; resposta que não é o JSON
-    esperado vira uma resposta sem efeitos (índice ausente não reprova nem provoca retry)."""
+    esperado (mesmo sem a cerca) devolve None."""
     try:
         bruto = chamar_modelo(montar_mensagens(state, marcadores, problema))
     except Exception as e:
         raise ModeloIndisponivel(str(e)) from e
     try:
-        return RespostaArgumento.model_validate_json(bruto)
+        return RespostaArgumento.model_validate_json(remover_cercas(bruto))
     except ValidationError as e:
-        logger.warning("Argumento: resposta fora do formato, efeitos ignorados: %s", e.errors()[:1])
-        return RespostaArgumento(efeitos=[])
+        logger.warning("Argumento: resposta fora do formato: %s", e.errors()[:1])
+        return None
+
+
+def _tentar(state: PipelineState, marcadores: list[TextMarker], frases: list[str],
+            problema: str | None) -> tuple[dict[int, str], dict[int, str], bool]:
+    """(aprovados, reprovados, legível) de uma tentativa; ModeloIndisponivel sobe para quem chamou."""
+    resposta = _pedir_efeitos(state, marcadores, problema)
+    if resposta is None:
+        return {}, {}, False
+    aprovados, reprovados = avaliar_efeitos(resposta, len(marcadores), frases)
+    return aprovados, reprovados, True
 
 
 def efeitos_do_modelo(state: PipelineState) -> tuple[dict[int, str], list[str]]:
     """Os efeitos aprovados por marcador e os avisos próprios gerados aqui.
 
-    Retry só quando algum efeito foi reprovado; depois dele vale o melhor efeito de cada marcador entre as
-    duas tentativas. Aviso de guardrails só se algum efeito reprovado continua sem efeito aprovado.
+    Retry só quando algum efeito foi reprovado ou a resposta não pôde ser lida; depois dele vale o melhor
+    efeito de cada marcador entre as duas tentativas. Avisos: guardrails se algum efeito reprovado continua
+    sem efeito aprovado; saída inválida se a resposta do retry continua ilegível.
     """
     marcadores = dossie.selecionar_marcadores(state.text_report.markers)
     frases = [neutralizar_urls(s.text) for s in state.segments]
     try:
-        aprovados, reprovados = avaliar_efeitos(_pedir_efeitos(state, marcadores, None), len(marcadores), frases)
+        aprovados, reprovados, legivel = _tentar(state, marcadores, frases, None)
     except ModeloIndisponivel as e:
         logger.warning("Argumento: modelo indisponível: %s", e)
         return {}, [WARN_MODELO_INDISPONIVEL]
-    if not reprovados:
+    if legivel and not reprovados:
         return aprovados, []
 
-    primeiro = next(iter(reprovados.items()))
-    logger.warning("Argumento: efeito rejeitado: %s", reprovados)
+    if reprovados:
+        problema = _frase_do_problema(*next(iter(reprovados.items())))
+        logger.warning("Argumento: efeito rejeitado: %s", reprovados)
+    else:
+        problema = PROBLEMA_ILEGIVEL
+        logger.warning("Argumento: resposta ilegível, nova tentativa")
+    indisponivel = False
     try:
-        aprovados2, reprovados2 = avaliar_efeitos(
-            _pedir_efeitos(state, marcadores, _frase_do_problema(*primeiro)), len(marcadores), frases)
+        aprovados2, reprovados2, legivel2 = _tentar(state, marcadores, frases, problema)
     except ModeloIndisponivel as e:
         logger.warning("Argumento: modelo indisponível no retry: %s", e)
-        aprovados2, reprovados2 = {}, {}
+        aprovados2, reprovados2, legivel2, indisponivel = {}, {}, True, True
     aprovados = {**aprovados2, **aprovados}   # empate: vale a primeira tentativa, já aprovada
-    sem_efeito = (set(reprovados) | set(reprovados2)) - set(aprovados)
-    return aprovados, [WARN_GUARDRAILS] if sem_efeito else []
+    avisos = []
+    if (set(reprovados) | set(reprovados2)) - set(aprovados):
+        avisos.append(WARN_GUARDRAILS)
+    if not legivel2:
+        avisos.append(WARN_SAIDA_INVALIDA)
+    elif indisponivel and not legivel:
+        avisos.append(WARN_MODELO_INDISPONIVEL)
+    return aprovados, avisos
 
 
 def argumento_node(state: PipelineState) -> dict:

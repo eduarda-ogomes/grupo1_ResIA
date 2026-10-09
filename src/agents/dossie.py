@@ -7,12 +7,14 @@ livre do LLM ("Como o texto argumenta").
 from __future__ import annotations
 
 import re
+from collections.abc import Iterator
 from dataclasses import dataclass
 
 from src.agents.ingestor import is_url
 from src.guardrails.citacoes import neutralizar_urls, urls_invalidas
 from src.state import Evidence, PipelineState, Segment
 
+TITULO_RESUMO = "## Resumo"
 TITULO_CHECAGENS = "## O que as checagens dizem"
 TITULO_ARGUMENTO = "## Como o texto argumenta"
 TITULO_PERGUNTAS = "## Perguntas para pensar antes de decidir"
@@ -29,6 +31,16 @@ LEGENDA_CHECAGENS = (
     "O selo ao lado é o veredito da própria agência; o número leva à fonte._"
 )
 ROTULOS_STANCE = {"contradiz": "Contradiz", "apoia": "Apoia", "insuficiente": "Não conclusiva"}
+# Contagem por stance do Resumo, na ordem contradiz -> apoia -> insuficiente: (stance, singular, plural)
+FORMAS_STANCE = (
+    ("contradiz", "contradiz", "contradizem"),
+    ("apoia", "apoia", "apoiam"),
+    ("insuficiente", "não conclusiva", "não conclusivas"),
+)
+# Cópia exata do spec do dossiê final ("1. Resumo")
+RESUMO_SEM_VEREDITO = ("- O dossiê não dá veredito: mostra o que já foi checado, como o texto argumenta "
+                       "e o que perguntar antes de decidir.")
+RESUMO_SEM_BANCO = "- O banco de checagens não pôde ser consultado."
 
 ROTULOS = {
     "adjetivacao_extrema": "Adjetivação extrema",
@@ -50,6 +62,7 @@ NENHUMA_PERGUNTA = "- Nenhuma pergunta foi gerada para este texto."
 LIMITE_COLETA = "- O banco de checagens pode não conter checagens mais recentes que a última coleta."
 
 _ESCAPAR = re.compile(r"([\\`*_\[\]<>~$])")
+_CIFRAO = re.compile(r"(?<!\\)\$")
 
 
 @dataclass
@@ -93,6 +106,15 @@ def escapar_markdown(texto: str) -> str:
     return _ESCAPAR.sub(r"\\\1", texto)
 
 
+def escapar_cifrao(texto: str) -> str:
+    """Escapa só o `$` (para `\\$`), sem tocar no resto do Markdown nem escapar de novo um `\\$` que já veio escapado.
+
+    É o escape do texto livre do LLM ("Como o texto argumenta"): ele escreve bullets e ênfase de propósito,
+    mas o Streamlit renderizaria `$...$` como LaTeX.
+    """
+    return _CIFRAO.sub(r"\\$", texto)
+
+
 def texto_seguro(texto: str) -> str:
     """Frase ou trecho da notícia/corpus pronto para o dossiê: escapa primeiro e só depois troca as URLs
     por [link], para que o próprio "[link]" não seja escapado."""
@@ -115,22 +137,28 @@ def _por_frase(ctx: Contexto) -> dict[str, list[Evidence]]:
     return por_frase
 
 
-def numerar_fontes(state: PipelineState, ctx: Contexto) -> dict[str, int]:
-    """URL -> número da fonte, na ordem das frases e depois das evidências de cada frase.
-
-    Só numera o que aparece no corpo (evidência de frase que não está em segments não aparece);
-    a mesma URL em duas frases fica com o primeiro número.
-    """
+def _evidencias_no_corpo(state: PipelineState, ctx: Contexto) -> Iterator[Evidence]:
+    """As evidências na ordem em que aparecem no corpo: frase por frase de `state.segments` e, em cada uma,
+    na ordem de `ctx.evidencias`. Evidência de frase que não está em segments não aparece (e o ID nunca aparece)."""
     por_frase = _por_frase(ctx)
-    fontes: dict[str, int] = {}
     for segment in state.segments:
-        for ev in por_frase.get(segment.id, []):
-            fontes.setdefault(ev.source_url, len(fontes) + 1)
+        yield from por_frase.get(segment.id, [])
+
+
+def numerar_fontes(state: PipelineState, ctx: Contexto) -> dict[str, int]:
+    """URL -> número da fonte, na ordem em que a URL aparece no corpo (frases e depois evidências de cada frase).
+
+    Só numera o que aparece no corpo; a mesma URL em duas frases fica com o primeiro número.
+    """
+    fontes: dict[str, int] = {}
+    for ev in _evidencias_no_corpo(state, ctx):
+        fontes.setdefault(ev.source_url, len(fontes) + 1)
     return fontes
 
 
 def _selo(ev: Evidence) -> str:
-    return f"{ev.source_name}: {ev.agency_verdict}" if ev.agency_verdict else ev.source_name
+    nome = escapar_markdown(ev.source_name)
+    return f"{nome}: {escapar_markdown(ev.agency_verdict)}" if ev.agency_verdict else nome
 
 
 def _linha_checagem(ev: Evidence, fontes: dict[str, int]) -> str:
@@ -176,18 +204,99 @@ def secao_checagens(state: PipelineState, ctx: Contexto, fontes: dict[str, int])
     return linhas
 
 
-def secao_fontes(ctx: Contexto, fontes: dict[str, int]) -> list[str]:
-    """Uma linha por fonte numerada: veredito da agência, trecho da checagem e link. [] sem fontes."""
+def secao_fontes(state: PipelineState, ctx: Contexto, fontes: dict[str, int]) -> list[str]:
+    """Uma linha por fonte numerada: veredito da agência, trecho da checagem e link. [] sem fontes.
+
+    O selo e o trecho vêm da primeira evidência da URL na ordem do corpo (a mesma da numeração),
+    não de uma evidência de frase que ficou fora do corpo.
+    """
     if not fontes:
         return []
     primeira: dict[str, Evidence] = {}
-    for ev in ctx.evidencias:
-        if ev.source_url in fontes:
-            primeira.setdefault(ev.source_url, ev)
+    for ev in _evidencias_no_corpo(state, ctx):
+        primeira.setdefault(ev.source_url, ev)
     return [TITULO_FONTES] + [
         f'{n}. {_selo(primeira[url])} — "{texto_seguro(primeira[url].excerpt)}" · [abrir ↗](<{url}>)'
         for url, n in sorted(fontes.items(), key=lambda item: item[1]) if url in primeira
     ]
+
+
+# --- Resumo ---------------------------------------------------------------------------
+
+def contagem_por_stance(stances: list[str]) -> str:
+    """"2 contradizem, 1 apoia, 1 não conclusiva": na ordem contradiz -> apoia -> insuficiente, sem os zeros."""
+    partes = []
+    for stance, singular, plural in FORMAS_STANCE:
+        n = stances.count(stance)
+        if n:
+            partes.append(f"{n} {singular if n == 1 else plural}")
+    return ", ".join(partes)
+
+
+def _quantos(n: int, singular: str, plural: str, nenhum: str) -> str:
+    if n == 0:
+        return nenhum
+    return f"1 {singular}" if n == 1 else f"{n} {plural}"
+
+
+def _linha_checagens_do_resumo(f: int, k: int, contagem: str) -> str:
+    """Segunda linha do Resumo com text_report (f = afirmações factuais, k = as que têm checagem)."""
+    if f == 0:
+        return "- Nenhuma afirmação factual para checar."
+    if k == 0:
+        return "- A única afirmação factual não tem checagem no nosso banco." if f == 1 \
+            else f"- Nenhuma das {f} afirmações factuais tem checagem no nosso banco."
+    if f == 1:
+        return f"- A única afirmação factual tem checagem publicada ({contagem})."
+    if k == 1:
+        return f"- 1 das {f} afirmações factuais tem checagem publicada ({contagem})."
+    return f"- {k} das {f} afirmações factuais têm checagem publicada ({contagem})."
+
+
+def _linha_checagens_do_resumo_sem_relatorio(k: int, contagem: str) -> str:
+    if k == 0:
+        return "- Nenhuma frase tem checagem no nosso banco."
+    if k == 1:
+        return f"- 1 frase tem checagem publicada ({contagem})."
+    return f"- {k} frases têm checagem publicada ({contagem})."
+
+
+def _linha_padroes(m: int) -> str:
+    if m == 0:
+        return "- Nenhum padrão de argumentação apontado."
+    return "- 1 padrão de argumentação apontado." if m == 1 else f"- {m} padrões de argumentação apontados."
+
+
+def secao_resumo(state: PipelineState, ctx: Contexto) -> list[str]:
+    """Tamanho do problema em quatro linhas (spec do dossiê final, "1. Resumo"), só com contagens.
+
+    As checagens contadas são as que aparecem no corpo; com `text_report`, só as das afirmações factuais.
+    A contagem por stance é de checagens publicadas (cada linha de checagem do corpo), não de frases.
+    """
+    n = len(state.segments)
+    frases = "1 frase analisada" if n == 1 else f"{n} frases analisadas"
+    tem_relatorio = state.text_report is not None
+
+    checagens = [ev for ev in _evidencias_no_corpo(state, ctx)
+                 if not tem_relatorio or ctx.tipo_por_frase.get(ev.segment_id) == "factual"]
+    k = len({ev.segment_id for ev in checagens})
+    contagem = contagem_por_stance([ev.stance for ev in checagens])
+
+    if tem_relatorio:
+        tipos = [ctx.tipo_por_frase.get(s.id) for s in state.segments]
+        f, v = tipos.count("factual"), tipos.count("valor")
+        factuais = _quantos(f, "afirmação factual", "afirmações factuais", "nenhuma afirmação factual")
+        opinioes = _quantos(v, "opinião", "opiniões", "nenhuma opinião")
+        primeira = f"- {frases}: {factuais} e {opinioes}."
+        padroes = [_linha_padroes(len(state.text_report.markers))]
+        checagens_linha = _linha_checagens_do_resumo(f, k, contagem)
+    else:
+        primeira, padroes = f"- {frases}.", []
+        checagens_linha = _linha_checagens_do_resumo_sem_relatorio(k, contagem)
+
+    if state.evidence is None:
+        checagens_linha = RESUMO_SEM_BANCO
+    return [TITULO_RESUMO, primeira, checagens_linha, *padroes, RESUMO_SEM_VEREDITO]
 
 
 # --- "Como o texto argumenta" sem LLM ---------------------------------------------
@@ -218,7 +327,7 @@ def secao_perguntas(state: PipelineState) -> list[str]:
         return [TITULO_PERGUNTAS, SEM_PERGUNTAS]
     if not state.socratic_questions:
         return [TITULO_PERGUNTAS, NENHUMA_PERGUNTA]
-    return [TITULO_PERGUNTAS] + [f"{i}. {q}" for i, q in enumerate(state.socratic_questions, start=1)]
+    return [TITULO_PERGUNTAS] + [f"{i}. {escapar_markdown(q)}" for i, q in enumerate(state.socratic_questions, start=1)]
 
 
 def secao_limites(state: PipelineState) -> list[str]:
@@ -247,7 +356,8 @@ def secao_limites(state: PipelineState) -> list[str]:
 # --- 3 e 4. Montagem e checagem final ----------------------------------------------
 
 def montar(*secoes: list[str]) -> str:
-    return "\n\n".join("\n".join(secao) for secao in secoes)
+    """Junta as seções com uma linha em branco entre elas; seção vazia (como Fontes sem evidência) é pulada."""
+    return "\n\n".join("\n".join(secao) for secao in secoes if secao)
 
 
 def remover_citacoes_invalidas(dossie: str, evidencias) -> tuple[str, bool]:

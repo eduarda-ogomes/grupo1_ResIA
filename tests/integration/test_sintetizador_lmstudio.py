@@ -37,7 +37,8 @@ def test_caso_do_mamao_no_7b_real():
     texto = resultado["dossier"]
     print("\n" + texto)
     assert [l for l in texto.splitlines() if l.startswith("## ")] == [
-        dossie.TITULO_CHECAGENS, dossie.TITULO_ARGUMENTO, dossie.TITULO_PERGUNTAS, dossie.TITULO_LIMITES,
+        dossie.TITULO_RESUMO, dossie.TITULO_CHECAGENS, dossie.TITULO_ARGUMENTO, dossie.TITULO_PERGUNTAS,
+        dossie.TITULO_LIMITES, dossie.TITULO_FONTES,
     ]
     assert resultado.get("warnings", []) == [], "o 7B real deveria passar nos guardrails sem cair no fallback"
     secao_do_modelo = texto.split(dossie.TITULO_ARGUMENTO)[1].split(dossie.TITULO_PERGUNTAS)[0]

@@ -7,7 +7,8 @@ from tests import modelos_falsos as falsos
 
 URL_LUPA = "https://www.agencialupa.org/jornalismo/2024/02/06/e-falso-que-cha-de-folha-de-mamao-cura-a-dengue-em-tres-dias/"
 URL_AOSFATOS = "https://www.aosfatos.org/noticias/falso-cha-folha-mamao-dengue/"
-TITULOS = [dossie.TITULO_CHECAGENS, dossie.TITULO_ARGUMENTO, dossie.TITULO_PERGUNTAS, dossie.TITULO_LIMITES]
+TITULOS = [dossie.TITULO_RESUMO, dossie.TITULO_CHECAGENS, dossie.TITULO_ARGUMENTO, dossie.TITULO_PERGUNTAS,
+           dossie.TITULO_LIMITES, dossie.TITULO_FONTES]
 
 
 def estado_mamao(**sobrescritas) -> PipelineState:
@@ -38,6 +39,8 @@ def test_caso_do_mamao(monkeypatch):
     texto = resultado["dossier"]
     assert set(resultado) == {"dossier"}
     assert titulos(texto) == TITULOS
+    assert texto.startswith(dossie.TITULO_RESUMO)
+    assert "- 6 frases analisadas: 4 afirmações factuais e 2 opiniões." in texto
     assert "Agência Lupa: Falso" in texto and URL_LUPA in texto
     assert "Aos Fatos: Falso" in texto and URL_AOSFATOS in texto
     assert f"[↗ 1](<{URL_LUPA}>)" in texto and f"[↗ 2](<{URL_AOSFATOS}>)" in texto
@@ -46,6 +49,12 @@ def test_caso_do_mamao(monkeypatch):
     assert "1. Quais estudos o texto apresenta" in texto
     assert not re.search(r"\bs\d{2}\b", texto), "IDs de frase não podem aparecer no dossiê"
     assert len(modelo.prompts) == 1
+    # Fontes fecha o dossiê, com a numeração do corpo
+    assert texto.splitlines()[-3:] == [
+        dossie.TITULO_FONTES,
+        f'1. Agência Lupa: Falso — "Não existe um tratamento específico para a dengue e as formas graves da doença." · [abrir ↗](<{URL_LUPA}>)',
+        f'2. Aos Fatos: Falso — "não comprovam que o tratamento seja eficaz em humanos" · [abrir ↗](<{URL_AOSFATOS}>)',
+    ]
 
 
 def test_o_modelo_recebe_frases_e_marcadores_como_dado_sem_ids_nem_urls(monkeypatch):
@@ -158,6 +167,72 @@ def test_ramos_ausentes_sao_declarados_sem_aviso_proprio(monkeypatch):
     assert "warnings" not in resultado
     assert dossie.SEM_BANCO in resultado["dossier"]
     assert dossie.SEM_PERGUNTAS in resultado["dossier"]
+
+
+def test_sem_evidencia_o_dossie_nao_tem_fontes_nem_bloco_em_branco_no_fim(monkeypatch):
+    falsos.SintetizadorFalso().instalar(monkeypatch)
+
+    resultado = synthesizer.sintetizador_node(estado_mamao(evidence=[]))
+
+    texto = resultado["dossier"]
+    assert titulos(texto) == [t for t in TITULOS if t != dossie.TITULO_FONTES]
+    assert texto.endswith(dossie.LIMITE_COLETA), "sem Fontes, o dossiê termina em Limites, sem bloco vazio"
+    assert not texto.endswith("\n")
+    assert "\n\n\n" not in texto
+
+
+def test_sem_banco_o_dossie_tambem_nao_tem_fontes(monkeypatch):
+    falsos.SintetizadorFalso().instalar(monkeypatch)
+
+    resultado = synthesizer.sintetizador_node(estado_mamao(evidence=None))
+
+    assert dossie.TITULO_FONTES not in titulos(resultado["dossier"])
+    assert "- O banco de checagens não pôde ser consultado." in resultado["dossier"]
+
+
+def estado_com_cifrao(**sobrescritas) -> PipelineState:
+    return estado_mamao(
+        segments=[{"id": "s01", "text": "O kit custa R$ 10 hoje e R$ 20 amanhã."}],
+        evidence=[],
+        text_report={"statements": [{"segment_id": "s01", "kind": "valor"}], "markers": []},
+        **sobrescritas,
+    )
+
+
+def test_cifrao_do_texto_livre_do_modelo_e_escapado_depois_dos_guardrails(monkeypatch):
+    # O Streamlit renderiza $...$ como LaTeX: o texto do LLM sai com \$, mas o modelo e os guardrails veem o original
+    resposta = '- Juízo de valor: "R$ 10" é um preço dado como certo.\n- Outro valor: R$ 10 e R$ 20 são citados.'
+    modelo = falsos.SintetizadorFalso(resposta).instalar(monkeypatch)
+
+    resultado = synthesizer.sintetizador_node(estado_com_cifrao())
+
+    texto = resultado["dossier"]
+    assert "R$ 10 hoje e R$ 20 amanhã" in modelo.prompts[0]
+    assert len(modelo.prompts) == 1 and "warnings" not in resultado
+    assert r'- Juízo de valor: "R\$ 10" é um preço dado como certo.' in texto
+    assert r"- Outro valor: R\$ 10 e R\$ 20 são citados." in texto
+    assert not re.search(r"(?<!\\)\$", texto), "nenhum cifrão sobra sem escape no dossiê"
+
+
+def test_texto_livre_do_modelo_mantem_os_bullets_e_o_markdown_so_o_cifrao_muda(monkeypatch):
+    resposta = '- **Urgência**: "URGENTE" pede *pressa*.\n- Preço de R$ 10.'
+    falsos.SintetizadorFalso(resposta).instalar(monkeypatch)
+
+    texto = synthesizer.sintetizador_node(estado_mamao(
+        segments=[{"id": "s01", "text": "URGENTE: compre por R$ 10."}], evidence=[],
+        text_report={"statements": [{"segment_id": "s01", "kind": "valor"}], "markers": []},
+    ))["dossier"]
+
+    assert '- **Urgência**: "URGENTE" pede *pressa*.' in texto
+    assert r"- Preço de R\$ 10." in texto
+
+
+def test_perguntas_do_socratico_saem_escapadas_no_dossie(monkeypatch):
+    falsos.SintetizadorFalso().instalar(monkeypatch)
+
+    texto = synthesizer.sintetizador_node(estado_mamao(socratic_questions=["O preço de R$ 10 é real?"]))["dossier"]
+
+    assert r"1. O preço de R\$ 10 é real?" in texto
 
 
 def test_link_vindo_da_noticia_e_neutralizado_no_dossie(monkeypatch):

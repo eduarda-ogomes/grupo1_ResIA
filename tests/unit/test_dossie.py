@@ -527,13 +527,36 @@ def test_trecho_da_checagem_com_link_mantem_a_citacao():
     assert dossie.remover_citacoes_invalidas(texto, state.evidence)[1] is False
 
 
-def test_limites_listam_as_frases_que_ficaram_sem_classificacao():
+def _estado_sem_classificacao(n):
+    segs = [{"id": "s00", "text": "Frase classificada."}] + [
+        {"id": f"s{i:02d}", "text": f"Frase solta número {i}."} for i in range(1, n + 1)]
+    return estado_mamao(segments=segs, text_report={"statements": [{"segment_id": "s00", "kind": "factual"}], "markers": []})
+
+
+def _linha_nao_classificadas(state):
+    return next(l for l in dossie.secao_limites(state) if "classificad" in l)
+
+
+def test_limites_listam_a_frase_que_ficou_sem_classificacao():
     relatorio = {"statements": [{"segment_id": f"s0{i}", "kind": "factual"} for i in range(1, 6)], "markers": []}  # falta s06
 
     linhas = dossie.secao_limites(estado_mamao(text_report=relatorio))
 
-    assert ('- Estas frases não puderam ser classificadas como fato ou opinião: '
+    assert ('- 1 frase não pôde ser classificada como fato ou opinião: '
             '"Compartilhe com todos antes que apaguem este vídeo!".') in linhas
+
+
+def test_limites_duas_frases_sem_classificacao():
+    linha = _linha_nao_classificadas(_estado_sem_classificacao(2))
+    assert linha == ('- 2 frases não puderam ser classificadas como fato ou opinião: '
+                     '"Frase solta número 1." e "Frase solta número 2.".')
+
+
+def test_limites_muitas_frases_sem_classificacao_tem_teto():
+    linha = _linha_nao_classificadas(_estado_sem_classificacao(30))
+    assert linha.startswith('- 30 frases não puderam ser classificadas como fato ou opinião, como "Frase solta número 1.", ')
+    assert linha.endswith(" e mais 28.")
+    assert len(linha) < 300
 
 
 def test_frase_sem_classificacao_com_link_aparece_neutralizada():
@@ -544,7 +567,7 @@ def test_frase_sem_classificacao_com_link_aparece_neutralizada():
 
     linhas = dossie.secao_limites(state)
 
-    assert '- Estas frases não puderam ser classificadas como fato ou opinião: "Veja em [link] agora.".' in linhas
+    assert '- 1 frase não pôde ser classificada como fato ou opinião: "Veja em [link] agora.".' in linhas
 
 
 # --- Texto da notícia escapado em todas as seções do código -----------------------
@@ -569,7 +592,7 @@ def test_fallback_e_limites_escapam_trecho_e_frase_da_noticia():
 
     assert linhas[0] == '- Adjetivação extrema: "R\\$ 5 \\*só\\*"'
     assert linhas[1] == '- Juízo de valor: "Paga R\\$ 5 por mês." é uma opinião e não foi checada.'
-    assert ('- Estas frases não puderam ser classificadas como fato ou opinião: "Frase\\_sem classificar.".'
+    assert ('- 1 frase não pôde ser classificada como fato ou opinião: "Frase\\_sem classificar.".'
             in dossie.secao_limites(state))
 
 
@@ -577,3 +600,13 @@ def test_tabela_frases_do_mamao():
     tabela = dossie.tabela_frases(estado_mamao())
     assert tabela["tipo"] == ["Fato", "Fato", "Fato", "Fato", "Opinião", "Opinião"]
     assert tabela["checagens"] == [0, 1, 1, 0, 0, 0]
+
+
+def test_tabela_frases_escapa_markdown_e_neutraliza_link():
+    texto = "Subiu de R$ 5,90 para R$ 6,20, é *exclusivo*: https://golpe.example/x"
+    state = estado_mamao(segments=[{"id": "s01", "text": texto}], evidence=[], text_report=None)
+
+    tabela = dossie.tabela_frases(state)
+
+    assert tabela["frase"] == [dossie.texto_seguro(texto)]
+    assert tabela["frase"][0] == "Subiu de R\\$ 5,90 para R\\$ 6,20, é \\*exclusivo\\*: [link]"

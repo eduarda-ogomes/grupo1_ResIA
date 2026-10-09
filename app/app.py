@@ -8,7 +8,7 @@ import os
 
 import streamlit as st
 from src import medicao
-from src.agents.dossie import tabela_frases
+from src.agents.dossie import escapar_markdown, tabela_frases
 from src.graph import RAMOS, sistema_multiagente
 from src.observabilidade import configurar_tracing
 from src.state import PipelineState, initial_state
@@ -63,7 +63,7 @@ if st.button("Analisar", type="primary"):
             title = final_state.get('title') or 'Sem título'
             published_at = final_state.get('published_at')
 
-            st.header(f"{title}")
+            st.header(escapar_markdown(title))
             if published_at:
                 st.caption(f"Publicado em {published_at}")
 

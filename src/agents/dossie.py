@@ -104,7 +104,7 @@ def tabela_frases(state: PipelineState) -> dict[str, list]:
     for ev in ctx.evidencias:
         contagem[ev.segment_id] = contagem.get(ev.segment_id, 0) + 1
     return {
-        "frase": [s.text for s in state.segments],
+        "frase": [texto_seguro(s.text) for s in state.segments],  # st.table lê Markdown
         "tipo": [rotulo.get(ctx.tipo_por_frase.get(s.id), "Sem classificação") for s in state.segments],
         "checagens": [contagem.get(s.id, 0) for s in state.segments],
     }
@@ -193,6 +193,21 @@ def linha_sem_checagem(frases: list[Segment]) -> str:
     else:
         lista, frase = f"{n} afirmações factuais, como {citadas[0]}, {citadas[1]} e mais {n - 2}", "essas frases"
     return f"- Sem checagem no nosso banco: {lista}. Isso não confirma nem descarta {frase}."
+
+
+def linha_sem_classificacao(frases: list[Segment]) -> str:
+    """Uma linha com teto de tamanho (como `linha_sem_checagem`): até 2 frases cortadas em 80 caracteres e a contagem do resto.
+
+    `frases` não pode ser vazia; a lista completa fica no expander do app.
+    """
+    n = len(frases)
+    citadas = [f'"{texto_seguro(encurtar(s.text, 80))}"' for s in frases[:2]]
+    if n == 1:
+        return f"- 1 frase não pôde ser classificada como fato ou opinião: {citadas[0]}."
+    if n == 2:
+        return f"- 2 frases não puderam ser classificadas como fato ou opinião: {citadas[0]} e {citadas[1]}."
+    return (f"- {n} frases não puderam ser classificadas como fato ou opinião, "
+            f"como {citadas[0]}, {citadas[1]} e mais {n - 2}.")
 
 
 def secao_checagens(state: PipelineState, ctx: Contexto, fontes: dict[str, int]) -> list[str]:
@@ -360,8 +375,7 @@ def secao_limites(state: PipelineState) -> list[str]:
         classificadas = {st.segment_id for st in state.text_report.statements}
         sem_classificacao = [s for s in state.segments if s.id not in classificadas]
         if sem_classificacao:
-            frases = ", ".join(f'"{texto_seguro(s.text)}"' for s in sem_classificacao)
-            linhas.append(f"- Estas frases não puderam ser classificadas como fato ou opinião: {frases}.")
+            linhas.append(linha_sem_classificacao(sem_classificacao))
     if state.socratic_questions is None:
         linhas.append("- As perguntas reflexivas não puderam ser geradas.")
     return linhas + [LIMITE_COLETA]

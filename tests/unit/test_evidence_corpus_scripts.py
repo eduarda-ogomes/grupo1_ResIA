@@ -15,6 +15,7 @@ import build_index  # noqa: E402
 import experimento_etapa2  # noqa: E402
 import fetch_articles  # noqa: E402
 import import_factckbr  # noqa: E402
+import import_lupa  # noqa: E402
 
 
 # --- build_index: divisão em trechos ----------------------------------------------
@@ -297,3 +298,71 @@ def test_importador_le_o_csv_e_grava_os_dois_arquivos(tmp_path):
     assert art["text"] == "Linha 1\nLinha 2 com, vírgula"
     assert json.loads(claims.read_text(encoding="utf-8"))["source_url"] == "https://www.aosfatos.org/noticias/a/"
 
+
+
+# --- import_lupa: checagens da Agência Lupa pelo sitemap ---------------------------
+
+@pytest.mark.parametrize("url, candidata", [
+    ("https://www.agencialupa.org/verificacao/2026/10/08/e-falso-que-mesarios-na-bahia/", True),
+    ("https://www.agencialupa.org/checagem/2025/03/01/qualquer-coisa/", True),
+    ("https://www.agencialupa.org/eleicoes/2026/10/08/video-antigo-de-lula-e-editado/", True),
+    ("https://www.agencialupa.org/jornalismo/2023/03/29/e-falso-que-oms-mudou-a-classificacao/", True),
+    ("https://www.agencialupa.org/jornalismo/2020/11/25/verificamos-cafeteira-3-coracoes/", True),
+    ("https://www.agencialupa.org/jornalismo/2024/05/02/e-verdade-que-o-salario-minimo/", True),
+    ("https://www.agencialupa.org/jornalismo/2021/06/10/entrevista-com-diretora/", False),   # reportagem
+    ("https://www.agencialupa.org/noticias/2025/09/25/vai-dar-namoro/", False),
+    ("https://www.agencialupa.org/institucional/2020/01/01/e-falso-que-x/", False),
+])
+def test_lupa_candidatas_pelo_endereco(url, candidata):
+    assert import_lupa.eh_candidata(url) is candidata
+
+
+@pytest.mark.parametrize("titulo, esperado", [
+    ("É falso que OMS mudou a classificação de jovens e idosos",
+     ("Falso", "OMS mudou a classificação de jovens e idosos")),
+    ("É verdade que o salário mínimo subiu 7% em 2024.", ("Verdade", "O salário mínimo subiu 7% em 2024")),
+    ("#Verificamos: É enganoso que vacina cause autismo", ("Enganoso", "Vacina cause autismo")),
+    ("É FALSO que Lula foi preso em 2025", ("Falso", "Lula foi preso em 2025")),
+    ("É golpe mensagem que oferece cafeteiras gratuitas", None),   # sem "É <rótulo> que <alegação>"
+    ("Vídeo antigo de Lula é editado para sugerir críticas", None),
+    ("É falso que", None),
+])
+def test_lupa_veredito_e_alegacao_saem_do_titulo(titulo, esperado):
+    assert import_lupa.alegacao_do_titulo(titulo) == esperado
+
+
+def test_lupa_limpa_titulo_e_data_vem_da_url():
+    assert import_lupa.limpar_titulo("#Verificamos:  É falso que X • Lupa") == "É falso que X"
+    assert import_lupa.data_da_url("https://www.agencialupa.org/jornalismo/2020/11/25/x/") == "2020-11-25"
+    assert import_lupa.data_da_url("https://www.agencialupa.org/sobre/") == ""
+
+
+def test_lupa_monta_checagem_no_formato_do_corpus():
+    url = "https://www.agencialupa.org/jornalismo/2020/11/25/e-falso-que-x/"
+    checagem, texto, motivo = import_lupa.montar(url, "É falso que X fechou o STF • Lupa", "Texto da checagem.")
+    assert motivo is None
+    assert checagem == {
+        "source_url": url, "source_name": "Agência Lupa", "review_title": "É falso que X fechou o STF",
+        "review_date": "2020-11-25", "agency_verdict": "Falso", "claim_reviewed": "X fechou o STF",
+        "language": "pt", "corpus": "lupa",
+    }
+    assert texto == {"source_url": url, "title": "É falso que X fechou o STF", "text": "Texto da checagem.",
+                     "corpus": "lupa"}
+
+
+def test_lupa_descarta_sem_padrao_sem_texto_e_verdade_que_desmente():
+    url = "https://www.agencialupa.org/verificacao/2026/01/02/a/"
+    assert import_lupa.montar(url, "É golpe mensagem que oferece cafeteiras", "Texto.")[2] == "título sem 'É <rótulo> que'"
+    assert import_lupa.montar(url, "É falso que X fechou o STF", "")[2] == "sem texto"
+    assert import_lupa.montar(url, "É verdade que Lula não cortou o Bolsa Família", "Texto.")[2] == \
+        "veredito verdadeiro com título que desmente"
+
+
+def test_lupa_pendentes_pulam_feitas_descartadas_e_factckbr():
+    urls = ["https://www.agencialupa.org/jornalismo/2019/01/14/verificamos-acucar/",
+            "https://www.agencialupa.org/jornalismo/2020/01/01/e-falso-que-a/",
+            "https://www.agencialupa.org/jornalismo/2020/01/02/e-falso-que-b/",
+            "https://www.agencialupa.org/jornalismo/2020/01/03/e-falso-que-c"]
+    ja = {"https://www.agencialupa.org/jornalismo/2019/01/14/verificamos-acucar",   # FACTCK.BR, sem a barra
+          "https://www.agencialupa.org/jornalismo/2020/01/01/e-falso-que-a/"}       # já baixada
+    assert import_lupa.pendentes(urls, ja) == urls[2:]

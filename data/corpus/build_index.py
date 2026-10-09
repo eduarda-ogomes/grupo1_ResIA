@@ -27,7 +27,8 @@ Uso, a partir da raiz do repositório:
 
 Fontes: factcheck_api.jsonl + articles.jsonl (Fact Check Tools API) e, se existirem,
 factckbr_claims.jsonl + factckbr_articles.jsonl (FACTCK.BR, gerados pelo
-import_factckbr.py). O metadado "corpus" diz de qual fonte veio cada trecho.
+import_factckbr.py) e lupa_claims.jsonl + lupa_articles.jsonl (Agência Lupa, gerados
+pelo import_lupa.py). O metadado "corpus" diz de qual fonte veio cada trecho.
 """
 
 from __future__ import annotations
@@ -202,6 +203,9 @@ def main() -> None:
     parser.add_argument("--factckbr-claims", type=Path, default=config.RAW_DIR / "factckbr_claims.jsonl")
     parser.add_argument("--factckbr-articles", type=Path, default=config.RAW_DIR / "factckbr_articles.jsonl")
     parser.add_argument("--sem-factckbr", action="store_true", help="não inclui o FACTCK.BR, mesmo que exista")
+    parser.add_argument("--lupa-claims", type=Path, default=config.RAW_DIR / "lupa_claims.jsonl")
+    parser.add_argument("--lupa-articles", type=Path, default=config.RAW_DIR / "lupa_articles.jsonl")
+    parser.add_argument("--sem-lupa", action="store_true", help="não inclui a Lupa (import_lupa.py), mesmo que exista")
     parser.add_argument("--apenas-novos", action="store_true",
                         help="só calcula embeddings dos trechos que ainda não estão no índice")
     parser.add_argument("--so-nomes", action="store_true",
@@ -215,6 +219,11 @@ def main() -> None:
         if fk_claims:
             print(f"FACTCK.BR: {len(fk_claims)} checagens ({len(fk_articles)} com texto).")
         claims, articles = claims + fk_claims, articles + fk_articles
+    if not args.sem_lupa:
+        lp_claims, lp_articles = load_jsonl(args.lupa_claims), load_jsonl(args.lupa_articles)
+        if lp_claims:
+            print(f"Lupa: {len(lp_claims)} checagens ({len(lp_articles)} com texto).")
+        claims, articles = claims + lp_claims, articles + lp_articles
     if not claims and not articles:
         sys.exit(f"Nada em {args.claims} nem em {args.articles}. Rode antes collect_factcheck_api.py.")
     claims, articles, excluidas = separar_excluidas(claims, articles)

@@ -62,7 +62,7 @@ def test_sintetizador_roda_uma_vez_com_tudo_pronto(monkeypatch):
     assert len(chamadas) == 1
     # na única chamada, os três predecessores já tinham escrito no estado
     assert chamadas[0].evidence == [] and chamadas[0].socratic_questions == falsos.PERGUNTAS_TEXTO_LIVRE
-    assert falsos.RESPOSTA_SINTETIZADOR in "\n".join(chamadas[0].argument)
+    assert falsos.LINHA_SINTETIZADOR in chamadas[0].argument
     assert out["dossier"].startswith(dossie.TITULO_RESUMO) and out["argument"]
 
 
@@ -88,7 +88,7 @@ def test_grafo_com_modelos_falsos_termina_sem_avisos(monkeypatch):
     assert out["evidence"] == []
     assert out["text_report"].statements[0].kind == "factual"
     assert out["socratic_questions"] == falsos.PERGUNTAS_TEXTO_LIVRE
-    assert falsos.RESPOSTA_SINTETIZADOR in out["dossier"]
+    assert falsos.LINHA_SINTETIZADOR in out["dossier"]
     assert dossie.SEM_CHECAGEM in out["dossier"]
 
 
@@ -117,7 +117,7 @@ def test_caso_do_mamao_de_ponta_a_ponta(monkeypatch):
         assert ev["source_url"] in out["dossier"]
     for pergunta in perguntas:
         assert pergunta in out["dossier"]
-    assert falsos.RESPOSTA_SINTETIZADOR in out["dossier"]
+    assert f'- Urgência: "URGENTE" {falsos.EFEITO_SINTETIZADOR}' in out["dossier"]
     assert len(sintetizador.prompts) == 1
 
 
@@ -184,7 +184,7 @@ def test_excecao_nao_prevista_num_agente_vira_aviso(monkeypatch):
 
 
 def test_argumento_estourado_vira_fallback_e_o_dossie_sai(monkeypatch):
-    falsos.ligar_falsos(monkeypatch)   # s02 é "valor": o agente_argumento chama o modelo
+    falsos.ligar_falsos(monkeypatch)   # há um marcador no texto: o agente_argumento chama o modelo
     liberar = threading.Event()
 
     def travado(mensagens):
@@ -201,7 +201,8 @@ def test_argumento_estourado_vira_fallback_e_o_dossie_sai(monkeypatch):
     # spec: timeout do modelo -> fallback determinístico no argumento, não um dossiê vazio
     assert out["warnings"] == ["argumento: timeout"]
     assert "argumento: timeout" in out["warnings"] and dossie.TITULO_ARGUMENTO in out["dossier"]
-    assert out["argument"] == ['- Juízo de valor: "Isso não tem comprovação." é uma opinião e não foi checada.']
+    assert out["argument"] == ['- Adjetivação extrema: "cura a dengue"',
+                               '- Juízo de valor: "Isso não tem comprovação." é uma opinião e não foi checada.']
     assert out["dossier"] != protecao.DOSSIE_INDISPONIVEL
     assert out["dossier"].startswith(dossie.TITULO_RESUMO)
     assert '- Juízo de valor: "Isso não tem comprovação." é uma opinião e não foi checada.' in out["dossier"]

@@ -6,9 +6,12 @@ from src.agents import evidence, socratic, synthesizer, text_analysis
 
 FIXTURES_MAMAO = Path(__file__).resolve().parent / "fixtures" / "caso_mamao_dengue"
 
-# Passa em todos os guardrails (veredito, link, G3, G4) tanto no caso do mamão quanto no TEXTO_LIVRE:
-# "cura a dengue" é literal nos dois textos, e o rótulo "Adjetivação extrema" é fixo do prompt
-RESPOSTA_SINTETIZADOR = '- Adjetivação extrema: "cura a dengue" promete um resultado garantido, sem apresentar fonte.'
+# Resposta estruturada do Argumento: um efeito para o marcador 1 de RELATORIO_TEXTO_LIVRE ("cura a dengue")
+# e para o marcador 1 do caso do mamão ("URGENTE"). Passa em veredito, link, G3 e G4 nos dois textos.
+EFEITO_SINTETIZADOR = "promete um resultado garantido, sem apresentar fonte."
+RESPOSTA_SINTETIZADOR = json.dumps({"efeitos": [{"marcador": 1, "efeito": EFEITO_SINTETIZADOR}]}, ensure_ascii=False)
+# A linha que o código escreve no dossiê a partir dela, para o TEXTO_LIVRE (a do mamão usa o rótulo "Urgência")
+LINHA_SINTETIZADOR = f'- Adjetivação extrema: "cura a dengue" {EFEITO_SINTETIZADOR}'
 
 
 def carregar_mamao(nome: str) -> dict:
@@ -39,7 +42,8 @@ class SintetizadorFalso:
 TEXTO_LIVRE = "O suco de mamão cura a dengue. Isso não tem comprovação."
 RELATORIO_TEXTO_LIVRE = {
     "statements": [{"segment_id": "s01", "kind": "factual"}, {"segment_id": "s02", "kind": "valor"}],
-    "markers": [],
+    "markers": [{"type": "adjetivacao_extrema", "segment_id": "s01", "excerpt": "cura a dengue",
+                 "explanation": "Promete um resultado garantido."}],
 }
 PERGUNTAS_TEXTO_LIVRE = [
     "Quais estudos sustentam que o suco de mamão cura a dengue?",

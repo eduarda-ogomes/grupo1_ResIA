@@ -7,7 +7,7 @@ import pytest
 
 from src.agents import dossie
 from src.guardrails.veredito import termos_de_veredito
-from src.state import PipelineState, Segment
+from src.state import PipelineState, Segment, TextMarker
 
 MAMAO = Path(__file__).resolve().parents[1] / "fixtures" / "caso_mamao_dengue"
 URL_LUPA = "https://www.agencialupa.org/jornalismo/2024/02/06/e-falso-que-cha-de-folha-de-mamao-cura-a-dengue-em-tres-dias/"
@@ -409,7 +409,7 @@ def test_argumento_sem_modelo():
 def test_fallback_usa_rotulo_e_trecho_literal_e_nunca_a_explicacao():
     state = estado_mamao()
 
-    linhas = dossie.fallback_argumento(state, dossie.preprocessar(state))
+    linhas = dossie.linhas_argumento(state, {})
 
     assert linhas == [
         '- Urgência: "URGENTE"',
@@ -418,10 +418,85 @@ def test_fallback_usa_rotulo_e_trecho_literal_e_nunca_a_explicacao():
         '- Autoridade sem identificação: "Um especialista em plantas medicinais garante"',
         '- Falsa dicotomia: "nada melhor do que a natureza"',
         '- Urgência: "antes que apaguem este vídeo"',
-        '- Juízo de valor: "Não existe nada melhor do que a natureza para cuidar da nossa saúde." é uma opinião e não foi checada.',
-        '- Juízo de valor: "Compartilhe com todos antes que apaguem este vídeo!" é uma opinião e não foi checada.',
+        '- Juízo de valor: "Não existe nada melhor do que a natureza para cuidar da nossa saúde." e '
+        '"Compartilhe com todos antes que apaguem este vídeo!" são opiniões e não foram checadas.',
     ]
     assert not any(m.explanation in "\n".join(linhas) for m in state.text_report.markers)
+
+
+def test_linhas_argumento_sem_modelo_declara_a_ausencia():
+    assert dossie.linhas_argumento(estado_mamao(text_report=None), {}) == [dossie.SEM_ESTRUTURA]
+    sem_padroes = estado_mamao(text_report={"statements": [{"segment_id": "s01", "kind": "factual"}], "markers": []})
+    assert dossie.linhas_argumento(sem_padroes, {}) == [dossie.SEM_PADROES]
+
+
+def test_linhas_argumento_escreve_o_efeito_no_marcador_certo():
+    linhas = dossie.linhas_argumento(estado_mamao(), {1: "pede atenção imediata.", 5: "opõe *natureza* e medicina."})
+
+    assert linhas[0] == '- Urgência: "URGENTE" pede atenção imediata.'
+    assert linhas[1] == '- Generalização: "os médicos estão escondendo"'
+    assert linhas[4] == '- Falsa dicotomia: "nada melhor do que a natureza" opõe \\*natureza\\* e medicina.'
+
+
+# --- Seleção e linhas do argumento estruturado --------------------------------------
+
+def marcador(tipo, segment_id, excerpt="trecho"):
+    return {"type": tipo, "segment_id": segment_id, "excerpt": excerpt, "explanation": "x"}
+
+
+def frases(textos):
+    return [Segment(id=f"s{i:02d}", text=t) for i, t in enumerate(textos, start=1)]
+
+
+def estado_com(n_marcadores, n_opinioes):
+    tipos = ["urgencia_artificial"] * n_marcadores
+    markers = [marcador(t, "s01", f"trecho {i}") for i, t in enumerate(tipos, start=1)]
+    segmentos = [{"id": f"s{i:02d}", "text": f"Opinião {i}."} for i in range(1, n_opinioes + 1)]
+    return estado_mamao(
+        segments=segmentos, evidence=[],
+        text_report={"statements": [{"segment_id": s["id"], "kind": "valor"} for s in segmentos], "markers": markers})
+
+
+def test_selecao_garante_um_por_tipo_e_mantem_a_ordem_do_texto():
+    tipos = ["urgencia_artificial"] * 9 + ["generalizacao", "apelo_autoridade"]
+    markers = [TextMarker(**marcador(t, f"s{i:02d}")) for i, t in enumerate(tipos, start=1)]
+    escolhidos = dossie.selecionar_marcadores(markers)
+    assert len(escolhidos) == 8 and {"generalizacao", "apelo_autoridade"} <= {m.type for m in escolhidos}
+    assert [m.segment_id for m in escolhidos] == sorted(m.segment_id for m in escolhidos)
+
+
+def test_selecao_com_poucos_marcadores_devolve_todos():
+    markers = [TextMarker(**marcador("urgencia_artificial", "s01")), TextMarker(**marcador("generalizacao", "s02"))]
+    assert dossie.selecionar_marcadores(markers) == markers
+
+
+def test_linhas_do_spec():
+    assert dossie.linha_marcadores_omitidos(1) == "- Outro trecho repete esses padrões e não foi listado."
+    assert dossie.linha_marcadores_omitidos(3) == "- Outros 3 trechos repetem esses padrões e não foram listados."
+    assert dossie.linha_juizo_valor(frases(["A."])) == '- Juízo de valor: "A." é uma opinião e não foi checada.'
+    assert dossie.linha_juizo_valor(frases(["A.", "B."])) == '- Juízo de valor: "A." e "B." são opiniões e não foram checadas.'
+    assert dossie.linha_juizo_valor(frases(["A.", "B.", "C.", "D."])) == (
+        '- Juízo de valor: 4 frases são opiniões e não foram checadas, como "A.", "B." e mais 2.')
+    assert dossie.linha_juizo_valor([]) is None
+
+
+def test_juizo_de_valor_encurta_e_escapa_a_frase():
+    longa = "Isso é R$ 5 *absurdo* " + "x" * 100
+    linha = dossie.linha_juizo_valor(frases([longa]))
+    assert linha.startswith('- Juízo de valor: "Isso é R\\$ 5 \\*absurdo\\* xxx')
+    assert "…" in linha and "x" * 100 not in linha
+
+
+def test_linha_marcador_escapa_trecho_e_efeito():
+    m = TextMarker(**marcador("urgencia_artificial", "s01", "custa R$ 10 em https://a.org/x"))
+    assert dossie.linha_marcador(m, "custa R$ 10.") == '- Urgência: "custa R\\$ 10 em [link]" custa R\\$ 10.'
+    assert dossie.linha_marcador(m, None) == '- Urgência: "custa R\\$ 10 em [link]"'
+    assert dossie.linha_marcador(m, "  ") == '- Urgência: "custa R\\$ 10 em [link]"'
+
+
+def test_noticia_longa_tem_no_maximo_8_marcadores_e_uma_linha_de_juizo():   # Review Focus 1
+    linhas = dossie.linhas_argumento(estado_com(n_marcadores=20, n_opinioes=12), efeitos={})
+    assert len(linhas) == 8 + 1 + 1 and linhas[-2].startswith("- Outros 12 trechos") and linhas[-1].startswith("- Juízo de valor: 12 frases")
 
 
 # --- Perguntas e limites ----------------------------------------------------------
@@ -441,13 +516,6 @@ def test_perguntas_do_socratico_sao_escapadas():
 
     assert dossie.secao_perguntas(state) == [
         dossie.TITULO_PERGUNTAS, r"1. O kit de R\$ 10 e R\$ 20 tem \*estudos\* em \[fonte\_x\]?"]
-
-
-def test_escapar_cifrao_so_mexe_no_cifrao_e_nao_escapa_duas_vezes():
-    texto = "- **Preço**: custa R$ 10 e R$ 20, veja *isto*."
-    assert dossie.escapar_cifrao(texto) == r"- **Preço**: custa R\$ 10 e R\$ 20, veja *isto*."
-    assert dossie.escapar_cifrao(dossie.escapar_cifrao(texto)) == dossie.escapar_cifrao(texto)
-    assert dossie.escapar_cifrao("sem cifrão") == "sem cifrão"
 
 
 def test_limites_do_mamao():
@@ -588,7 +656,7 @@ def test_fallback_e_limites_escapam_trecho_e_frase_da_noticia():
                      "markers": [{"segment_id": "s01", "type": "adjetivacao_extrema", "excerpt": "R$ 5 *só*", "explanation": "x"}]},
     )
 
-    linhas = dossie.fallback_argumento(state, dossie.preprocessar(state))
+    linhas = dossie.linhas_argumento(state, {})
 
     assert linhas[0] == '- Adjetivação extrema: "R\\$ 5 \\*só\\*"'
     assert linhas[1] == '- Juízo de valor: "Paga R\\$ 5 por mês." é uma opinião e não foi checada.'

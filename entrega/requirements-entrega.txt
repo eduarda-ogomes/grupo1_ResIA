@@ -1,0 +1,7 @@
+# Dependências extras para abrir e executar o notebook da entrega.
+# Instale junto com as do projeto: pip install -r requirements.txt -r entrega/requirements-entrega.txt
+jupyterlab
+ipykernel
+matplotlib
+pandas
+scikit-learn

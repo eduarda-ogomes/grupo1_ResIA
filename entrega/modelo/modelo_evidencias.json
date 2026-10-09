@@ -1,0 +1,781 @@
+{
+  "embedding_model": "BAAI/bge-m3",
+  "nli_model": "MoritzLaurer/mDeBERTa-v3-base-mnli-xnli",
+  "hiperparametros": {
+    "SIM_THRESHOLD": 0.55,
+    "CLAIM_MATCH_MIN_PROB": 0.8,
+    "MIN_CONTENT_OVERLAP": 1,
+    "SEARCH_K": 10,
+    "CLAIM_CANDIDATES": 6,
+    "MAX_EVIDENCE_PER_SEGMENT": 3
+  },
+  "vocabulario_nomes": {
+    "tamanho": 4150,
+    "exemplos": [
+      "aaron",
+      "aas",
+      "abaetetuba",
+      "abba",
+      "abc",
+      "abe",
+      "abel",
+      "abglt",
+      "abilio",
+      "abin",
+      "abraamica",
+      "abrace",
+      "abraham",
+      "abraji",
+      "abrantes",
+      "abravanel",
+      "abravavel",
+      "abreu",
+      "abs",
+      "abu"
+    ]
+  },
+  "mapa_veredito": {
+    "contradiz": [
+      "e falso",
+      "fabricado",
+      "fake",
+      "falsa",
+      "falso",
+      "inventado",
+      "mentira",
+      "mentiroso",
+      "montagem"
+    ],
+    "apoia": [
+      "comprovado",
+      "correto",
+      "e verdade",
+      "verdade",
+      "verdadeira",
+      "verdadeiro"
+    ]
+  },
+  "embedding_revision": "5617a9f61b028005a4858fdac845db406aefb181",
+  "nli_revision": "8adb042d524ecd5c26d3e3ba0e3fbcf7e2d0864c",
+  "indice": {
+    "colecao": "checagens__baai-bge-m3",
+    "trechos": 114337,
+    "chromadb": "1.5.9"
+  },
+  "calibracao": [
+    {
+      "sim_threshold": 0.55,
+      "claim_match_min_prob": 0.5,
+      "n_frases": 21,
+      "n_por_tipo": {
+        "com_checagem": 11,
+        "sem_checagem": 7,
+        "fato_parecido": 1,
+        "troca_numero": 1,
+        "desmente": 1
+      },
+      "recall_at_5": {
+        "acertos": 11,
+        "total": 11,
+        "valor": 1.0
+      },
+      "cobertura": {
+        "acertos": 9,
+        "total": 11,
+        "valor": 0.8181818181818182
+      },
+      "macro_f1": {
+        "valor": 0.734920634920635,
+        "classes_na_media": [
+          "apoia",
+          "contradiz",
+          "insuficiente"
+        ],
+        "por_classe": {
+          "apoia": {
+            "precisao": 1.0,
+            "revocacao": 0.6666666666666666,
+            "f1": 0.8,
+            "suporte": 3,
+            "previstas": 2
+          },
+          "contradiz": {
+            "precisao": 1.0,
+            "revocacao": 0.7142857142857143,
+            "f1": 0.8333333333333333,
+            "suporte": 7,
+            "previstas": 5
+          },
+          "insuficiente": {
+            "precisao": 0.4,
+            "revocacao": 1.0,
+            "f1": 0.5714285714285715,
+            "suporte": 2,
+            "previstas": 5
+          }
+        },
+        "n": 12,
+        "avisos": []
+      },
+      "stance_cobertas": {
+        "acertos": 9,
+        "total": 9,
+        "valor": 1.0
+      },
+      "matriz_confusao": {
+        "apoia": {
+          "apoia": 2,
+          "contradiz": 0,
+          "insuficiente": 1
+        },
+        "contradiz": {
+          "apoia": 0,
+          "contradiz": 5,
+          "insuficiente": 2
+        },
+        "insuficiente": {
+          "apoia": 0,
+          "contradiz": 0,
+          "insuficiente": 2
+        }
+      },
+      "evidencia_inventada": {
+        "acertos": 0,
+        "total": 7,
+        "valor": 0.0
+      },
+      "casamento_errado": {
+        "evidencias": 6,
+        "frases": 4,
+        "por_tipo": {
+          "com_checagem": 6
+        }
+      }
+    },
+    {
+      "sim_threshold": 0.55,
+      "claim_match_min_prob": 0.6,
+      "n_frases": 21,
+      "n_por_tipo": {
+        "com_checagem": 11,
+        "sem_checagem": 7,
+        "fato_parecido": 1,
+        "troca_numero": 1,
+        "desmente": 1
+      },
+      "recall_at_5": {
+        "acertos": 11,
+        "total": 11,
+        "valor": 1.0
+      },
+      "cobertura": {
+        "acertos": 10,
+        "total": 11,
+        "valor": 0.9090909090909091
+      },
+      "macro_f1": {
+        "valor": 0.7965811965811965,
+        "classes_na_media": [
+          "apoia",
+          "contradiz",
+          "insuficiente"
+        ],
+        "por_classe": {
+          "apoia": {
+            "precisao": 1.0,
+            "revocacao": 0.6666666666666666,
+            "f1": 0.8,
+            "suporte": 3,
+            "previstas": 2
+          },
+          "contradiz": {
+            "precisao": 1.0,
+            "revocacao": 0.8571428571428571,
+            "f1": 0.923076923076923,
+            "suporte": 7,
+            "previstas": 6
+          },
+          "insuficiente": {
+            "precisao": 0.5,
+            "revocacao": 1.0,
+            "f1": 0.6666666666666666,
+            "suporte": 2,
+            "previstas": 4
+          }
+        },
+        "n": 12,
+        "avisos": []
+      },
+      "stance_cobertas": {
+        "acertos": 10,
+        "total": 10,
+        "valor": 1.0
+      },
+      "matriz_confusao": {
+        "apoia": {
+          "apoia": 2,
+          "contradiz": 0,
+          "insuficiente": 1
+        },
+        "contradiz": {
+          "apoia": 0,
+          "contradiz": 6,
+          "insuficiente": 1
+        },
+        "insuficiente": {
+          "apoia": 0,
+          "contradiz": 0,
+          "insuficiente": 2
+        }
+      },
+      "evidencia_inventada": {
+        "acertos": 0,
+        "total": 7,
+        "valor": 0.0
+      },
+      "casamento_errado": {
+        "evidencias": 5,
+        "frases": 4,
+        "por_tipo": {
+          "com_checagem": 5
+        }
+      }
+    },
+    {
+      "sim_threshold": 0.55,
+      "claim_match_min_prob": 0.7,
+      "n_frases": 21,
+      "n_por_tipo": {
+        "com_checagem": 11,
+        "sem_checagem": 7,
+        "fato_parecido": 1,
+        "troca_numero": 1,
+        "desmente": 1
+      },
+      "recall_at_5": {
+        "acertos": 11,
+        "total": 11,
+        "valor": 1.0
+      },
+      "cobertura": {
+        "acertos": 10,
+        "total": 11,
+        "valor": 0.9090909090909091
+      },
+      "macro_f1": {
+        "valor": 0.7965811965811965,
+        "classes_na_media": [
+          "apoia",
+          "contradiz",
+          "insuficiente"
+        ],
+        "por_classe": {
+          "apoia": {
+            "precisao": 1.0,
+            "revocacao": 0.6666666666666666,
+            "f1": 0.8,
+            "suporte": 3,
+            "previstas": 2
+          },
+          "contradiz": {
+            "precisao": 1.0,
+            "revocacao": 0.8571428571428571,
+            "f1": 0.923076923076923,
+            "suporte": 7,
+            "previstas": 6
+          },
+          "insuficiente": {
+            "precisao": 0.5,
+            "revocacao": 1.0,
+            "f1": 0.6666666666666666,
+            "suporte": 2,
+            "previstas": 4
+          }
+        },
+        "n": 12,
+        "avisos": []
+      },
+      "stance_cobertas": {
+        "acertos": 10,
+        "total": 10,
+        "valor": 1.0
+      },
+      "matriz_confusao": {
+        "apoia": {
+          "apoia": 2,
+          "contradiz": 0,
+          "insuficiente": 1
+        },
+        "contradiz": {
+          "apoia": 0,
+          "contradiz": 6,
+          "insuficiente": 1
+        },
+        "insuficiente": {
+          "apoia": 0,
+          "contradiz": 0,
+          "insuficiente": 2
+        }
+      },
+      "evidencia_inventada": {
+        "acertos": 0,
+        "total": 7,
+        "valor": 0.0
+      },
+      "casamento_errado": {
+        "evidencias": 4,
+        "frases": 3,
+        "por_tipo": {
+          "com_checagem": 4
+        }
+      }
+    },
+    {
+      "sim_threshold": 0.55,
+      "claim_match_min_prob": 0.8,
+      "n_frases": 21,
+      "n_por_tipo": {
+        "com_checagem": 11,
+        "sem_checagem": 7,
+        "fato_parecido": 1,
+        "troca_numero": 1,
+        "desmente": 1
+      },
+      "recall_at_5": {
+        "acertos": 11,
+        "total": 11,
+        "valor": 1.0
+      },
+      "cobertura": {
+        "acertos": 10,
+        "total": 11,
+        "valor": 0.9090909090909091
+      },
+      "macro_f1": {
+        "valor": 0.7965811965811965,
+        "classes_na_media": [
+          "apoia",
+          "contradiz",
+          "insuficiente"
+        ],
+        "por_classe": {
+          "apoia": {
+            "precisao": 1.0,
+            "revocacao": 0.6666666666666666,
+            "f1": 0.8,
+            "suporte": 3,
+            "previstas": 2
+          },
+          "contradiz": {
+            "precisao": 1.0,
+            "revocacao": 0.8571428571428571,
+            "f1": 0.923076923076923,
+            "suporte": 7,
+            "previstas": 6
+          },
+          "insuficiente": {
+            "precisao": 0.5,
+            "revocacao": 1.0,
+            "f1": 0.6666666666666666,
+            "suporte": 2,
+            "previstas": 4
+          }
+        },
+        "n": 12,
+        "avisos": []
+      },
+      "stance_cobertas": {
+        "acertos": 10,
+        "total": 10,
+        "valor": 1.0
+      },
+      "matriz_confusao": {
+        "apoia": {
+          "apoia": 2,
+          "contradiz": 0,
+          "insuficiente": 1
+        },
+        "contradiz": {
+          "apoia": 0,
+          "contradiz": 6,
+          "insuficiente": 1
+        },
+        "insuficiente": {
+          "apoia": 0,
+          "contradiz": 0,
+          "insuficiente": 2
+        }
+      },
+      "evidencia_inventada": {
+        "acertos": 0,
+        "total": 7,
+        "valor": 0.0
+      },
+      "casamento_errado": {
+        "evidencias": 4,
+        "frases": 3,
+        "por_tipo": {
+          "com_checagem": 4
+        }
+      }
+    },
+    {
+      "sim_threshold": 0.55,
+      "claim_match_min_prob": 0.9,
+      "n_frases": 21,
+      "n_por_tipo": {
+        "com_checagem": 11,
+        "sem_checagem": 7,
+        "fato_parecido": 1,
+        "troca_numero": 1,
+        "desmente": 1
+      },
+      "recall_at_5": {
+        "acertos": 11,
+        "total": 11,
+        "valor": 1.0
+      },
+      "cobertura": {
+        "acertos": 10,
+        "total": 11,
+        "valor": 0.9090909090909091
+      },
+      "macro_f1": {
+        "valor": 0.7965811965811965,
+        "classes_na_media": [
+          "apoia",
+          "contradiz",
+          "insuficiente"
+        ],
+        "por_classe": {
+          "apoia": {
+            "precisao": 1.0,
+            "revocacao": 0.6666666666666666,
+            "f1": 0.8,
+            "suporte": 3,
+            "previstas": 2
+          },
+          "contradiz": {
+            "precisao": 1.0,
+            "revocacao": 0.8571428571428571,
+            "f1": 0.923076923076923,
+            "suporte": 7,
+            "previstas": 6
+          },
+          "insuficiente": {
+            "precisao": 0.5,
+            "revocacao": 1.0,
+            "f1": 0.6666666666666666,
+            "suporte": 2,
+            "previstas": 4
+          }
+        },
+        "n": 12,
+        "avisos": []
+      },
+      "stance_cobertas": {
+        "acertos": 10,
+        "total": 10,
+        "valor": 1.0
+      },
+      "matriz_confusao": {
+        "apoia": {
+          "apoia": 2,
+          "contradiz": 0,
+          "insuficiente": 1
+        },
+        "contradiz": {
+          "apoia": 0,
+          "contradiz": 6,
+          "insuficiente": 1
+        },
+        "insuficiente": {
+          "apoia": 0,
+          "contradiz": 0,
+          "insuficiente": 2
+        }
+      },
+      "evidencia_inventada": {
+        "acertos": 0,
+        "total": 7,
+        "valor": 0.0
+      },
+      "casamento_errado": {
+        "evidencias": 4,
+        "frases": 3,
+        "por_tipo": {
+          "com_checagem": 4
+        }
+      }
+    }
+  ],
+  "criterio_selecao": "menos casamentos errados no split de calibração; empate: mais cobertura; empate: o centro do platô de limiares empatados (margem dos dois lados quando o índice muda)",
+  "metricas": {
+    "teste": {
+      "n_frases": 21,
+      "n_por_tipo": {
+        "com_checagem": 12,
+        "desmente": 1,
+        "sem_checagem": 5,
+        "fato_parecido": 2,
+        "troca_numero": 1
+      },
+      "recall_at_5": {
+        "acertos": 12,
+        "total": 12,
+        "valor": 1.0
+      },
+      "cobertura": {
+        "acertos": 10,
+        "total": 12,
+        "valor": 0.8333333333333334
+      },
+      "macro_f1": {
+        "valor": 0.7428571428571429,
+        "classes_na_media": [
+          "apoia",
+          "contradiz",
+          "insuficiente"
+        ],
+        "por_classe": {
+          "apoia": {
+            "precisao": 1.0,
+            "revocacao": 0.6666666666666666,
+            "f1": 0.8,
+            "suporte": 3,
+            "previstas": 2
+          },
+          "contradiz": {
+            "precisao": 1.0,
+            "revocacao": 0.75,
+            "f1": 0.8571428571428571,
+            "suporte": 8,
+            "previstas": 6
+          },
+          "insuficiente": {
+            "precisao": 0.4,
+            "revocacao": 1.0,
+            "f1": 0.5714285714285715,
+            "suporte": 2,
+            "previstas": 5
+          }
+        },
+        "n": 13,
+        "avisos": []
+      },
+      "stance_cobertas": {
+        "acertos": 10,
+        "total": 10,
+        "valor": 1.0
+      },
+      "matriz_confusao": {
+        "apoia": {
+          "apoia": 2,
+          "contradiz": 0,
+          "insuficiente": 1
+        },
+        "contradiz": {
+          "apoia": 0,
+          "contradiz": 6,
+          "insuficiente": 2
+        },
+        "insuficiente": {
+          "apoia": 0,
+          "contradiz": 0,
+          "insuficiente": 2
+        }
+      },
+      "evidencia_inventada": {
+        "acertos": 0,
+        "total": 5,
+        "valor": 0.0
+      },
+      "casamento_errado": {
+        "evidencias": 2,
+        "frases": 2,
+        "por_tipo": {
+          "com_checagem": 1,
+          "troca_numero": 1
+        }
+      }
+    },
+    "calibracao": {
+      "n_frases": 21,
+      "n_por_tipo": {
+        "com_checagem": 11,
+        "sem_checagem": 7,
+        "fato_parecido": 1,
+        "troca_numero": 1,
+        "desmente": 1
+      },
+      "recall_at_5": {
+        "acertos": 11,
+        "total": 11,
+        "valor": 1.0
+      },
+      "cobertura": {
+        "acertos": 10,
+        "total": 11,
+        "valor": 0.9090909090909091
+      },
+      "macro_f1": {
+        "valor": 0.7965811965811965,
+        "classes_na_media": [
+          "apoia",
+          "contradiz",
+          "insuficiente"
+        ],
+        "por_classe": {
+          "apoia": {
+            "precisao": 1.0,
+            "revocacao": 0.6666666666666666,
+            "f1": 0.8,
+            "suporte": 3,
+            "previstas": 2
+          },
+          "contradiz": {
+            "precisao": 1.0,
+            "revocacao": 0.8571428571428571,
+            "f1": 0.923076923076923,
+            "suporte": 7,
+            "previstas": 6
+          },
+          "insuficiente": {
+            "precisao": 0.5,
+            "revocacao": 1.0,
+            "f1": 0.6666666666666666,
+            "suporte": 2,
+            "previstas": 4
+          }
+        },
+        "n": 12,
+        "avisos": []
+      },
+      "stance_cobertas": {
+        "acertos": 10,
+        "total": 10,
+        "valor": 1.0
+      },
+      "matriz_confusao": {
+        "apoia": {
+          "apoia": 2,
+          "contradiz": 0,
+          "insuficiente": 1
+        },
+        "contradiz": {
+          "apoia": 0,
+          "contradiz": 6,
+          "insuficiente": 1
+        },
+        "insuficiente": {
+          "apoia": 0,
+          "contradiz": 0,
+          "insuficiente": 2
+        }
+      },
+      "evidencia_inventada": {
+        "acertos": 0,
+        "total": 7,
+        "valor": 0.0
+      },
+      "casamento_errado": {
+        "evidencias": 4,
+        "frases": 3,
+        "por_tipo": {
+          "com_checagem": 4
+        }
+      }
+    },
+    "todos": {
+      "n_frases": 42,
+      "n_por_tipo": {
+        "com_checagem": 23,
+        "sem_checagem": 12,
+        "desmente": 2,
+        "fato_parecido": 3,
+        "troca_numero": 2
+      },
+      "recall_at_5": {
+        "acertos": 23,
+        "total": 23,
+        "valor": 1.0
+      },
+      "cobertura": {
+        "acertos": 20,
+        "total": 23,
+        "valor": 0.8695652173913043
+      },
+      "macro_f1": {
+        "valor": 0.7680911680911681,
+        "classes_na_media": [
+          "apoia",
+          "contradiz",
+          "insuficiente"
+        ],
+        "por_classe": {
+          "apoia": {
+            "precisao": 1.0,
+            "revocacao": 0.6666666666666666,
+            "f1": 0.8,
+            "suporte": 6,
+            "previstas": 4
+          },
+          "contradiz": {
+            "precisao": 1.0,
+            "revocacao": 0.8,
+            "f1": 0.888888888888889,
+            "suporte": 15,
+            "previstas": 12
+          },
+          "insuficiente": {
+            "precisao": 0.4444444444444444,
+            "revocacao": 1.0,
+            "f1": 0.6153846153846153,
+            "suporte": 4,
+            "previstas": 9
+          }
+        },
+        "n": 25,
+        "avisos": []
+      },
+      "stance_cobertas": {
+        "acertos": 20,
+        "total": 20,
+        "valor": 1.0
+      },
+      "matriz_confusao": {
+        "apoia": {
+          "apoia": 4,
+          "contradiz": 0,
+          "insuficiente": 2
+        },
+        "contradiz": {
+          "apoia": 0,
+          "contradiz": 12,
+          "insuficiente": 3
+        },
+        "insuficiente": {
+          "apoia": 0,
+          "contradiz": 0,
+          "insuficiente": 4
+        }
+      },
+      "evidencia_inventada": {
+        "acertos": 0,
+        "total": 12,
+        "valor": 0.0
+      },
+      "casamento_errado": {
+        "evidencias": 6,
+        "frases": 5,
+        "por_tipo": {
+          "com_checagem": 5,
+          "troca_numero": 1
+        }
+      }
+    }
+  },
+  "criado_em": "2026-10-09T17:04:13",
+  "git_commit": "c6558c52423ad3c96d0582aa0686cc3311426eb1",
+  "formato": 1
+}

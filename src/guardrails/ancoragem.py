@@ -18,7 +18,10 @@ _TRECHO = re.compile(r'"([^"\n]*)"|“([^”\n]*)”')
 _TAMANHO_MINIMO = 3
 
 _ASPAS_CURVAS = str.maketrans({"“": '"', "”": '"', "„": '"', "‘": "'", "’": "'", "‚": "'"})
-_RETICENCIAS = re.compile(r"…|\.{3,}")
+# Aspas simples e duplas viram um só caractere: citação dentro de citação não muda o que foi dito
+_ASPAS_UNICAS = str.maketrans({"'": '"'})
+# "…", "..." e as marcas de supressão da ABNT: "(...)", "(…)", "[...]", "[…]"
+_RETICENCIAS = re.compile(r"[(\[]\s*(?:…|\.{3,})\s*[)\]]|…|\.{3,}")
 _MARCADOR_DE_LISTA = re.compile(r"^\s*(?:[-*•]|\d+[.)])\s+")
 
 
@@ -30,11 +33,11 @@ def trechos_citados(texto: str) -> list[str]:
 
 def _normalizar_literal(texto: str) -> str:
     """Minúsculas, aspas unificadas e espaços colapsados: o que sobra é a forma de comparar trechos."""
-    return " ".join(texto.translate(_ASPAS_CURVAS).casefold().split())
+    return " ".join(texto.translate(_ASPAS_CURVAS).translate(_ASPAS_UNICAS).casefold().split())
 
 
 def _partes(trecho: str) -> list[str]:
-    """Pedaços do trecho separados por "…" ou "...", normalizados e sem os vazios."""
+    """Pedaços do trecho separados por "…", "..." ou "(...)"/"[...]", normalizados e sem os vazios."""
     return [p for p in (_normalizar_literal(p) for p in _RETICENCIAS.split(trecho)) if p]
 
 

@@ -226,3 +226,20 @@ def test_inicio_de_cada_frase_da_linha_nao_e_nome(texto):
 
 def test_nome_de_fora_na_segunda_frase_da_linha_continua_sendo_apontado():
     assert termos_fora_do_contexto("- A aeronave caiu. Segundo a OMS, houve falhas.", " ".join(FRASES)) == ["oms"]
+
+
+def test_g3_aceita_aspas_simples_dentro_de_aspas_duplas():
+    texto = '- Juízo de valor: "\'Essa medida é um desastre\', afirmou o senador." é uma opinião'
+    assert citacoes_nao_literais(texto, ['"Essa medida é um desastre", afirmou o senador.']) == []
+
+
+@pytest.mark.parametrize("marca", ["(...)", "(…)", "[...]", "[…]", "[ ... ]"])
+def test_g3_aceita_supressao_entre_parenteses_ou_colchetes(marca):
+    texto = f'- "Segundo o Corpo de Bombeiros {marca} totalmente destruída"'
+    assert citacoes_nao_literais(texto, ["Segundo o Corpo de Bombeiros, a aeronave ficou totalmente destruída."]) == []
+
+
+def test_g3_supressao_entre_colchetes_ainda_exige_a_mesma_frase():
+    texto = '- "Segundo o Corpo de Bombeiros [...] totalmente destruída"'
+    fontes = ["Segundo o Corpo de Bombeiros, houve um incêndio.", "A aeronave ficou totalmente destruída."]
+    assert citacoes_nao_literais(texto, fontes) == ["Segundo o Corpo de Bombeiros [...] totalmente destruída"]

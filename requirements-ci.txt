@@ -4,7 +4,7 @@ pytest
 pydantic>=2.0
 langgraph>=0.0.20
 langchain-core
-streamlit
+streamlit>=1.51  # st.components.v2 (sala dos agentes)
 trafilatura
 spacy>=3.8.0
 beautifulsoup4

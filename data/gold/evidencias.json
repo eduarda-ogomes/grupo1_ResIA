@@ -462,13 +462,12 @@
           "tipo": "com_checagem",
           "checagens_aceitas": [
             "https://noticias.uol.com.br/confere/ultimas-noticias/2025/11/14/e-ia-video-de-indigenas-pedindo-navio-igual-ao-de-janja-na-cop30.htm",
-            "https://noticias.uol.com.br/confere/ultimas-noticias/2025/11/14/e-ia-video-de-indigenas-pedindo-navio-igual-ao-de-janja-na-cop30.amp.htm",
             "https://www.aosfatos.org/noticias/video-que-mostra-protesto-de-indigenas-pedindo-um-navio-igual-ao-da-janja-foi-gerado-por-ia/",
             "https://checamos.afp.com/doc.afp.com.83YB3WE"
           ],
           "stance_esperada": "contradiz",
           "alegacao_original": "índios protestam na COP30 dizendo que querem navio igual da Janja e não hilux",
-          "obs": "",
+          "obs": "URL .amp.htm do UOL retirada em 09/10/2026: variante da .htm, unificada no corpus (build_index.unificar_variantes).",
           "_veredito": "UOL Notícias: Falso"
         },
         {

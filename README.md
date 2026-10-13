@@ -32,7 +32,8 @@ O projeto utiliza **LangGraph** para orquestrar 5 agentes em um grafo de estados
 ```text
 grupo1_ResIA/
 ├── app/
-│   └── app.py                  # Interface gráfica web (Streamlit)
+│   ├── app.py                  # Interface gráfica web (Streamlit)
+│   └── sala/                   # Sala dos agentes: animação pixel art da análise (st.components.v2)
 ├── data/
 │   ├── corpus/
 │   │   └── seed_db.py          # Script de inserção no banco de dados vetorial

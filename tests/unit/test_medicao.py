@@ -68,10 +68,10 @@ def test_duracoes_ignoram_predecessor_ausente():
 def test_avisa_cada_no_que_termina():
     vistos = []
 
-    executar_falso(ao_terminar_no=lambda no, segundos: vistos.append((no, segundos)))
+    executar_falso(ao_terminar_no=lambda no, segundos, avisos: vistos.append((no, segundos, avisos)))
 
-    assert vistos == [("ingestor", 1), ("agente_evidencias", 3), ("agente_texto", 9),
-                      ("agente_socratico", 12), ("agente_argumento", 14), ("sintetizador", 15)]
+    assert vistos == [("ingestor", 1, ["ingestor: x"]), ("agente_evidencias", 3, []), ("agente_texto", 9, ["texto: z"]),
+                      ("agente_socratico", 12, ["socrático: y"]), ("agente_argumento", 14, []), ("sintetizador", 15, [])]
 
 
 def test_span_raiz_analise_com_atributos(spans, monkeypatch):

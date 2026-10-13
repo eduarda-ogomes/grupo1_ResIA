@@ -103,10 +103,11 @@ Defina as variáveis antes de subir o Streamlit (ex.: `GRAFO_TIMEOUT_RAMO=400 st
 
 O nome do modelo no LM Studio vem de `LLM_MODEL` (padrão `qwen2.5-7b`). Use o identificador que aparece em `curl http://localhost:1234/v1/models`, por exemplo `LLM_MODEL=qwen/qwen2.5-7b-instruct streamlit run app/app.py`; com um nome desconhecido, o LM Studio recusa a chamada e os agentes de LLM avisam "falha ao chamar o modelo".
 
-Duas variáveis opcionais mexem na velocidade (medições e recomendação em `docs/agents/desempenho.md`):
+Uma variável opcional mexe na velocidade (medições e recomendação em `docs/agents/desempenho.md`):
 
 - `TEXTO_PARALELISMO` (padrão `2`): quantos lotes o Agente de Texto manda ao LM Studio ao mesmo tempo. Valor inválido ou menor que 1 vale 2. Para ganhar, o modelo precisa estar carregado com `--parallel` maior ou igual ao valor (no LM Studio, "Max Concurrent Predictions").
-- `LLM_DRAFT_MODEL` (padrão vazio): quando definida, toda chamada leva `draft_model=<nome>` no corpo, para decodificação especulativa. No LM Studio testado, a requisição é recusada (a decodificação especulativa só vale se configurada ao carregar o modelo): deixe a variável vazia e configure o rascunho ao carregar o modelo (veja o documento de desempenho).
+
+A decodificação especulativa (modelo rascunho) só funciona se configurada ao carregar o modelo no LM Studio, e não trouxe ganho medido no pipeline (veja o documento de desempenho).
 
 Na primeira execução, o Agente de Evidências baixa e carrega o BGE-M3 e o mDeBERTa, o que pode passar do limite e gerar `evidencias: timeout`. O carregamento continua em segundo plano (uma única vez, mesmo que outra análise comece no meio): espere um ou dois minutos antes de analisar de novo. Na demo, faça uma análise de aquecimento antes de apresentar.
 

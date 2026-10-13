@@ -39,16 +39,16 @@ O tempo era dominado pelos tokens gerados, e o LM Studio local dá ~19 tokens/s;
 - **Novo grafo:** Ingestor, depois Evidências e Texto em paralelo; depois do Texto, `agente_argumento` e Socrático em paralelo (o Socrático recebe um resumo da notícia); o Sintetizador espera Evidências, Argumento e Socrático.
 - **Correções de robustez medidas junto:** vocabulário de nomes carrega uma só vez com threads em paralelo; o Argumento tira a cerca de JSON e trata resposta ilegível com retry e aviso.
 
-## Decodificação especulativa (`LLM_DRAFT_MODEL`)
+## Decodificação especulativa
 
-- O LM Studio recusa `draft_model` na requisição: `Engine protocol speculativeDecoding capability gap: Engine protocol speculative decoding must be configured at load time, not prediction time.` Então `LLM_DRAFT_MODEL` sozinha não funciona nesta versão do LM Studio.
-- Para medir, o rascunho foi configurado ao carregar o modelo (`lms load qwen/qwen2.5-vl-7b --identifier qwen-vl-7b-draft --speculative-draft-simple --speculative-draft-model qwen2.5-0.5b-instruct -c 8192 --parallel 4`) e `LLM_MODEL=qwen-vl-7b-draft` foi usado, sem `LLM_DRAFT_MODEL`. O LM Studio aceitou o par (vocabulário compatível, ambos GGUF) e devolveu `draft_model` na resposta.
+- O LM Studio recusa `draft_model` na requisição: `Engine protocol speculativeDecoding capability gap: Engine protocol speculative decoding must be configured at load time, not prediction time.` Por isso a variável `LLM_DRAFT_MODEL`, que mandava `draft_model` em cada chamada, foi removida do código: com ela definida, toda chamada ao LLM falhava.
+- Para medir, o rascunho foi configurado ao carregar o modelo (`lms load qwen/qwen2.5-vl-7b --identifier qwen-vl-7b-draft --speculative-draft-simple --speculative-draft-model qwen2.5-0.5b-instruct -c 8192 --parallel 4`) e `LLM_MODEL=qwen-vl-7b-draft` foi usado. O LM Studio aceitou o par (vocabulário compatível, ambos GGUF) e devolveu `draft_model` na resposta.
 - Resultado: **sem ganho no total** (mamao_dengue +3,5 s, carrefour_osasco +0,8 s, noticia_longa +14,5 s sobre o final). O Agente de Texto, que roda sozinho no LM Studio, ficou mais rápido (-2,5 s, -3,8 s) em duas entradas e mais lento na longa (+10 s); o Argumento e o Socrático, que rodam ao mesmo tempo, ficaram mais lentos (ex.: Socrático 7,6 s para 14,7 s). Com chamadas concorrentes, o rascunho disputa a mesma memória e o ganho some.
 - Ressalvas: n=2; a medição com rascunho usou uma segunda instância do modelo carregada ao lado da primeira (24 GB de RAM), o que pode ter pesado. Os testes de integração passam igual com o rascunho (4 passed, 2 skipped), como esperado: o resultado da geração gulosa não muda.
 
 ## Recomendação para quem roda localmente
 
-- **`LLM_DRAFT_MODEL`: deixe vazia.** Não ajudou o pipeline, que roda chamadas em paralelo, e exige configuração no carregamento do modelo. Se quiser testar na sua máquina, carregue o modelo com o rascunho (comando acima) e meça com `eval/medir_latencia.py`.
+- **Modelo rascunho: não use.** Não ajudou o pipeline, que roda chamadas em paralelo, e só funciona configurado no carregamento do modelo (a variável `LLM_DRAFT_MODEL` foi removida). Se quiser testar na sua máquina, carregue o modelo com o rascunho (comando acima), aponte `LLM_MODEL` para o identificador dele e meça com `eval/medir_latencia.py`.
 - **`TEXTO_PARALELISMO`: mantenha o padrão (2).** Todas as medições "final" e "rascunho" usaram 2. Não foi medido outro valor; valores maiores só ajudam se o LM Studio estiver com previsões em paralelo suficientes (`--parallel`), e a geração concorrente deixa cada chamada mais lenta, então 2 é o ponto de partida seguro.
 
 ## O que ainda domina

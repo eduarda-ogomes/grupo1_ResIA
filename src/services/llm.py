@@ -1,10 +1,7 @@
 """Clientes do LLM local (LM Studio, API compatível com OpenAI).
 
-Variáveis de ambiente:
+Variável de ambiente:
 - LLM_MODEL: nome do modelo no LM Studio (lido ao importar).
-- LLM_DRAFT_MODEL: modelo rascunho opcional para decodificação especulativa. Lido a cada
-  criação de cliente; quando definido, toda requisição leva `draft_model=<nome>` no corpo.
-  Vazio ou ausente: nada extra é enviado.
 """
 import os
 
@@ -27,16 +24,8 @@ BASE_URL = "http://localhost:1234/v1"
 TIMEOUT_S = 120
 
 
-def modelo_rascunho() -> str | None:
-    """Modelo rascunho da decodificação especulativa (LLM_DRAFT_MODEL), lido na hora da
-    chamada. Vazio ou só espaços vale como não definido."""
-    return os.getenv("LLM_DRAFT_MODEL", "").strip() or None
-
-
 def _cliente(temperatura: float, max_tokens: int) -> ChatOpenAI:
-    """Cliente com teto de tokens gerados; se houver modelo rascunho, envia `draft_model`
-    no corpo de cada requisição (também depois de `.bind(...)`, pois é campo do construtor)."""
-    rascunho = modelo_rascunho()
+    """Cliente com teto de tokens gerados."""
     return ChatOpenAI(
         base_url=BASE_URL,
         api_key="lm-studio",
@@ -45,7 +34,6 @@ def _cliente(temperatura: float, max_tokens: int) -> ChatOpenAI:
         max_tokens=max_tokens,
         timeout=TIMEOUT_S,
         max_retries=0,
-        extra_body={"draft_model": rascunho} if rascunho else None,
     )
 
 

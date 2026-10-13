@@ -70,7 +70,7 @@ def montar_mensagem_usuario(state: PipelineState, marcadores: list[TextMarker]) 
 
 
 def montar_mensagens(state: PipelineState, marcadores: list[TextMarker], problema: str | None = None) -> list[tuple[str, str]]:
-    """`problema` é a frase pronta de `efeitos_validos` ("O efeito do marcador 1 foi rejeitado. ..."), sempre no fim."""
+    """`problema` é a frase pronta de `_frase_do_problema` ("O efeito do marcador 1 foi rejeitado. ..."), sempre no fim."""
     usuario = montar_mensagem_usuario(state, marcadores)
     if problema:
         usuario += f"\n\nResponda de novo, só com o JSON, com um efeito para cada marcador.\n{problema}"
@@ -134,16 +134,6 @@ def avaliar_efeitos(resposta: RespostaArgumento, n_marcadores: int, frases: list
 
 def _frase_do_problema(marcador: int, problema: str) -> str:
     return f"O efeito do marcador {marcador} foi rejeitado. {problema}"
-
-
-def efeitos_validos(resposta: RespostaArgumento, n_marcadores: int, frases: list[str]) -> tuple[dict[int, str], str | None]:
-    """Os efeitos aprovados e o primeiro problema, já na frase do retry, ou None se nada foi reprovado.
-
-    O problema vem como "O efeito do marcador {i} foi rejeitado. {problema}", com {i} a partir de 1.
-    """
-    aprovados, reprovados = avaliar_efeitos(resposta, n_marcadores, frases)
-    primeiro = next(iter(reprovados.items()), None)
-    return aprovados, _frase_do_problema(*primeiro) if primeiro else None
 
 
 def remover_cercas(bruto: str) -> str:

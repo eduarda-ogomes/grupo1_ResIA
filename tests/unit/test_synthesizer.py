@@ -526,23 +526,6 @@ def test_rotulos_fixos_e_trecho_literal_da_noticia_passam_sem_retry(monkeypatch)
     assert "warnings" not in argumento and "warnings" not in resultado
 
 
-def test_efeitos_validos_devolve_os_aprovados_e_o_primeiro_problema():
-    frases = ["URGENTE: os médicos estão escondendo a cura natural da dengue!"]
-    r = synthesizer.RespostaArgumento(efeitos=[
-        synthesizer.Efeito(marcador=1, efeito="pede pressa."),
-        synthesizer.Efeito(marcador=2, efeito="cita a OMS."),
-        synthesizer.Efeito(marcador=3, efeito="é falsa."),
-        synthesizer.Efeito(marcador=1, efeito="repetido."),
-        synthesizer.Efeito(marcador=9, efeito="fora do intervalo."),
-    ])
-
-    validos, problema = synthesizer.efeitos_validos(r, 3, frases)
-
-    assert validos == {1: "pede pressa."}
-    assert problema == "O efeito do marcador 2 foi rejeitado. Seu texto mencionou 'oms', que não aparece na notícia."
-    assert synthesizer.efeitos_validos(synthesizer.RespostaArgumento(efeitos=[]), 3, frases) == ({}, None)
-
-
 def test_problema_da_sintese_confere_citacao_e_termo_so_depois_de_vazio_veredito_e_link():
     frases = ["URGENTE: os médicos estão escondendo a cura natural da dengue!"]
 

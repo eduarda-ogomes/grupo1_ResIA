@@ -199,6 +199,7 @@ def texto_node(state: PipelineState) -> dict:
         return {"text_report": None}
 
     import concurrent.futures
+    import contextvars
 
     statements, markers, sem_classificacao, avisos = [], [], [], []
     lotes = dividir_em_lotes(state.segments)
@@ -206,7 +207,7 @@ def texto_node(state: PipelineState) -> dict:
     with concurrent.futures.ThreadPoolExecutor(max_workers=paralelismo()) as executor:
         futuros = []
         for contexto, alvo in lotes:
-            futuros.append(executor.submit(analisar_lote, contexto, alvo))
+            futuros.append(executor.submit(contextvars.copy_context().run, analisar_lote, contexto, alvo))
             
         modelo_caiu = False
         for i, (futuro, (contexto, alvo)) in enumerate(zip(futuros, lotes)):

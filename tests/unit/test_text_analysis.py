@@ -456,3 +456,19 @@ def test_explicacoes_dos_exemplos_tem_no_maximo_10_palavras():
 
 def test_prompt_limita_a_explicacao_a_10_palavras():
     assert "- `explanation` tem no máximo 10 palavras e descreve um padrão para o leitor observar, nunca uma acusação." in carregar_prompt_sistema()
+
+
+def test_texto_node_propaga_contextvars_para_os_workers(monkeypatch):
+    import contextvars
+    var = contextvars.ContextVar("rastro_teste", default=None)
+    vistos = []
+
+    def modelo(mensagens):
+        vistos.append(var.get())
+        return json.dumps(RELATORIO_MAMAO)
+
+    monkeypatch.setattr(text_analysis, "chamar_modelo", modelo)
+    var.set("rastro-ok")
+    texto_node(estado_mamao())
+
+    assert vistos and all(v == "rastro-ok" for v in vistos)

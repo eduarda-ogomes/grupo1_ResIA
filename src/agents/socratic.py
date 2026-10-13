@@ -218,7 +218,10 @@ def socratic_node(state: PipelineState) -> dict:
         return {"socratic_questions": []}
 
     try:
-        perguntas = analisar_texto(resumo_para_socratico(state), state.clean_text)
+        titulo = (state.title or "").strip()
+        # O modelo lê o título no resumo, então o G4 também o aceita como contexto.
+        contexto = state.clean_text if not titulo or titulo == TITULO_TEXTO_COLADO else f"{titulo}\n{state.clean_text}"
+        perguntas = analisar_texto(resumo_para_socratico(state), contexto)
         return {"socratic_questions": perguntas}
     except SaidaInvalida:
         return {"socratic_questions": None, "warnings": [WARN_SAIDA_INVALIDA]}

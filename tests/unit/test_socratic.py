@@ -370,3 +370,16 @@ def test_g4_valida_contra_a_noticia_inteira(monkeypatch):
     resultado = agent.socratic_node(estado)
     assert resultado["socratic_questions"] is not None
     assert len(resultado["socratic_questions"]) == 2
+
+
+def test_g4_aceita_entidade_que_so_aparece_no_titulo(monkeypatch):
+    saida = json.dumps({"socratic_questions": [
+        "O que a Fiocruz diz sobre o chá da folha de mamão?",
+        "Quais estudos sustentam a cura da dengue em três dias?",
+    ]})
+    monkeypatch.setattr(agent, "chamar_modelo", lambda msgs: saida)
+
+    state = PipelineState(**initial_state("t", clean_text=MAMAO, title="Fiocruz contesta chá de mamão"))
+    resultado = agent.socratic_node(state)
+
+    assert resultado["socratic_questions"][0].startswith("O que a Fiocruz")

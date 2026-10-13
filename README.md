@@ -97,7 +97,7 @@ O grafo (`src/graph.py`) roda o Ingestor, depois Evidências e Texto em paralelo
 | --- | --- | --- |
 | Ingestor | 60 s | `GRAFO_TIMEOUT_INGESTOR` |
 | Evidências, Texto, Socrático (cada um) | 240 s | `GRAFO_TIMEOUT_RAMO` |
-| Sintetizador | 180 s | `GRAFO_TIMEOUT_SINTETIZADOR` |
+| Sintetizador e `agente_argumento` (cada um) | 180 s | `GRAFO_TIMEOUT_SINTETIZADOR` |
 
 Defina as variáveis antes de subir o Streamlit (ex.: `GRAFO_TIMEOUT_RAMO=400 streamlit run app/app.py`).
 
@@ -111,7 +111,7 @@ A decodificação especulativa (modelo rascunho) só funciona se configurada ao 
 
 Na primeira execução, o Agente de Evidências baixa e carrega o BGE-M3 e o mDeBERTa, o que pode passar do limite e gerar `evidencias: timeout`. O carregamento continua em segundo plano (uma única vez, mesmo que outra análise comece no meio): espere um ou dois minutos antes de analisar de novo. Na demo, faça uma análise de aquecimento antes de apresentar.
 
-Um nó que estoura o tempo não é interrompido: ele segue rodando em segundo plano até terminar (o Agente de Texto, por exemplo, continua chamando o LM Studio para os lotes restantes), o que pode deixar a análise seguinte mais lenta. Se o Sintetizador estourar o tempo, o dossiê sai assim mesmo, montado sem o modelo.
+Um nó que estoura o tempo não é interrompido: ele segue rodando em segundo plano até terminar (o Agente de Texto, por exemplo, continua chamando o LM Studio para os lotes restantes), o que pode deixar a análise seguinte mais lenta. Se o `agente_argumento` estourar o tempo, "Como o texto argumenta" vem do fallback em código (rótulo e trecho literal, sem efeito); o Sintetizador em si não usa LLM.
 
 Para rodar o grafo inteiro com os modelos reais e ver o tempo de cada nó (fora do CI):
 ```bash
@@ -134,7 +134,7 @@ PHOENIX_TRACING=1 LLM_MODEL=<id> streamlit run app/app.py
 No projeto `grupo1-resia` do Phoenix, cada análise aparece como um trace com:
 
 - `analise` (raiz): tipo de entrada, número de frases, avisos e tempo total;
-- um span por nó (`no.ingestor`, `no.evidencias`, `no.texto`, `no.socratico`, `no.sintetizador`) com o resultado (`ok`, `timeout` ou `erro`) e os avisos;
+- um span por nó (`no.ingestor`, `no.evidencias`, `no.texto`, `no.argumento`, `no.socratico`, `no.sintetizador`) com o resultado (`ok`, `timeout` ou `erro`) e os avisos;
 - as chamadas ao LLM (`ChatOpenAI`) com prompt, resposta, tokens e tempo, dentro do nó de cada agente;
 - as etapas do Ingestor (`ingestor.baixar`, `ingestor.segmentar`) e do Evidências (`evidencias.busca`, `evidencias.termos_chave`, `evidencias.nli`) com as contagens.
 

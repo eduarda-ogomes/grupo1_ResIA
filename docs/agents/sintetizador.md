@@ -23,7 +23,7 @@ Seis seções, nesta ordem (pirâmide invertida: o tamanho do problema primeiro,
 | --- | --- | --- | --- |
 | 1 | `## Resumo` | Código, só contagens | `src/agents/dossie.py` |
 | 2 | `## O que as checagens dizem` | Código, com legenda e referências numeradas | `src/agents/dossie.py` |
-| 3 | `## Como o texto argumenta` | `agente_argumento` (`qwen2.5-7b`), com fallback em código (só o `$` é escapado, depois dos guardrails); o `sintetizador` põe o título e as linhas de `state.argument` | `src/agents/synthesizer.py` |
+| 3 | `## Como o texto argumenta` | `agente_argumento` (`qwen2.5-7b`), com fallback em código (o efeito passa por `escapar_markdown` e o trecho por `texto_seguro`, depois dos guardrails); o `sintetizador` põe o título e as linhas de `state.argument` | `src/agents/synthesizer.py` |
 | 4 | `## Perguntas para pensar antes de decidir` | Código (copia o Socrático, com Markdown escapado) | `src/agents/dossie.py` |
 | 5 | `## Limites desta análise` | Código, sempre presente | `src/agents/dossie.py` |
 | 6 | `## Fontes` | Código; só aparece quando há evidência | `src/agents/dossie.py` |

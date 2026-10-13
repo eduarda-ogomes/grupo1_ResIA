@@ -326,7 +326,8 @@ Na seção de checagens, cada frase com evidência vira uma linha com o resumo p
 | Sem marcadores e sem frases de valor | Não | "Nenhum padrão de viés ou falácia foi apontado neste texto." | — |
 | `socratic_questions is None` | Sim | "As perguntas não puderam ser geradas nesta análise." | — |
 | LM Studio fora do ar ou timeout | Sim, sem retry | Fallback | `"sintetizador: falha ao chamar o modelo (o LM Studio está rodando?)"` |
-| Guardrails reprovam duas vezes | Sim, 1 retry | Fallback | `"sintetizador: síntese livre reprovada nos guardrails após 1 retry"` |
+| Efeito reprovado nos guardrails duas vezes | Sim, 1 retry | Marcador sem efeito | `"sintetizador: efeito do argumento reprovado nos guardrails após 1 retry"` |
+| Saída do modelo inválida duas vezes | Sim, 1 retry | Marcador sem efeito | `"sintetizador: saída inválida após 1 retry"` |
 | URL fora das evidências no dossiê final | — | Linha removida | `"sintetizador: citação removida (URL fora das evidências)"` |
 
 O **fallback** lista um bullet por marcador com rótulo e trecho literal (`- Urgência: "URGENTE"`) e uma linha "Juízo de valor: … é uma opinião e não foi checada" por frase de valor. Não copia o `explanation` do Agente de Texto, que também é texto de LLM e furaria o filtro de veredito.
@@ -511,7 +512,7 @@ Por padrão, a GPU enxerga cerca de 16–18GB dos 24GB; o planejamento seguro é
 
 Fonte das medições: [pickuma, 2026](https://dev.to/pickuma/running-local-llms-on-m4-mac-with-24gb-ram-what-actually-fits-7jf). Um prompt de 4.000 tokens num 14B leva \~12 s só para ser processado, então contexto longo custa caro: o RAG deve enviar só os trechos reranqueados, nunca documentos inteiros.
 
-**Estimativa de latência do pipeline:** 3 chamadas de LLM por entrada. Texto e Socrático continuam paralelos no grafo, mas numa máquina só disputam a mesma banda de memória, então o ganho real de paralelismo é pequeno. A investigação deve levar de 1 a 2 minutos com o Sintetizador via API. A meta do MVP continua abaixo de 3 minutos.
+**Estimativa de latência do pipeline:** 3 chamadas de LLM por entrada. Argumento e Socrático rodam em paralelo depois do Texto no grafo, mas numa máquina só disputam a mesma banda de memória, então o ganho real de paralelismo é pequeno. A investigação deve levar de 1 a 2 minutos com o Sintetizador via API. A meta do MVP continua abaixo de 3 minutos.
 
 ### 5.2 Execução em máquina única
 

@@ -62,6 +62,7 @@ def construir_grafo(
     builder.add_edge(START, "ingestor")
     builder.add_edge("ingestor", "agente_evidencias")
     builder.add_edge("ingestor", "agente_texto")
+    # Superstep: argumento e socrático só começam quando evidências E texto terminam (ver docs/agents/desempenho.md).
     builder.add_edge("agente_texto", "agente_argumento")
     builder.add_edge("agente_texto", "agente_socratico")
     # Lista de origens: o sintetizador espera as três e roda uma vez só

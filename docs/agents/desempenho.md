@@ -54,3 +54,7 @@ O tempo era dominado pelos tokens gerados, e o LM Studio local dá ~19 tokens/s;
 ## O que ainda domina
 
 O Agente de Texto em notícia longa: 112,2 s de 134,1 s (84%) no `noticia_longa`, no caminho crítico, sozinho. Próximas alavancas, em ordem: reduzir tokens gerados por lote (o JSON de saída), lotes menores ou maiores conforme o tamanho da notícia, e um modelo mais rápido ou quantização menor para esse agente. A medição de `TEXTO_PARALELISMO` entre 1 e 4 na notícia longa ainda está por fazer.
+
+## Barreira do superstep
+
+No LangGraph, `agente_argumento` e `agente_socratico` têm só o `agente_texto` como predecessor no grafo, mas começam apenas quando **Evidências e Texto** terminam, porque os nós de uma superstep só passam à seguinte juntos. Numa partida a frio (BGE-M3 e mDeBERTa carregando no Evidências), os dois esperam o carregamento e os tempos medidos deles ficam inflados; a "sala dos agentes" os mostra trabalhando enquanto aguardam. Ao ler as medições, desconte essa espera. O comentário em `src/graph.py` aponta para esta seção.

@@ -12,8 +12,17 @@ def test_clientes_tem_timeout_e_nao_repetem_a_chamada(nome):
     assert cliente.max_retries == 0
 
 
-def test_temperaturas():
-    assert (servicos.llm_sintetizador.temperature, servicos.llm_socratico.temperature, servicos.llm_texto.temperature) == (0, 0.7, 0)
+def test_valores_dos_clientes():
+    # Temperatura e teto de tokens por agente (spec de desempenho): o teto evita geração longa demais
+    assert (servicos.llm_texto.temperature, servicos.llm_texto.max_tokens) == (0, 1000)
+    assert (servicos.llm_sintetizador.temperature, servicos.llm_sintetizador.max_tokens) == (0, 400)
+    assert (servicos.llm_socratico.temperature, servicos.llm_socratico.max_tokens) == (0.2, 300)
+
+
+def test_cliente_nao_envia_draft_model():
+    # O LM Studio recusa `draft_model` por requisição: o rascunho só vale configurado ao carregar o modelo
+    assert not servicos._cliente(0, 100).extra_body
+    assert not hasattr(servicos, "modelo_rascunho")
 
 
 def test_nome_do_modelo_vem_de_llm_model(monkeypatch):

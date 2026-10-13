@@ -1,0 +1,128 @@
+{
+  "data": "2026-10-09",
+  "modelo": "qwen-vl-7b-draft",
+  "maquina": "macOS-27.0-arm64-arm-64bit-Mach-O",
+  "resumo": {
+    "total": {
+      "p50": 36.45292091599913,
+      "p95": 153.89353112499884,
+      "n": 6
+    },
+    "por_no": {
+      "ingestor": {
+        "p50": 0.012338250002358109,
+        "p95": 0.08083741600057692,
+        "n": 6
+      },
+      "agente_evidencias": {
+        "p50": 0.39100254099685117,
+        "p95": 5.926303541997186,
+        "n": 6
+      },
+      "agente_texto": {
+        "p50": 21.19266120800239,
+        "p95": 124.93219520899947,
+        "n": 6
+      },
+      "agente_argumento": {
+        "p50": 15.248318833000667,
+        "p95": 28.879928665999614,
+        "n": 6
+      },
+      "agente_socratico": {
+        "p50": 15.249172249998082,
+        "p95": 22.000800750000053,
+        "n": 6
+      },
+      "sintetizador": {
+        "p50": 0.0004957080018357374,
+        "p95": 0.0007618330018885899,
+        "n": 6
+      }
+    },
+    "avisos": {
+      "execucoes_com_aviso": 0,
+      "por_prefixo": {}
+    }
+  },
+  "execucoes": [
+    {
+      "entrada": "mamao_dengue",
+      "total": 29.502212167000835,
+      "duracao_por_no": {
+        "ingestor": 0.026228709000861272,
+        "agente_evidencias": 0.39100254099685117,
+        "agente_texto": 15.029061249999359,
+        "agente_argumento": 12.194339957997727,
+        "agente_socratico": 14.446373624999978,
+        "sintetizador": 0.0005485830006364267
+      },
+      "avisos": []
+    },
+    {
+      "entrada": "mamao_dengue",
+      "total": 30.093449625001085,
+      "duracao_por_no": {
+        "ingestor": 0.010862500002986053,
+        "agente_evidencias": 0.384459541997785,
+        "agente_texto": 15.177408999999898,
+        "agente_argumento": 12.219842708000215,
+        "agente_socratico": 14.904698667000048,
+        "sintetizador": 0.00047945799815352075
+      },
+      "avisos": []
+    },
+    {
+      "entrada": "carrefour_osasco",
+      "total": 38.40782837500228,
+      "duracao_por_no": {
+        "ingestor": 0.012338250002358109,
+        "agente_evidencias": 0.885316124997189,
+        "agente_texto": 21.330463083999348,
+        "agente_argumento": 17.056301041000552,
+        "agente_socratico": 17.064542707998044,
+        "sintetizador": 0.00048433300253236666
+      },
+      "avisos": []
+    },
+    {
+      "entrada": "carrefour_osasco",
+      "total": 36.45292091599913,
+      "duracao_por_no": {
+        "ingestor": 0.010591749996819999,
+        "agente_evidencias": 0.3530307910004922,
+        "agente_texto": 21.19266120800239,
+        "agente_argumento": 15.248318833000667,
+        "agente_socratico": 15.249172249998082,
+        "sintetizador": 0.0004957080018357374
+      },
+      "avisos": []
+    },
+    {
+      "entrada": "noticia_longa",
+      "total": 153.89353112499884,
+      "duracao_por_no": {
+        "ingestor": 0.08083741600057692,
+        "agente_evidencias": 5.926303541997186,
+        "agente_texto": 124.93219520899947,
+        "agente_argumento": 28.879928665999614,
+        "agente_socratico": 22.000800750000053,
+        "sintetizador": 0.0005698339991795365
+      },
+      "avisos": []
+    },
+    {
+      "entrada": "noticia_longa",
+      "total": 143.38940529200045,
+      "duracao_por_no": {
+        "ingestor": 0.06819941700086929,
+        "agente_evidencias": 5.860827374999644,
+        "agente_texto": 119.4139237499985,
+        "agente_argumento": 23.906520291999186,
+        "agente_socratico": 17.97197933300049,
+        "sintetizador": 0.0007618330018885899
+      },
+      "avisos": []
+    }
+  ]
+}

@@ -35,16 +35,17 @@ flowchart LR
     S((início)) --> I[Ingestor]
     I --> E[Evidências]
     I --> T[Texto]
-    I --> Q[Socrático]
-    E --> Y[Sintetizador]
-    T --> Y
+    T --> A[agente_argumento]
+    T --> Q[Socrático]
+    E --> Y[Sintetizador<br/>só código]
+    A --> Y
     Q --> Y
     Y --> F((fim))
 ```
 
 - **Lê** só `state.segments`, a lista de frases (`Segment`: `id` e `text`) que o Ingestor produz.
 - **Escreve** `state.evidence` e, se falhar, uma mensagem em `state.warnings`. Não lê nem escreve nenhum outro campo.
-- Roda **em paralelo** com os agentes Texto e Socrático. O Sintetizador junta os três ramos no dossiê.
+- Roda **em paralelo** com o Agente de Texto. O `agente_argumento` e o Socrático dependem só do Texto, mas o LangGraph os inicia na superstep seguinte, depois que Evidências **e** Texto terminam (veja `docs/agents/desempenho.md`). O Sintetizador junta Evidências, Argumento e Socrático no dossiê.
 - **Sem LLM**, de propósito: o resultado é reproduzível, roda localmente e não inventa texto. Tudo o que o agente devolve foi escrito pela agência (título e veredito) ou é um rótulo fixo (stance).
 
 ## Contrato (entrada e saída)

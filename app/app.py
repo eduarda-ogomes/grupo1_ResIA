@@ -12,7 +12,7 @@ import streamlit as st
 import streamlit.components.v1 as components
 from src import medicao
 from src.agents.dossie import tabela_frases
-from src.graph import RAMOS, sistema_multiagente
+from src.graph import ORDEM_NOS, sistema_multiagente
 from src.observabilidade import configurar_tracing
 from src.progresso import Progresso
 from src.state import PipelineState, initial_state
@@ -578,7 +578,7 @@ def render_analisar():
                     st.table(tabela_frases(validated))
 
             with st.expander("Detalhes técnicos"):
-                nos = [n for n in ("ingestor", *RAMOS, "sintetizador") if n in execucao.duracao_por_no]
+                nos = [n for n in ORDEM_NOS if n in execucao.duracao_por_no]
                 st.table({
                     "nó": nos + ["total"],
                     "segundos": [round(execucao.duracao_por_no[n], 1) for n in nos] + [round(execucao.total, 1)],

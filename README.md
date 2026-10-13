@@ -91,21 +91,27 @@ pytest
 
 ### 5. Orquestração: timeouts e avisos
 
-O grafo (`src/graph.py`) roda o Ingestor, depois Evidências, Texto e Socrático em paralelo, e por fim o Sintetizador. Cada nó tem um limite de tempo (`src/protecao.py`). Se um nó estoura o tempo ou quebra, o grafo segue sem ele, a interface mostra o aviso (por exemplo, `socratico: timeout`) e o dossiê sai assim mesmo.
+O grafo (`src/graph.py`) roda o Ingestor, depois Evidências e Texto em paralelo; depois do Texto, o `agente_argumento` e o Socrático em paralelo; e por fim o Sintetizador (só código), que espera Evidências, Argumento e Socrático. Cada nó tem um limite de tempo (`src/protecao.py`). Se um nó estoura o tempo ou quebra, o grafo segue sem ele, a interface mostra o aviso (por exemplo, `socratico: timeout`) e o dossiê sai assim mesmo.
 
 | Nó | Padrão | Variável de ambiente |
 | --- | --- | --- |
 | Ingestor | 60 s | `GRAFO_TIMEOUT_INGESTOR` |
 | Evidências, Texto, Socrático (cada um) | 240 s | `GRAFO_TIMEOUT_RAMO` |
-| Sintetizador | 180 s | `GRAFO_TIMEOUT_SINTETIZADOR` |
+| Sintetizador e `agente_argumento` (cada um) | 180 s | `GRAFO_TIMEOUT_SINTETIZADOR` |
 
 Defina as variáveis antes de subir o Streamlit (ex.: `GRAFO_TIMEOUT_RAMO=400 streamlit run app/app.py`).
 
 O nome do modelo no LM Studio vem de `LLM_MODEL` (padrão `qwen2.5-7b`). Use o identificador que aparece em `curl http://localhost:1234/v1/models`, por exemplo `LLM_MODEL=qwen/qwen2.5-7b-instruct streamlit run app/app.py`; com um nome desconhecido, o LM Studio recusa a chamada e os agentes de LLM avisam "falha ao chamar o modelo".
 
+Uma variável opcional mexe na velocidade (medições e recomendação em `docs/agents/desempenho.md`):
+
+- `TEXTO_PARALELISMO` (padrão `2`): quantos lotes o Agente de Texto manda ao LM Studio ao mesmo tempo. Valor inválido ou menor que 1 vale 2. Para ganhar, o modelo precisa estar carregado com `--parallel` maior ou igual ao valor (no LM Studio, "Max Concurrent Predictions").
+
+A decodificação especulativa (modelo rascunho) só funciona se configurada ao carregar o modelo no LM Studio, e não trouxe ganho medido no pipeline (veja o documento de desempenho).
+
 Na primeira execução, o Agente de Evidências baixa e carrega o BGE-M3 e o mDeBERTa, o que pode passar do limite e gerar `evidencias: timeout`. O carregamento continua em segundo plano (uma única vez, mesmo que outra análise comece no meio): espere um ou dois minutos antes de analisar de novo. Na demo, faça uma análise de aquecimento antes de apresentar.
 
-Um nó que estoura o tempo não é interrompido: ele segue rodando em segundo plano até terminar (o Agente de Texto, por exemplo, continua chamando o LM Studio para os lotes restantes), o que pode deixar a análise seguinte mais lenta. Se o Sintetizador estourar o tempo, o dossiê sai assim mesmo, montado sem o modelo.
+Um nó que estoura o tempo não é interrompido: ele segue rodando em segundo plano até terminar (o Agente de Texto, por exemplo, continua chamando o LM Studio para os lotes restantes), o que pode deixar a análise seguinte mais lenta. Se o `agente_argumento` estourar o tempo, "Como o texto argumenta" vem do fallback em código (rótulo e trecho literal, sem efeito); o Sintetizador em si não usa LLM.
 
 Para rodar o grafo inteiro com os modelos reais e ver o tempo de cada nó (fora do CI):
 ```bash
@@ -128,7 +134,7 @@ PHOENIX_TRACING=1 LLM_MODEL=<id> streamlit run app/app.py
 No projeto `grupo1-resia` do Phoenix, cada análise aparece como um trace com:
 
 - `analise` (raiz): tipo de entrada, número de frases, avisos e tempo total;
-- um span por nó (`no.ingestor`, `no.evidencias`, `no.texto`, `no.socratico`, `no.sintetizador`) com o resultado (`ok`, `timeout` ou `erro`) e os avisos;
+- um span por nó (`no.ingestor`, `no.evidencias`, `no.texto`, `no.argumento`, `no.socratico`, `no.sintetizador`) com o resultado (`ok`, `timeout` ou `erro`) e os avisos;
 - as chamadas ao LLM (`ChatOpenAI`) com prompt, resposta, tokens e tempo, dentro do nó de cada agente;
 - as etapas do Ingestor (`ingestor.baixar`, `ingestor.segmentar`) e do Evidências (`evidencias.busca`, `evidencias.termos_chave`, `evidencias.nli`) com as contagens.
 

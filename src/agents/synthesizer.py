@@ -1,37 +1,53 @@
-"""Agente Sintetizador (R5): junta os três ramos num dossiê neutro e citável, sem veredito.
+"""Agente Sintetizador (R5): junta os ramos num dossiê neutro e citável, sem veredito.
 
 Abordagem híbrida (Manual §4.5.1; design em docs/superpowers/specs/2026-10-01-agente-sintetizador-design.md):
-o código escreve tudo o que é fato (src/agents/dossie.py); o qwen2.5-7b escreve só a seção
-"Como o texto argumenta", com guardrails (src/guardrails/), 1 retry e fallback em código.
+o código escreve tudo o que é fato (src/agents/dossie.py). Na seção "Como o texto argumenta" o código
+escreve o rótulo, o trecho literal e o juízo de valor; o qwen2.5-7b escreve só o efeito de cada marcador,
+em JSON, com guardrails (src/guardrails/), 1 retry e linha sem efeito quando o efeito não passa.
 Ordem das seções: Resumo, Checagens, Argumento, Perguntas, Limites, Fontes
 (docs/superpowers/specs/2026-10-08-dossie-final-design.md).
 
-Contrato: sintetizador_node(state) -> {"dossier": str}, mais "warnings" quando o problema
-é do próprio Sintetizador. Nunca devolve dossier = None.
+Dois nós (docs/superpowers/specs/2026-10-09-desempenho-agentes-design.md):
+- argumento_node(state) -> {"argument": list[str]}: o `agente_argumento`, depois do Agente de Texto,
+  em paralelo com o Socrático; "warnings" só quando o problema é dele.
+- sintetizador_node(state) -> {"dossier": str}: só monta, sem LLM; "warnings" só se a rede de
+  segurança das citações remover algo. Nunca devolve dossier = None.
 """
 from __future__ import annotations
 
 import logging
 from pathlib import Path
 
+from pydantic import BaseModel, ValidationError
+
 from src.agents import dossie
 from src.guardrails.ancoragem import citacoes_nao_literais, termos_fora_do_contexto
 from src.guardrails.citacoes import extrair_urls, neutralizar_urls
 from src.guardrails.veredito import termos_de_veredito
 from src.services.llm import llm_sintetizador
-from src.state import PipelineState
+from src.state import PipelineState, TextMarker
 
 logger = logging.getLogger(__name__)
 
 PROMPTS_DIR = Path(__file__).resolve().parents[1] / "prompts"
 
 WARN_MODELO_INDISPONIVEL = "sintetizador: falha ao chamar o modelo (o LM Studio está rodando?)"
-WARN_GUARDRAILS = "sintetizador: síntese livre reprovada nos guardrails após 1 retry"
+WARN_GUARDRAILS = "sintetizador: efeito do argumento reprovado nos guardrails após 1 retry"
+WARN_SAIDA_INVALIDA = "sintetizador: saída inválida após 1 retry"
 WARN_CITACAO_REMOVIDA = "sintetizador: citação removida (URL fora das evidências)"
 
+# Última linha da mensagem de retry quando a resposta não pôde ser lida
+PROBLEMA_ILEGIVEL = "Sua resposta não era um JSON no formato pedido."
 
-class SinteseReprovada(RuntimeError):
-    """O texto do modelo continuou reprovado nos guardrails depois do retry."""
+
+class Efeito(BaseModel):
+    marcador: int   # posição do marcador na lista enviada, a partir de 1
+    efeito: str     # o que o trecho faz com quem lê, em até 15 palavras
+
+
+class RespostaArgumento(BaseModel):
+    """O JSON que o modelo devolve (`response_format` estrito)."""
+    efeitos: list[Efeito]
 
 
 class ModeloIndisponivel(RuntimeError):
@@ -42,36 +58,32 @@ def carregar_prompt_sistema() -> str:
     return (PROMPTS_DIR / "sintetizador_sistema.md").read_text(encoding="utf-8")
 
 
-def montar_mensagem_usuario(state: PipelineState, ctx: dossie.Contexto) -> str:
-    """Frases e marcadores delimitados como dado (§3.5), sem IDs de frase e sem URLs."""
-    frases = "\n".join(
-        f"- ({ctx.tipo_por_frase.get(s.id, 'sem rótulo')}) {neutralizar_urls(s.text)}" for s in state.segments
-    )
+def montar_mensagem_usuario(state: PipelineState, marcadores: list[TextMarker]) -> str:
+    """Os marcadores numerados, delimitados como dado (§3.5), sem IDs de frase e sem URLs."""
     texto_da_frase = {s.id: neutralizar_urls(s.text) for s in state.segments}
-    marcadores = "\n".join(
-        f'- {dossie.ROTULOS[m.type]} | frase: "{texto_da_frase.get(m.segment_id, "")}" '
+    linhas = "\n".join(
+        f'[{i}] {dossie.ROTULOS[m.type]} | frase: "{texto_da_frase.get(m.segment_id, "")}" '
         f'| trecho: "{neutralizar_urls(m.excerpt)}" | explicação: {neutralizar_urls(m.explanation)}'
-        for m in state.text_report.markers
-    ) or "- (nenhum)"
-    return f"<frases>\n{frases}\n</frases>\n\n<marcadores>\n{marcadores}\n</marcadores>"
+        for i, m in enumerate(marcadores, start=1)
+    )
+    return f"<marcadores>\n{linhas}\n</marcadores>"
 
 
-def montar_mensagens(state: PipelineState, ctx: dossie.Contexto, problema: str | None = None) -> list[tuple[str, str]]:
-    usuario = montar_mensagem_usuario(state, ctx)
+def montar_mensagens(state: PipelineState, marcadores: list[TextMarker], problema: str | None = None) -> list[tuple[str, str]]:
+    """`problema` é a frase pronta de `_frase_do_problema` ("O efeito do marcador 1 foi rejeitado. ..."), sempre no fim."""
+    usuario = montar_mensagem_usuario(state, marcadores)
     if problema:
-        usuario += f"\n\nSua resposta anterior foi rejeitada. {problema} Reescreva só os bullets, sem esse problema."
+        usuario += f"\n\nResponda de novo, só com o JSON, com um efeito para cada marcador.\n{problema}"
     return [("system", carregar_prompt_sistema()), ("user", usuario)]
 
 
 def chamar_modelo(mensagens: list[tuple[str, str]]) -> str:
     """Única função que fala com o LM Studio. Os testes a substituem por um modelo falso."""
-    return llm_sintetizador.invoke(mensagens).content
-
-
-def limpar_resposta(bruto: str) -> str:
-    """Tira títulos que o modelo às vezes acrescenta ("## Como o texto argumenta")."""
-    linhas = [linha for linha in bruto.strip().splitlines() if not linha.lstrip().startswith("#")]
-    return "\n".join(linhas).strip()
+    formato = {
+        "type": "json_schema",
+        "json_schema": {"name": "efeitos_argumento", "strict": True, "schema": RespostaArgumento.model_json_schema()},
+    }
+    return llm_sintetizador.bind(response_format=formato).invoke(mensagens).content
 
 
 def problema_da_sintese(texto: str, frases: list[str]) -> str | None:
@@ -98,74 +110,153 @@ def problema_da_sintese(texto: str, frases: list[str]) -> str | None:
     return None
 
 
-def sintese_livre(state: PipelineState, ctx: dossie.Contexto) -> str:
-    frases = [neutralizar_urls(s.text) for s in state.segments]
-    problema = None
-    for _ in range(2):  # 1 tentativa + 1 retry
-        try:
-            bruto = chamar_modelo(montar_mensagens(state, ctx, problema))
-        except Exception as e:
-            raise ModeloIndisponivel(str(e)) from e
-        texto = limpar_resposta(bruto)
-        problema = problema_da_sintese(texto, frases)
+def avaliar_efeitos(resposta: RespostaArgumento, n_marcadores: int, frases: list[str]) -> tuple[dict[int, str], dict[int, str]]:
+    """(aprovados, reprovados): índice do marcador (a partir de 1) -> efeito aprovado / problema nomeado.
+
+    Índice fora de 1..n_marcadores ou repetido (vale o primeiro) é ignorado: não aprova nem reprova.
+    Só o efeito que chegou aos guardrails (vazio, veredito, link, G3, G4) e caiu conta como reprovado.
+    """
+    aprovados: dict[int, str] = {}
+    reprovados: dict[int, str] = {}
+    vistos: set[int] = set()
+    for e in resposta.efeitos:
+        if not 1 <= e.marcador <= n_marcadores or e.marcador in vistos:
+            continue
+        vistos.add(e.marcador)
+        efeito = e.efeito.strip()
+        problema = problema_da_sintese(efeito, frases)
         if problema is None:
-            return texto
-        logger.warning("Sintetizador: síntese livre rejeitada: %s", problema)
-    raise SinteseReprovada(problema)
+            aprovados[e.marcador] = efeito
+        else:
+            reprovados[e.marcador] = problema
+    return aprovados, reprovados
 
 
-def secao_argumento(state: PipelineState, ctx: dossie.Contexto, usar_modelo: bool = True) -> tuple[list[str], list[str]]:
-    """Linhas da seção "Como o texto argumenta" e os avisos próprios gerados nela."""
-    sem_modelo = dossie.argumento_sem_modelo(state, ctx)
-    if sem_modelo is not None:
-        return [dossie.TITULO_ARGUMENTO, *sem_modelo], []
-    if not usar_modelo:
-        return [dossie.TITULO_ARGUMENTO, *dossie.fallback_argumento(state, ctx)], []
+def _frase_do_problema(marcador: int, problema: str) -> str:
+    return f"O efeito do marcador {marcador} foi rejeitado. {problema}"
+
+
+def remover_cercas(bruto: str) -> str:
+    """Tira a cerca ```json ... ``` que modelos pequenos às vezes colocam em volta do JSON."""
+    texto = bruto.strip()
+    if texto.startswith("```"):
+        texto = texto.split("\n", 1)[1] if "\n" in texto else ""
+        texto = texto.rsplit("```", 1)[0]
+    return texto.strip()
+
+
+def _pedir_efeitos(state: PipelineState, marcadores: list[TextMarker], problema: str | None) -> RespostaArgumento | None:
+    """Uma chamada ao modelo. Falha de chamada vira ModeloIndisponivel; resposta que não é o JSON
+    esperado (mesmo sem a cerca) devolve None."""
     try:
-        # Escapa depois dos guardrails, que conferem o texto como o modelo o escreveu
-        return [dossie.TITULO_ARGUMENTO, dossie.escapar_cifrao(sintese_livre(state, ctx))], []
+        bruto = chamar_modelo(montar_mensagens(state, marcadores, problema))
+    except Exception as e:
+        raise ModeloIndisponivel(str(e)) from e
+    try:
+        return RespostaArgumento.model_validate_json(remover_cercas(bruto))
+    except ValidationError as e:
+        logger.warning("Argumento: resposta fora do formato: %s", e.errors()[:1])
+        return None
+
+
+def _tentar(state: PipelineState, marcadores: list[TextMarker], frases: list[str],
+            problema: str | None) -> tuple[dict[int, str], dict[int, str], bool]:
+    """(aprovados, reprovados, legível) de uma tentativa; ModeloIndisponivel sobe para quem chamou."""
+    resposta = _pedir_efeitos(state, marcadores, problema)
+    if resposta is None:
+        return {}, {}, False
+    aprovados, reprovados = avaliar_efeitos(resposta, len(marcadores), frases)
+    return aprovados, reprovados, True
+
+
+def efeitos_do_modelo(state: PipelineState) -> tuple[dict[int, str], list[str]]:
+    """Os efeitos aprovados por marcador e os avisos próprios gerados aqui.
+
+    Retry só quando algum efeito foi reprovado ou a resposta não pôde ser lida; depois dele vale o melhor
+    efeito de cada marcador entre as duas tentativas. Avisos: guardrails se algum efeito reprovado continua
+    sem efeito aprovado; saída inválida se a resposta do retry continua ilegível.
+    """
+    marcadores = dossie.selecionar_marcadores(state.text_report.markers)
+    frases = [neutralizar_urls(s.text) for s in state.segments]
+    try:
+        aprovados, reprovados, legivel = _tentar(state, marcadores, frases, None)
     except ModeloIndisponivel as e:
-        logger.warning("Sintetizador: modelo indisponível: %s", e)
-        aviso = WARN_MODELO_INDISPONIVEL
-    except SinteseReprovada:
-        aviso = WARN_GUARDRAILS
-    return [dossie.TITULO_ARGUMENTO, *dossie.fallback_argumento(state, ctx)], [aviso]
+        logger.warning("Argumento: modelo indisponível: %s", e)
+        return {}, [WARN_MODELO_INDISPONIVEL]
+    if legivel and not reprovados:
+        return aprovados, []
+
+    if reprovados:
+        problema = _frase_do_problema(*next(iter(reprovados.items())))
+        logger.warning("Argumento: efeito rejeitado: %s", reprovados)
+    else:
+        problema = PROBLEMA_ILEGIVEL
+        logger.warning("Argumento: resposta ilegível, nova tentativa")
+    indisponivel = False
+    try:
+        aprovados2, reprovados2, legivel2 = _tentar(state, marcadores, frases, problema)
+    except ModeloIndisponivel as e:
+        logger.warning("Argumento: modelo indisponível no retry: %s", e)
+        aprovados2, reprovados2, legivel2, indisponivel = {}, {}, True, True
+    aprovados = {**aprovados2, **aprovados}   # empate: vale a primeira tentativa, já aprovada
+    avisos = []
+    if (set(reprovados) | set(reprovados2)) - set(aprovados):
+        avisos.append(WARN_GUARDRAILS)
+    if not legivel2:
+        avisos.append(WARN_SAIDA_INVALIDA)
+    elif indisponivel and not legivel:
+        avisos.append(WARN_MODELO_INDISPONIVEL)
+    return aprovados, avisos
 
 
-def _montar_dossie(state: PipelineState, usar_modelo: bool) -> dict:
+def argumento_node(state: PipelineState) -> dict:
+    """Nó `agente_argumento`: escreve as linhas de "Como o texto argumenta" em `argument`.
+
+    Chama o LLM só quando há marcador a descrever (e só para o efeito dele); modelo fora do ar ou efeito
+    reprovado nos guardrails deixa o marcador sem efeito e avisa. Devolve "warnings" só quando o problema é dele.
+    """
+    sem_modelo = dossie.argumento_sem_modelo(state, dossie.preprocessar(state))
+    if sem_modelo is not None:
+        return {"argument": sem_modelo}
+    if not state.text_report.markers:   # só opiniões: a linha de juízo de valor é código puro
+        return {"argument": dossie.linhas_argumento(state, {})}
+    efeitos, avisos = efeitos_do_modelo(state)
+    linhas = dossie.linhas_argumento(state, efeitos)
+    return {"argument": linhas, "warnings": avisos} if avisos else {"argument": linhas}
+
+
+def argumento_fallback(state: PipelineState) -> dict:
+    """As linhas do argumento sem chamar o LLM.
+
+    O grafo usa quando o `agente_argumento` estoura o tempo (src/graph.py) e o Sintetizador
+    quando `argument` não chegou: o usuário recebe a seção em fallback, não um dossiê vazio.
+    """
+    return {"argument": dossie.linhas_argumento(state, {})}
+
+
+def sintetizador_node(state: PipelineState) -> dict:
+    """Nó `sintetizador`: só monta o dossiê; nunca chama o LLM.
+
+    O argumento vem pronto de `state.argument` (ou do fallback em código, se não chegou).
+    A rede de segurança das citações roda aqui e, se remover algo, também avisa.
+    """
     if not state.segments:
         return {"dossier": dossie.SEM_TEXTO}
 
     ctx = dossie.preprocessar(state)
     fontes = dossie.numerar_fontes(state, ctx)
-    argumento, avisos = secao_argumento(state, ctx, usar_modelo)
+    argumento = state.argument if state.argument is not None else argumento_fallback(state)["argument"]
     # Ordem: pirâmide invertida (spec do dossiê final); Fontes some quando não há evidência
     texto = dossie.montar(
         dossie.secao_resumo(state, ctx),
         dossie.secao_checagens(state, ctx, fontes),
-        argumento,
+        [dossie.TITULO_ARGUMENTO, *argumento],
         dossie.secao_perguntas(state),
         dossie.secao_limites(state),
         dossie.secao_fontes(state, ctx, fontes),
     )
     texto, removeu = dossie.remover_citacoes_invalidas(texto, state.evidence or [])
-    if removeu:
-        avisos.append(WARN_CITACAO_REMOVIDA)
-    return {"dossier": texto, "warnings": avisos} if avisos else {"dossier": texto}
-
-
-def sintetizador_node(state: PipelineState) -> dict:
-    return _montar_dossie(state, usar_modelo=True)
-
-
-def dossie_sem_modelo(state: PipelineState) -> dict:
-    """O dossiê inteiro sem chamar o LLM ("Como o texto argumenta" sai do fallback).
-
-    O grafo usa quando o Sintetizador estoura o tempo (src/graph.py): o usuário recebe as
-    checagens, as perguntas e os limites, que não dependem do modelo (spec: "timeout ->
-    fallback determinístico no argumento").
-    """
-    return _montar_dossie(state, usar_modelo=False)
+    return {"dossier": texto, "warnings": [WARN_CITACAO_REMOVIDA]} if removeu else {"dossier": texto}
 
 
 # Nomes usados pelo graph.py e pelas convenções do projeto

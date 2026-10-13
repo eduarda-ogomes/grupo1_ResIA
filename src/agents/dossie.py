@@ -1,8 +1,9 @@
 """Partes do dossiê que o código escreve, sem LLM: tudo o que é fato.
 
 Design: docs/superpowers/specs/2026-10-01-agente-sintetizador-design.md ("Como funciona" e
-"Casos degradados"); Manual §4.5.1. O synthesizer.py junta estas seções com a síntese
-livre do LLM ("Como o texto argumenta").
+"Casos degradados"); Manual §4.5.1. Aqui também ficam as linhas de "Como o texto argumenta":
+o código escreve o rótulo, o trecho literal e o juízo de valor; o LLM entra só com o efeito de cada
+marcador (src/agents/synthesizer.py; design em docs/superpowers/specs/2026-10-09-desempenho-agentes-design.md).
 """
 from __future__ import annotations
 
@@ -12,7 +13,7 @@ from dataclasses import dataclass
 
 from src.agents.ingestor import is_url
 from src.guardrails.citacoes import neutralizar_urls, urls_invalidas
-from src.state import Evidence, PipelineState, Segment
+from src.state import Evidence, PipelineState, Segment, TextMarker
 
 TITULO_RESUMO = "## Resumo"
 TITULO_CHECAGENS = "## O que as checagens dizem"
@@ -61,8 +62,10 @@ SEM_PERGUNTAS = "- As perguntas não puderam ser geradas nesta análise."
 NENHUMA_PERGUNTA = "- Nenhuma pergunta foi gerada para este texto."
 LIMITE_COLETA = "- O banco de checagens pode não conter checagens mais recentes que a última coleta."
 
+# Quantos marcadores o Argumento descreve (o resto vira uma linha de omitidos)
+MAX_MARCADORES_ARGUMENTO = 8
+
 _ESCAPAR = re.compile(r"([\\`*_\[\]<>~$])")
-_CIFRAO = re.compile(r"(?<!\\)\$")
 
 
 @dataclass
@@ -118,15 +121,6 @@ def escapar_markdown(texto: str) -> str:
     O `$` entra porque o Streamlit renderiza `$...$` como LaTeX ("R$ 10 e R$ 20").
     """
     return _ESCAPAR.sub(r"\\\1", texto)
-
-
-def escapar_cifrao(texto: str) -> str:
-    """Escapa só o `$` (para `\\$`), sem tocar no resto do Markdown nem escapar de novo um `\\$` que já veio escapado.
-
-    É o escape do texto livre do LLM ("Como o texto argumenta"): ele escreve bullets e ênfase de propósito,
-    mas o Streamlit renderizaria `$...$` como LaTeX.
-    """
-    return _CIFRAO.sub(r"\\$", texto)
 
 
 def texto_seguro(texto: str) -> str:
@@ -339,14 +333,75 @@ def argumento_sem_modelo(state: PipelineState, ctx: Contexto) -> list[str] | Non
     return None
 
 
-def fallback_argumento(state: PipelineState, ctx: Contexto) -> list[str]:
-    """Rótulo + trecho literal por marcador e uma linha por frase de valor.
+def selecionar_marcadores(markers: list[TextMarker], limite: int = MAX_MARCADORES_ARGUMENTO) -> list[TextMarker]:
+    """Até `limite` marcadores para o argumento, sempre na ordem do texto.
 
-    Não copia o `explanation` do Agente de Texto: também é texto de LLM e furaria o filtro de veredito.
+    Primeiro um marcador por tipo (o primeiro de cada tipo no texto), para nenhum padrão ficar de fora;
+    depois o restante, na ordem do texto, até completar o limite.
     """
-    linhas = [f'- {ROTULOS[m.type]}: "{texto_seguro(m.excerpt)}"' for m in state.text_report.markers]
-    linhas += [f'- Juízo de valor: "{texto_seguro(s.text)}" é uma opinião e não foi checada.' for s in ctx.frases_valor]
-    return linhas
+    escolhidos: list[int] = []
+    tipos_vistos: set[str] = set()
+    for i, m in enumerate(markers):
+        if m.type not in tipos_vistos and len(escolhidos) < limite:
+            tipos_vistos.add(m.type)
+            escolhidos.append(i)
+    for i in range(len(markers)):
+        if len(escolhidos) >= limite:
+            break
+        if i not in escolhidos:
+            escolhidos.append(i)
+    return [markers[i] for i in sorted(escolhidos)]
+
+
+def linha_marcador(m: TextMarker, efeito: str | None) -> str:
+    """`- Rótulo: "trecho" efeito`; sem efeito, só `- Rótulo: "trecho"`.
+
+    O trecho é literal da notícia (o código escreve); o efeito vem do LLM e é escapado, em uma linha só.
+    """
+    linha = f'- {ROTULOS[m.type]}: "{texto_seguro(m.excerpt)}"'
+    efeito = " ".join((efeito or "").split())
+    return f"{linha} {escapar_markdown(efeito)}" if efeito else linha
+
+
+def linha_marcadores_omitidos(n: int) -> str:
+    if n == 1:
+        return "- Outro trecho repete esses padrões e não foi listado."
+    return f"- Outros {n} trechos repetem esses padrões e não foram listados."
+
+
+def linha_juizo_valor(frases: list[Segment]) -> str | None:
+    """Uma linha só para todas as opiniões (com teto de tamanho: até 2 frases de 80 caracteres); None sem opiniões."""
+    n = len(frases)
+    if n == 0:
+        return None
+    citadas = [f'"{texto_seguro(encurtar(s.text, 80))}"' for s in frases[:2]]
+    if n == 1:
+        return f"- Juízo de valor: {citadas[0]} é uma opinião e não foi checada."
+    if n == 2:
+        return f"- Juízo de valor: {citadas[0]} e {citadas[1]} são opiniões e não foram checadas."
+    return (f"- Juízo de valor: {n} frases são opiniões e não foram checadas, "
+            f"como {citadas[0]}, {citadas[1]} e mais {n - 2}.")
+
+
+def linhas_argumento(state: PipelineState, efeitos: dict[int, str]) -> list[str]:
+    """As linhas de "Como o texto argumenta" (sem o título), todas escritas pelo código.
+
+    `efeitos`: a posição do marcador, a partir de 1, em `selecionar_marcadores(...)` -> o efeito do LLM já
+    aprovado nos guardrails. Com `efeitos={}` é o fallback sem LLM: rótulo e trecho literal, sem efeito.
+    Não copia o `explanation` do Agente de Texto: também é texto de LLM e furaria o filtro de veredito.
+    Ordem: marcadores (na ordem do texto), linha de omitidos, linha de juízo de valor.
+    """
+    ctx = preprocessar(state)
+    sem_modelo = argumento_sem_modelo(state, ctx)
+    if sem_modelo is not None:
+        return sem_modelo
+    markers = state.text_report.markers
+    escolhidos = selecionar_marcadores(markers)
+    linhas = [linha_marcador(m, efeitos.get(i)) for i, m in enumerate(escolhidos, start=1)]
+    if len(markers) > len(escolhidos):
+        linhas.append(linha_marcadores_omitidos(len(markers) - len(escolhidos)))
+    juizo = linha_juizo_valor(ctx.frases_valor)
+    return linhas + [juizo] if juizo else linhas
 
 
 # --- Perguntas e limites -----------------------------------------------------------

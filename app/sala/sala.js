@@ -5,8 +5,10 @@
 // (github.com/mewsdev/AiOperationsRoom, licença MIT); personagens e cenário são deste projeto.
 //
 // O Python (src/progresso.py) manda o estado de cada agente a cada nó que termina. Aqui a
-// sala anima as passagens: o Ingestor distribui a matéria, cada ramo leva a sua parte até
-// a mesa do Sintetizador e o dossiê se fecha no fim. Cada fase dura um mínimo na tela,
+// sala anima as passagens: o Ingestor distribui a matéria para Evidências e Texto, o Texto
+// passa a sua leitura ao Socrático, cada ramo leva a sua parte até a mesa do Sintetizador e o
+// dossiê se fecha no fim. O nó `agente_argumento` não tem personagem: o Sintetizador trabalha
+// nele assim que recebe a parte do Texto (ver src/progresso.py). Cada fase dura um mínimo na tela,
 // senão os agentes rápidos (Ingestor, Evidências) passariam sem ninguém ver.
 
 const SVG = 'http://www.w3.org/2000/svg';
@@ -16,6 +18,7 @@ const TRABALHO_MINIMO_MS = 1600;
 const VELOCIDADE = 46; // unidades da cena por segundo
 const VOO_MS = 850;
 const RAMOS = ['agente_evidencias', 'agente_texto', 'agente_socratico'];
+const RECEBEM_DO_INGESTOR = ['agente_evidencias', 'agente_texto']; // o Socrático recebe do Texto
 
 const salas = new Map(); // id da análise -> Sala: sobrevive aos redesenhos do Streamlit
 
@@ -172,7 +175,7 @@ const PERSONAGENS = {
     icone: ['..kkk..', '.....k.', '...kk..', '.......', '...k...'],
   },
   sintetizador: {
-    nome: 'Sintetizador', papel: 'Monta o dossiê', cor: '#7C2128',
+    nome: 'Sintetizador', papel: 'Escreve o argumento e monta o dossiê', cor: '#7C2128',
     paleta: { h: '#7A3E2A', s: '#F2C9A0', c: '#7C2128', C: '#5A161C', w: '#F4EFE6', p: '#3A3238', b: '#1F1A1C', y: '#D9B45A' },
     extras: { 0: '.....kk.....', 1: '....khhk....', 11: '.....y......' },
     icone: ['.kk....', 'kkkkkkk', 'kyyyyyk', 'kyyyyyk', 'kkkkkkk'],
@@ -533,6 +536,7 @@ class Sala {
       if (r.fase === 'trabalhando') {
         if (r.alvo === 'concluido' && cumpriu(r)) {
           this.mudar(r, 'entregando', agora);
+          if (r.id === 'agente_texto') this.passarAoSocratico(agora);
           this.levar(r);
         } else if (r.alvo === 'interrompido') {
           this.mudar(r, 'interrompido', agora);
@@ -540,11 +544,12 @@ class Sala {
       }
     }
 
-    if (sin.fase === 'aguardando' && sin.alvo !== 'aguardando' && ramos.every((r) => r.entregou)) {
+    // Com a parte do Texto na mesa, o Sintetizador já escreve o argumento; só fecha o dossiê com as três
+    if (sin.fase === 'aguardando' && sin.alvo !== 'aguardando' && A.agente_texto.entregou) {
       this.mudar(sin, 'trabalhando', agora);
     }
     if (sin.fase === 'trabalhando') {
-      if (sin.alvo === 'concluido' && cumpriu(sin)) {
+      if (sin.alvo === 'concluido' && cumpriu(sin) && ramos.every((r) => r.entregou)) {
         this.mudar(sin, 'concluido', agora);
         this.raiz.dataset.dossie = 'fechado';
       } else if (sin.alvo === 'interrompido') {
@@ -563,18 +568,27 @@ class Sala {
     this.anuncio.textContent = `${ag.def.nome}: ${rotulo.toLowerCase()}.`;
   }
 
-  // O Ingestor manda uma cópia da matéria para cada ramo.
+  // O Ingestor manda uma cópia da matéria para Evidências e Texto.
   distribuir(agora) {
     const ing = this.agentes.ingestor;
     const de = { x: CENA.ingestor.mesa.x + 10, y: CENA.ingestor.mesa.y - 6 };
-    let faltam = RAMOS.length;
-    RAMOS.forEach((id, i) => {
+    let faltam = RECEBEM_DO_INGESTOR.length;
+    RECEBEM_DO_INGESTOR.forEach((id, i) => {
       const pos = CENA[id];
       const alvo = pos.mesa || pos.pulpito;
       this.voar(de, { x: alvo.x + 6, y: alvo.y - 5 }, agora + i * 160, () => {
         this.agentes[id].recebeu = true;
         if (--faltam === 0) this.mudar(ing, 'concluido', performance.now());
       });
+    });
+  }
+
+  // O Texto, ao terminar, passa uma cópia da sua leitura ao Socrático.
+  passarAoSocratico(agora) {
+    const de = CENA.agente_texto.mesa;
+    const para = CENA.agente_socratico.pulpito;
+    this.voar({ x: de.x + 10, y: de.y - 6 }, { x: para.x + 6, y: para.y - 5 }, agora, () => {
+      this.agentes.agente_socratico.recebeu = true;
     });
   }
 

@@ -15,6 +15,7 @@ from src.state import PipelineState, Segment
 MAX_WORDS = 5000
 FETCH_TIMEOUT = 15
 USER_AGENT = "Mozilla/5.0 (compatible; ReliabilityBot/1.0)"
+TITULO_TEXTO_COLADO = "Texto Inserido Manualmente"  # título padrão quando o usuário cola o texto em vez de uma URL
 
 WARN_PAYWALL = "ingestor: conteúdo não extraído (paywall ou página vazia)"
 WARN_TIMEOUT = "ingestor: tempo esgotado ao baixar a página"
@@ -154,7 +155,7 @@ def _empty_result(warning: str) -> dict:
 
 def ingestor_node(state: PipelineState) -> dict:
     raw_input = state.raw_input.strip()
-    title = "Texto Inserido Manualmente"
+    title = TITULO_TEXTO_COLADO
     published_at = None
 
     if is_url(raw_input):

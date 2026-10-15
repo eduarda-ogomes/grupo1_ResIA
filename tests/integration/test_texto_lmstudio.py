@@ -8,7 +8,7 @@ import json
 import pytest
 import requests
 
-from src.agents.text_analysis import texto_node
+from src.agents.text_analysis import classificar_frases as texto_node
 from src.state import PipelineState, initial_state
 
 
@@ -86,5 +86,8 @@ def test_desastre_intensidade_de_contexto_nao_e_marcador_e_julgamento_e(fixture,
     relatorio = _relatorio_da_fixture(fixture)
 
     assert len({m.segment_id for m in relatorio.markers if m.segment_id in contexto}) <= max_fp
+    # O julgamento continua apontado como viés. "As autoridades incompetentes não fizeram nada" fica na
+    # fronteira entre adjetivação e generalização, e o LM Studio com previsões em paralelo alterna entre
+    # os dois tipos de uma sessão para outra (observado em 15/10); qualquer um dos dois serve.
     assert [m for m in relatorio.markers
-            if m.type == "adjetivacao_extrema" and m.segment_id == julgamento and termo in m.excerpt]
+            if m.type in ("adjetivacao_extrema", "generalizacao") and m.segment_id == julgamento and termo in m.excerpt]

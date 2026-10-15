@@ -104,7 +104,7 @@ def test_app_mostra_tempos_por_etapa(monkeypatch):
     assert not at.exception
     assert any(e.label == "Detalhes técnicos" for e in at.expander)
     assert list(_tabela_de_tempos(at)["nó"]) == [
-        "ingestor", "agente_evidencias", "agente_texto", "agente_argumento", "agente_socratico", "sintetizador", "total"]
+        "ingestor", "agente_evidencias", "agente_texto", "agente_socratico", "sintetizador", "total"]
 
 
 def test_app_mostra_tempos_sem_trace_quando_tracing_desligado(monkeypatch):
@@ -216,17 +216,15 @@ def test_sala_nao_aparece_antes_de_analisar():
     assert not at.get("bidi_component")
 
 
-def test_sala_soma_o_argumento_no_sintetizador(monkeypatch):
-    # A sala tem cinco personagens: o nó agente_argumento é desenhado pelo Sintetizador,
-    # que leva o tempo e os avisos dos dois nós (src/pipeline/progresso.py)
+def test_sala_mostra_o_tempo_e_os_avisos_de_cada_ramo(monkeypatch):
+    # Os três ramos começam quando o Ingestor termina; cada personagem é um nó do grafo
     from src.pipeline import medicao
 
     eventos = [
         {"ingestor": {"clean_text": "Uma frase.", "segments": [{"id": "s01", "text": "Uma frase."}]}},
         {"agente_evidencias": {"evidence": []}},
-        {"agente_texto": {"text_report": None}},
         {"agente_socratico": {"socratic_questions": None}},
-        {"agente_argumento": {"argument": None, "warnings": ["argumento: tempo esgotado"]}},
+        {"agente_texto": {"text_report": None, "argument": None, "warnings": ["texto: timeout"]}},
         {"sintetizador": {"dossier": "## Limites desta análise"}},
     ]
 
@@ -234,7 +232,7 @@ def test_sala_soma_o_argumento_no_sintetizador(monkeypatch):
         def stream(self, estado):
             yield from eventos
 
-    tempos = iter([0, 1, 2, 10, 14, 15, 15.5])
+    tempos = iter([0, 1, 2, 8, 14, 14.5])
     executar_de_verdade = medicao.executar
 
     def executar_falso(grafo, estado, ao_terminar_no=None):
@@ -245,7 +243,7 @@ def test_sala_soma_o_argumento_no_sintetizador(monkeypatch):
     at = analisar("Uma frase.")
 
     assert not at.exception
-    sintetizador = {a["id"]: a for a in _sala(at)["agentes"]}["sintetizador"]
-    assert sintetizador["estado"] == "concluido"
-    assert sintetizador["segundos"] == 5.5  # argumento 5 s depois do texto + sintetizador 0,5 s
-    assert sintetizador["avisos"] == ["argumento: tempo esgotado"]
+    agentes = {a["id"]: a for a in _sala(at)["agentes"]}
+    assert {a: agentes[a]["segundos"] for a in agentes} == {
+        "ingestor": 1, "agente_evidencias": 1, "agente_texto": 13, "agente_socratico": 7, "sintetizador": 0.5}
+    assert agentes["agente_texto"]["avisos"] == ["texto: timeout"]

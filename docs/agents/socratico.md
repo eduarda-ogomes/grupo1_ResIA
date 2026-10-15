@@ -4,7 +4,7 @@ Dono: R4 · Branch: `AgenteSocratico`
 
 ## O que faz
 
-O Agente Socrático formula de **2 a 3 perguntas reflexivas e incisivas** (maiêutica) sobre a notícia. Ele não lê o texto inteiro: recebe um resumo (`resumo_para_socratico`, em `src/agents/socratic.py`) e roda depois do Agente de Texto, em paralelo com o `agente_argumento`. O objetivo é preparar o usuário para ler a síntese e as evidências com pensamento crítico, estimulando-o a questionar a lógica interna do texto, premissas implícitas, generalizações ou saltos causais sem sustentação.
+O Agente Socrático formula de **2 a 3 perguntas reflexivas e incisivas** (maiêutica) sobre a notícia. Ele não lê o texto inteiro: recebe um resumo (`resumo_para_socratico`, em `src/agents/socratic.py`) e roda logo depois do Ingestor, em paralelo com Evidências e Texto. O objetivo é preparar o usuário para ler a síntese e as evidências com pensamento crítico, estimulando-o a questionar a lógica interna do texto, premissas implícitas, generalizações ou saltos causais sem sustentação.
 
 ## Princípios e Regras (Manual §1.1, §4.4)
 
@@ -16,9 +16,9 @@ O Agente Socrático formula de **2 a 3 perguntas reflexivas e incisivas** (maiê
 
 ## Entrada e Saída
 
-Lê `state.title`, `state.segments`, `state.text_report` e `state.clean_text` e devolve um dicionário com `socratic_questions`:
+Lê `state.title`, `state.segments` e `state.clean_text` e devolve um dicionário com `socratic_questions`:
 
-O resumo tem: o título (exceto o título padrão de texto colado), as 3 primeiras frases e as frases classificadas como factuais pelo Agente de Texto, na ordem do texto, em até 400 palavras (o título conta no limite; sem `text_report`, entram as frases em ordem até o limite). O G4 valida cada pergunta contra o título mais o `clean_text` completo (só o `clean_text`, se o título for o padrão ou vazio).
+O resumo tem: o título (exceto o título padrão de texto colado) e as frases na ordem do texto, em até 400 palavras (o título conta no limite). Como o Socrático roda em paralelo com o Agente de Texto, o resumo não usa a classificação das frases; até 15/10 ele rodava depois do Texto e escolhia as frases factuais. O G4 valida cada pergunta contra o título mais o `clean_text` completo (só o `clean_text`, se o título for o padrão ou vazio).
 
 ```python
 run(state) -> {

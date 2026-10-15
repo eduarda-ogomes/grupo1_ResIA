@@ -59,7 +59,7 @@ Os riscos residuais estão registrados na Seção 12 e são o foco da análise d
 
 ## 3. Arquitetura do sistema
 
-O sistema é um **grafo de estados em LangGraph** com topologia fixa: uma etapa de entrada, Evidências e Texto em paralelo, o `agente_argumento` e o Socrático em paralelo depois do Texto, e uma etapa de síntese (só código) que espera Evidências, Argumento e Socrático.
+O sistema é um **grafo de estados em LangGraph** com topologia fixa: uma etapa de entrada, três agentes em paralelo (Evidências, Texto e Socrático) e uma etapa de síntese (só código) que espera os três.
 
 ### 3.1 Grafo de execução
 
@@ -67,11 +67,10 @@ O sistema é um **grafo de estados em LangGraph** com topologia fixa: uma etapa 
 flowchart LR
     IN[Entrada: texto ou URL] --> ING[Ingestor<br/>limpeza + segmentação]
     ING --> EV[Agente de Evidências<br/>RAG + NLI]
-    ING --> TX[Agente de Texto<br/>viés, falácias, fato/valor]
-    TX --> AR[agente_argumento<br/>como o texto argumenta]
-    TX --> SO[Agente Socrático<br/>perguntas reflexivas]
+    ING --> TX[Agente de Texto<br/>viés, falácias, fato/valor<br/>+ como o texto argumenta]
+    ING --> SO[Agente Socrático<br/>perguntas reflexivas]
     EV --> SY[Sintetizador<br/>dossiê + guardrails]
-    AR --> SY
+    TX --> SY
     SO --> SY
     SY --> OUT[Dossiê ao usuário]
 ```
@@ -84,7 +83,7 @@ flowchart LR
 | Agente de Evidências | RAG com modelos encoder (embeddings + NLI) | Não | Sim |
 | Agente de Texto | LLM local com few-shot e saída estruturada | Sim | Sim |
 | Agente Socrático | LLM local com system prompt restrito | Sim | Sim |
-| Sintetizador | Só código: monta o dossiê e aplica os guardrails (o LLM do argumento roda no `agente_argumento`, com saída estruturada) | Não | Não |
+| Sintetizador | Só código: monta o dossiê e aplica os guardrails (o efeito de cada marcador é o passo final do Agente de Texto, com saída estruturada) | Não | Não |
 
 O Agente de Evidências não usa LLM gerador: busca vetorial e classificação NLI rodam com modelos encoder pequenos, mais rápidos e mais previsíveis.
 
@@ -130,7 +129,7 @@ class PipelineState(BaseModel):
     evidence: list[Evidence] | None
     text_report: TextReport | None
     socratic_questions: list[str] | None
-    argument: list[str] | None     # linhas de "Como o texto argumenta", sem o título (agente_argumento)
+    argument: list[str] | None     # linhas de "Como o texto argumenta", sem o título (Agente de Texto)
     dossier: str | None
     warnings: Annotated[list[str], operator.add]
 ```
@@ -139,7 +138,7 @@ Cada ramo paralelo escreve em um campo próprio, então não há conflito de esc
 
 ### 3.4 Fluxo de controle e tratamento de falhas
 
-- **Fan-out estático:** duas arestas saem do Ingestor (Evidências e Texto, em paralelo) e duas saem do Texto (`agente_argumento` e Socrático, em paralelo). O Sintetizador espera Evidências, Argumento e Socrático e roda uma vez só. Medições e motivos em `docs/agents/desempenho.md`.
+- **Fan-out estático:** três arestas saem do Ingestor (Evidências, Texto e Socrático, em paralelo, no mesmo superstep). O Sintetizador espera os três e roda uma vez só. Medições e motivos em `docs/agents/desempenho.md`.
 - **Limite de entrada:** o Ingestor trunca textos acima de um limite fixo de tokens e marca `truncated = True`, que o dossiê informa ao usuário.
 - **Timeout por nó:** um ramo que estoura o tempo grava um aviso em `warnings` e devolve `None`; os outros seguem. Implementado em `src/pipeline/protecao.py`: 60 s no Ingestor, 240 s em cada ramo e 180 s no Sintetizador, ajustáveis por `GRAFO_TIMEOUT_INGESTOR`, `GRAFO_TIMEOUT_RAMO` e `GRAFO_TIMEOUT_SINTETIZADOR`. A mesma camada transforma uma exceção não tratada de qualquer nó em aviso, e o Sintetizador protegido nunca devolve `dossier = None`.
 - **Degradação graciosa:** o Sintetizador trata `None` como ausência declarada ("não foi possível analisar a estrutura do texto"), nunca como silêncio.
@@ -512,7 +511,7 @@ Por padrão, a GPU enxerga cerca de 16–18GB dos 24GB; o planejamento seguro é
 
 Fonte das medições: [pickuma, 2026](https://dev.to/pickuma/running-local-llms-on-m4-mac-with-24gb-ram-what-actually-fits-7jf). Um prompt de 4.000 tokens num 14B leva \~12 s só para ser processado, então contexto longo custa caro: o RAG deve enviar só os trechos reranqueados, nunca documentos inteiros.
 
-**Estimativa de latência do pipeline:** 3 chamadas de LLM por entrada. Argumento e Socrático rodam em paralelo depois do Texto no grafo, mas numa máquina só disputam a mesma banda de memória, então o ganho real de paralelismo é pequeno. A investigação deve levar de 1 a 2 minutos com o Sintetizador via API. A meta do MVP continua abaixo de 3 minutos.
+**Estimativa de latência do pipeline:** 3 chamadas de LLM por entrada (classificação e efeito no Texto, perguntas no Socrático). Texto e Socrático rodam em paralelo no grafo, mas numa máquina só disputam a mesma banda de memória, então o ganho real de paralelismo é pequeno. A investigação deve levar de 1 a 2 minutos com o Sintetizador via API. A meta do MVP continua abaixo de 3 minutos.
 
 ### 5.2 Execução em máquina única
 

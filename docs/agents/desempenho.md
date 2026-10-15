@@ -55,6 +55,18 @@ O tempo era dominado pelos tokens gerados, e o LM Studio local dá ~19 tokens/s;
 
 O Agente de Texto em notícia longa: 112,2 s de 134,1 s (84%) no `noticia_longa`, no caminho crítico, sozinho. Próximas alavancas, em ordem: reduzir tokens gerados por lote (o JSON de saída), lotes menores ou maiores conforme o tamanho da notícia, e um modelo mais rápido ou quantização menor para esse agente. A medição de `TEXTO_PARALELISMO` entre 1 e 4 na notícia longa ainda está por fazer.
 
-## Barreira do superstep
+## Agentes em paralelo (15/10/2026)
 
-No LangGraph, `agente_argumento` e `agente_socratico` têm só o `agente_texto` como predecessor no grafo, mas começam apenas quando **Evidências e Texto** terminam, porque os nós de uma superstep só passam à seguinte juntos. Numa partida a frio (BGE-M3 e mDeBERTa carregando no Evidências), os dois esperam o carregamento e os tempos medidos deles ficam inflados; a "sala dos agentes" os mostra trabalhando enquanto aguardam. Ao ler as medições, desconte essa espera. O comentário em `src/pipeline/graph.py` aponta para esta seção.
+O grafo voltou ao desenho do Manual: Ingestor → {Evidências, Texto, Socrático} → Sintetizador. O nó `agente_argumento` virou o passo final do Agente de Texto e o Socrático deixou de esperar o Texto ([spec](../superpowers/specs/2026-10-15-agentes-em-paralelo-design.md)). Os três ramos ficam no mesmo superstep, então a antiga "barreira do superstep" (Argumento e Socrático esperando Evidências terminar) não existe mais.
+
+Medido com `eval/medir_latencia.py --repeticoes 2 --aquecimento 1`, `qwen/qwen2.5-vl-7b` (contexto 8192, 4 previsões em paralelo), uma medição depois da outra, sem outro uso do LM Studio. Arquivos: `eval/resultados/latencia_2026-10-15_{antes,depois}.json`. Nenhuma execução teve aviso.
+
+| entrada | antes (2 execuções) | depois (2 execuções) |
+| --- | --- | --- |
+| mamao_dengue | 29,5 / 28,0 | 34,8 / 37,7 |
+| carrefour_osasco | 40,5 / 50,3 | 45,6 / 42,5 |
+| noticia_longa | 154,6 / 136,7 | 151,5 / 148,7 |
+
+**Não ficou mais rápido.** O Socrático saiu do caminho crítico, mas agora roda ao mesmo tempo que a classificação do Texto e disputa a mesma banda de memória; o efeito dos marcadores roda depois, sozinho. Na notícia curta isso custa ~7 s; nas outras, a diferença fica dentro da variação entre execuções. O ganho da mudança é de arquitetura: cinco nós, um por agente, como no Manual, e o Socrático não depende mais do Texto. A meta (p50 < 3 min) segue cumprida: p50 total de 42,5 s.
+
+Antes da medição limpa, uma rodada concorrente com testes de integração no mesmo LM Studio gerou "Request timed out" e "Context size has been exceeded" e foi descartada: medições de latência precisam do LM Studio só para elas.

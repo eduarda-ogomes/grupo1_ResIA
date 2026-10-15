@@ -281,19 +281,11 @@ def _estado_resumo(frases, factuais=(), title="Chá cura dengue", com_report=Tru
     ))
 
 
-def test_resumo_titulo_inicio_e_factuais():
-    frases = [f"Frase s{i:02d} da notícia." for i in range(1, 9)]
-    estado = _estado_resumo(frases, factuais={"s07"})
-    assert agent.resumo_para_socratico(estado) == (
-        "Chá cura dengue\nFrase s01 da notícia. Frase s02 da notícia. Frase s03 da notícia. Frase s07 da notícia."
-    )
-
-
-def test_resumo_sem_repetir_frase_inicial_factual():
-    frases = [f"Frase s{i:02d} da notícia." for i in range(1, 6)]
-    resumo = agent.resumo_para_socratico(_estado_resumo(frases, factuais={"s02", "s05"}))
-    assert resumo.count("Frase s02") == 1
-    assert resumo.endswith("Frase s03 da notícia. Frase s05 da notícia.")
+def test_resumo_ignora_a_classificacao_do_texto():
+    # O Socrático roda em paralelo com o Texto: mesmo com text_report, o resumo é título + frases em ordem
+    frases = [" ".join(f"p{i}w{j}" for j in range(10)) + "." for i in range(60)]
+    estado = _estado_resumo(frases, factuais={"s50"}, title=None)
+    assert agent.resumo_para_socratico(estado) == " ".join(frases[:40])
 
 
 def test_resumo_sem_titulo_de_texto_colado():
@@ -350,15 +342,12 @@ def test_socratic_node_envia_o_resumo_ao_modelo(monkeypatch):
     monkeypatch.setattr(agent, "chamar_modelo", mock_chamar)
     agent.socratic_node(estado)
     usuario = vistas[0][-1][1]
-    assert "Frase s07 da notícia." in usuario
-    assert "Frase s05 da notícia." not in usuario
+    assert "\n".join(["Chá cura dengue", " ".join(frases)]) in usuario
 
 
 def test_g4_valida_contra_a_noticia_inteira(monkeypatch):
-    # "Fiocruz" aparece só no fim da notícia (fora do resumo): a pergunta é aceita
-    frases = [f"Frase número {i} sem nomes próprios." for i in range(1, 6)] + [
-        "A Fiocruz não confirmou o resultado."
-    ]
+    # "Fiocruz" aparece só no fim da notícia (depois das 400 palavras do resumo): a pergunta é aceita
+    frases = [" ".join(["palavra"] * 90) + "." for _ in range(5)] + ["A Fiocruz não confirmou o resultado."]
     estado = _estado_resumo(frases, title=None)
     estado = estado.model_copy(update={"text_report": TextReport(statements=[], markers=[])})
     assert "Fiocruz" not in agent.resumo_para_socratico(estado)

@@ -2,7 +2,8 @@
 import json
 from pathlib import Path
 
-from src.agents import evidence, socratic, synthesizer, text_analysis
+from src.agents import evidence, socratic, text_analysis
+from src.agents.synthesizer import agent as synthesizer
 
 FIXTURES_MAMAO = Path(__file__).resolve().parent / "fixtures" / "caso_mamao_dengue"
 

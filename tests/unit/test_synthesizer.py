@@ -2,7 +2,7 @@
 import json
 import re
 
-from src.agents import dossie, synthesizer
+from src.agents.synthesizer import dossie, agent as synthesizer
 from src.state import PipelineState
 from tests import modelos_falsos as falsos
 

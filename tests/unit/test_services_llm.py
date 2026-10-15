@@ -5,7 +5,7 @@ from src.services import llm as servicos
 
 @pytest.mark.parametrize("nome", ["llm_sintetizador", "llm_socratico", "llm_texto"])
 def test_clientes_tem_timeout_e_nao_repetem_a_chamada(nome):
-    # Sem timeout, uma chamada abandonada pelo grafo (src/protecao.py) ocuparia o LM Studio indefinidamente
+    # Sem timeout, uma chamada abandonada pelo grafo (src/pipeline/protecao.py) ocuparia o LM Studio indefinidamente
     cliente = getattr(servicos, nome)
 
     assert cliente.request_timeout == 120

@@ -22,7 +22,7 @@ from concurrent.futures import ThreadPoolExecutor
 from concurrent.futures import TimeoutError as FuturesTimeout  # no Python 3.10 não é o TimeoutError embutido
 from typing import Any, Callable
 
-from src import observabilidade
+from src.services import observabilidade
 
 logger = logging.getLogger(__name__)
 

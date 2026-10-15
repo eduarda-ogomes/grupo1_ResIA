@@ -21,7 +21,7 @@ from pathlib import Path
 RAIZ = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(RAIZ))
 
-from src.medicao import Execucao, executar  # noqa: E402
+from src.pipeline.medicao import Execucao, executar  # noqa: E402
 from src.state import initial_state  # noqa: E402
 
 META_P50_S = 180  # Manual §7.1: p50 ponta a ponta abaixo de 3 min
@@ -75,8 +75,8 @@ def main() -> None:
                         default=RAIZ / "eval" / "resultados" / f"latencia_{date.today().isoformat()}.json")
     args = parser.parse_args()
 
-    from src.graph import sistema_multiagente
-    from src.observabilidade import configurar_tracing
+    from src.pipeline.graph import sistema_multiagente
+    from src.services.observabilidade import configurar_tracing
     from src.services.llm import LOCAL_MODEL
 
     configurar_tracing()

@@ -57,4 +57,4 @@ O Agente de Texto em notícia longa: 112,2 s de 134,1 s (84%) no `noticia_longa`
 
 ## Barreira do superstep
 
-No LangGraph, `agente_argumento` e `agente_socratico` têm só o `agente_texto` como predecessor no grafo, mas começam apenas quando **Evidências e Texto** terminam, porque os nós de uma superstep só passam à seguinte juntos. Numa partida a frio (BGE-M3 e mDeBERTa carregando no Evidências), os dois esperam o carregamento e os tempos medidos deles ficam inflados; a "sala dos agentes" os mostra trabalhando enquanto aguardam. Ao ler as medições, desconte essa espera. O comentário em `src/graph.py` aponta para esta seção.
+No LangGraph, `agente_argumento` e `agente_socratico` têm só o `agente_texto` como predecessor no grafo, mas começam apenas quando **Evidências e Texto** terminam, porque os nós de uma superstep só passam à seguinte juntos. Numa partida a frio (BGE-M3 e mDeBERTa carregando no Evidências), os dois esperam o carregamento e os tempos medidos deles ficam inflados; a "sala dos agentes" os mostra trabalhando enquanto aguardam. Ao ler as medições, desconte essa espera. O comentário em `src/pipeline/graph.py` aponta para esta seção.

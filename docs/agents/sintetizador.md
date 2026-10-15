@@ -6,7 +6,7 @@
 
 Junta os ramos (Evidências, Texto, Socrático) num dossiê em Markdown, sem veredito. A decisão final é do usuário.
 
-São dois nós em `src/agents/synthesizer.py`:
+São dois nós em `src/agents/synthesizer/agent.py`:
 
 - **`agente_argumento`** (`argumento_node`) roda depois do Agente de Texto, em paralelo com o Socrático. Escreve as linhas de "Como o texto argumenta" (sem o título) em `state.argument`, com o `qwen2.5-7b`.
 - **`sintetizador`** (`sintetizador_node`) só monta o dossiê, sem LLM. Espera Evidências, `agente_argumento` e Socrático (fan-in: roda uma vez só).
@@ -21,12 +21,12 @@ Seis seções, nesta ordem (pirâmide invertida: o tamanho do problema primeiro,
 
 | # | Seção | Quem escreve | Arquivo |
 | --- | --- | --- | --- |
-| 1 | `## Resumo` | Código, só contagens | `src/agents/dossie.py` |
-| 2 | `## O que as checagens dizem` | Código, com legenda e referências numeradas | `src/agents/dossie.py` |
-| 3 | `## Como o texto argumenta` | `agente_argumento` (`qwen2.5-7b`), com fallback em código (o efeito passa por `escapar_markdown` e o trecho por `texto_seguro`, depois dos guardrails); o `sintetizador` põe o título e as linhas de `state.argument` | `src/agents/synthesizer.py` |
-| 4 | `## Perguntas para pensar antes de decidir` | Código (copia o Socrático, com Markdown escapado) | `src/agents/dossie.py` |
-| 5 | `## Limites desta análise` | Código, sempre presente | `src/agents/dossie.py` |
-| 6 | `## Fontes` | Código; só aparece quando há evidência | `src/agents/dossie.py` |
+| 1 | `## Resumo` | Código, só contagens | `src/agents/synthesizer/dossie.py` |
+| 2 | `## O que as checagens dizem` | Código, com legenda e referências numeradas | `src/agents/synthesizer/dossie.py` |
+| 3 | `## Como o texto argumenta` | `agente_argumento` (`qwen2.5-7b`), com fallback em código (o efeito passa por `escapar_markdown` e o trecho por `texto_seguro`, depois dos guardrails); o `sintetizador` põe o título e as linhas de `state.argument` | `src/agents/synthesizer/agent.py` |
+| 4 | `## Perguntas para pensar antes de decidir` | Código (copia o Socrático, com Markdown escapado) | `src/agents/synthesizer/dossie.py` |
+| 5 | `## Limites desta análise` | Código, sempre presente | `src/agents/synthesizer/dossie.py` |
+| 6 | `## Fontes` | Código; só aparece quando há evidência | `src/agents/synthesizer/dossie.py` |
 
 ## Contrato
 

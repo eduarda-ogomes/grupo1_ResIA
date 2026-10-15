@@ -7,7 +7,8 @@ teste (ver tests/modelos_falsos.py). O tests/integration/conftest.py desliga est
 """
 import pytest
 
-from src.agents import evidence, socratic, synthesizer, text_analysis
+from src.agents import evidence, socratic, text_analysis
+from src.agents.synthesizer import agent as synthesizer
 
 MOTIVO = "modelos desligados nos testes (tests/conftest.py)"
 

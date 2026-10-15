@@ -59,7 +59,7 @@ def test_app_mostra_o_aviso_de_cada_ramo_que_falhou():
 
 
 def test_app_cita_o_lm_studio_e_nao_o_ollama(monkeypatch):
-    from src import medicao
+    from src.pipeline import medicao
 
     def falha(*args, **kwargs):
         raise RuntimeError("modelo fora do ar")
@@ -110,7 +110,7 @@ def test_app_mostra_tempos_por_etapa(monkeypatch):
 def test_app_mostra_tempos_sem_trace_quando_tracing_desligado(monkeypatch):
     from tests import modelos_falsos as falsos
 
-    from src import medicao
+    from src.pipeline import medicao
 
     falsos.ligar_falsos(monkeypatch)
     monkeypatch.delenv("PHOENIX_TRACING", raising=False)
@@ -125,7 +125,7 @@ def test_app_mostra_tempos_sem_trace_quando_tracing_desligado(monkeypatch):
 
 
 def test_app_mostra_o_trace_quando_ha_trace_id(monkeypatch):
-    from src import medicao
+    from src.pipeline import medicao
     from tests import modelos_falsos as falsos
 
     falsos.ligar_falsos(monkeypatch)
@@ -195,7 +195,7 @@ def test_sala_mostra_os_avisos_de_cada_agente():
 
 
 def test_sala_fica_interrompida_quando_a_analise_falha(monkeypatch):
-    from src import medicao
+    from src.pipeline import medicao
 
     def falha(*args, **kwargs):
         raise RuntimeError("modelo fora do ar")
@@ -218,8 +218,8 @@ def test_sala_nao_aparece_antes_de_analisar():
 
 def test_sala_soma_o_argumento_no_sintetizador(monkeypatch):
     # A sala tem cinco personagens: o nó agente_argumento é desenhado pelo Sintetizador,
-    # que leva o tempo e os avisos dos dois nós (src/progresso.py)
-    from src import medicao
+    # que leva o tempo e os avisos dos dois nós (src/pipeline/progresso.py)
+    from src.pipeline import medicao
 
     eventos = [
         {"ingestor": {"clean_text": "Uma frase.", "segments": [{"id": "s01", "text": "Uma frase."}]}},

@@ -12,8 +12,8 @@ from typing import Any, Callable
 from opentelemetry.trace import SpanContext
 
 from src.agents.ingestor import is_url
-from src.graph import ORDEM_NOS, PREDECESSORES
-from src.observabilidade import span
+from src.pipeline.graph import ORDEM_NOS, PREDECESSORES
+from src.services.observabilidade import span
 from src.state import PipelineState
 
 
@@ -32,7 +32,7 @@ def trace_id_de(contexto: SpanContext) -> str | None:
 
 def duracoes(fim_por_no: dict[str, float]) -> dict[str, float]:
     """Duração de um nó = o fim dele menos o maior fim entre os predecessores que terminaram
-    (src/graph.py::PREDECESSORES); sem predecessor, conta desde o início da análise."""
+    (src/pipeline/graph.py::PREDECESSORES); sem predecessor, conta desde o início da análise."""
     return {
         no: fim_por_no[no] - max((fim_por_no[p] for p in PREDECESSORES[no] if p in fim_por_no), default=0.0)
         for no in ORDEM_NOS

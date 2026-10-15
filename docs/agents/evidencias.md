@@ -258,7 +258,7 @@ O nome da coleção vem do modelo de embedding (`checagens__baai-bge-m3`). Troca
 | `src/retrieval/indice.py` | ChromaDB e embeddings: coleção, busca, trechos de uma checagem |
 | `src/retrieval/etapa2.py` | "Mesma alegação": normalização da alegação, termos-chave, vocabulário de nomes, veredito → stance |
 | `src/retrieval/nli.py` | Modelo de NLI (mDeBERTa) |
-| `src/stubs/evidence_stub.py` | Stub para os outros agentes testarem sem modelos: devolve a fixture `02_evidencias_saida.json` (Seção 4.6) |
+| `tests/stubs/evidence_stub.py` | Stub para os outros agentes testarem sem modelos: devolve a fixture `02_evidencias_saida.json` (Seção 4.6) |
 | `data/corpus/collect_factcheck_api.py` | Coleta pela Fact Check Tools API (precisa de `FACTCHECK_API_KEY`) |
 | `data/corpus/fetch_articles.py` | Download do texto completo de cada checagem (desiste do site depois de 20 falhas seguidas) |
 | `data/corpus/import_factckbr.py` | Converte o FACTCK.BR enriquecido para o formato do corpus |
@@ -582,7 +582,7 @@ Windows (PowerShell): os mesmos comandos, ativando o ambiente com `venv\Scripts\
 
 ### Grafo (R1)
 
-- O `graph.py` ainda usa o **stub** (`src/stubs/evidence_stub.py`, nome `evidence_node`), que devolve sempre as duas evidências do caso do mamão (Seção 4.6), lidas de `tests/fixtures/caso_mamao_dengue/02_evidencias_saida.json`.
+- O `graph.py` ainda usa o **stub** (`tests/stubs/evidence_stub.py`, nome `evidence_node`), que devolve sempre as duas evidências do caso do mamão (Seção 4.6), lidas de `tests/fixtures/caso_mamao_dengue/02_evidencias_saida.json`.
 - Para plugar o agente real: `from src.agents.evidence import run as evidencias_node`. O `evidence.py` também expõe o alias `evidencias_node = run`.
 - Quem roda o grafo precisa do índice (`chroma_data/`) e dos modelos. Sem o índice, o agente devolve `evidence: None` com um aviso, e o resto do grafo segue.
 - O `tests/unit/test_state.py`, que roda o grafo inteiro, vai precisar simular a busca e o NLI quando o agente real entrar, porque o CI não tem torch nem chromadb. Os falsos de `tests/evidence_fakes.py` servem para isso.

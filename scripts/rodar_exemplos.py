@@ -1,6 +1,15 @@
+"""Roda o grafo inteiro em notícias de exemplo e mostra o tempo de cada uma (fora do pytest).
+
+Uso, a partir da raiz do repositório: python scripts/rodar_exemplos.py
+"""
+import sys
 import time
-from src.state import initial_state
-from src.graph import sistema_multiagente
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+from src.pipeline.graph import sistema_multiagente  # noqa: E402
+from src.state import initial_state  # noqa: E402
 
 textos = [
     # Texto 1: 2020 (Covid/Cloroquina)

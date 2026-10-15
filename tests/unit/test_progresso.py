@@ -3,8 +3,8 @@ import json
 
 import pytest
 
-from src.graph import ORDEM_NOS
-from src.progresso import AGENTES, NOS_DO_AGENTE, Progresso
+from src.pipeline.graph import ORDEM_NOS
+from src.pipeline.progresso import AGENTES, NOS_DO_AGENTE, Progresso
 
 
 def estados(p):

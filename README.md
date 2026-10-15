@@ -28,7 +28,7 @@ A especificação completa está no [Manual do Sistema Multiagente](docs/Manual%
 
 ## 🧠 Arquitetura
 
-O grafo é orquestrado com **LangGraph** (`src/graph.py`) e tem seis nós. O Ingestor abre dois ramos (Evidências e Texto); quando o Texto termina, o `agente_argumento` e o Socrático rodam em paralelo; o Sintetizador espera os três ramos e monta o dossiê.
+O grafo é orquestrado com **LangGraph** (`src/pipeline/graph.py`) e tem seis nós. O Ingestor abre dois ramos (Evidências e Texto); quando o Texto termina, o `agente_argumento` e o Socrático rodam em paralelo; o Sintetizador espera os três ramos e monta o dossiê.
 
 ```text
 Entrada (texto ou URL)
@@ -42,9 +42,9 @@ Entrada (texto ou URL)
 | 📥 **Ingestor** | Baixa a página (Trafilatura), remove ruído (avisos, rodapé, "publicidade"), trunca em 5.000 palavras e divide o texto em frases numeradas (`s01`, `s02`…). | spaCy `pt_core_news_sm`, sem LLM | `src/agents/ingestor.py` |
 | 🔍 **Evidências** | Para cada frase, procura checagens já publicadas sobre a **mesma alegação** e devolve o que a agência concluiu (*apoia*, *contradiz* ou *insuficiente*), com título e link. | RAG: BGE-M3 + ChromaDB → termos-chave → NLI (mDeBERTa-v3), sem LLM | `src/agents/evidence.py`, `src/retrieval/` |
 | 📝 **Texto** | Classifica cada frase como `factual` ou `valor` e aponta marcadores de retórica: adjetivação extrema, urgência artificial, apelo à autoridade, falsa dicotomia e generalização. | `qwen2.5-7b` com *few-shot* contrastivo e JSON Schema, lotes de 15 frases em paralelo | `src/agents/text_analysis.py` |
-| 💬 **Argumento** | Escreve o efeito de cada marcador na seção "Como o texto argumenta"; o rótulo e o trecho literal vêm do código. Tem *fallback* em código se o LLM falhar. | `qwen2.5-7b` + guardrails | `src/agents/synthesizer.py` |
+| 💬 **Argumento** | Escreve o efeito de cada marcador na seção "Como o texto argumenta"; o rótulo e o trecho literal vêm do código. Tem *fallback* em código se o LLM falhar. | `qwen2.5-7b` + guardrails | `src/agents/synthesizer/agent.py` |
 | 🤔 **Socrático** | Formula de 2 a 3 perguntas reflexivas e não indutivas (maiêutica) a partir de um resumo da notícia. | `qwen2.5-7b` + validação de ancoragem | `src/agents/socratic.py` |
-| 📊 **Sintetizador** | Junta tudo num dossiê em Markdown, sem veredito. Não chama LLM e nunca devolve dossiê vazio. | Só código | `src/agents/synthesizer.py`, `src/agents/dossie.py` |
+| 📊 **Sintetizador** | Junta tudo num dossiê em Markdown, sem veredito. Não chama LLM e nunca devolve dossiê vazio. | Só código | `src/agents/synthesizer/agent.py`, `src/agents/synthesizer/dossie.py` |
 
 O estado compartilhado (`src/state.py`) é estrito: a entrada é sempre criada com `initial_state("texto ou URL")`. O `segment_id` de cada frase é o contrato que permite ao Sintetizador cruzar "esta frase é factual" (Texto) com "esta frase tem checagem que a contradiz" (Evidências).
 
@@ -78,7 +78,7 @@ A interface em **Streamlit** (`app/app.py`) recebe o texto ou a URL e mostra a *
 ```text
 grupo1_ResIA/
 ├── app/
-│   ├── app.py                  # Interface web (Streamlit)
+│   ├── app.py                  # Interface web (Streamlit): ponto de entrada
 │   └── sala/                   # Sala dos agentes: animação pixel art da análise (st.components.v2)
 ├── data/
 │   ├── corpus/                 # Coleta, importação e indexação das checagens (API do Google, FACTCK.BR, Lupa)
@@ -89,24 +89,35 @@ grupo1_ResIA/
 │   ├── relatorios/             # Relatórios de estado do projeto
 │   └── superpowers/            # Specs de design e planos de implementação
 ├── eval/                       # Scripts de avaliação (evidências, latência, recursos) e resultados
+├── scripts/
+│   └── rodar_exemplos.py       # Roda o grafo em notícias de exemplo (fora do pytest)
 ├── src/
-│   ├── agents/                 # Um módulo por agente + dossie.py (seções escritas pelo código)
+│   ├── state.py                # Contrato compartilhado (PipelineState, Pydantic)
+│   ├── pipeline/               # Orquestração
+│   │   ├── graph.py            # Grafo LangGraph: nós, arestas e timeouts
+│   │   ├── protecao.py         # Timeout por nó; falha vira aviso
+│   │   ├── medicao.py          # Execução medida do grafo (tempo por nó, trace)
+│   │   └── progresso.py        # Progresso da análise para a sala dos agentes
+│   ├── agents/                 # Um módulo por agente
+│   │   ├── ingestor.py
+│   │   ├── evidence.py
+│   │   ├── text_analysis.py
+│   │   ├── socratic.py
+│   │   └── synthesizer/
+│   │       ├── agent.py        # Nós agente_argumento e sintetizador
+│   │       └── dossie.py       # Seções do dossiê escritas pelo código
+│   ├── retrieval/              # Índice ChromaDB, embeddings, NLI e etapa "mesma alegação" (compartilhado)
 │   ├── guardrails/             # Veredito, citações e ancoragem
 │   ├── prompts/                # Prompts de sistema e exemplos few-shot (Texto, Socrático, Sintetizador)
-│   ├── retrieval/              # Índice ChromaDB, NLI e etapa "mesma alegação"
-│   ├── services/llm.py         # Clientes do LM Studio (API compatível com OpenAI)
-│   ├── stubs/                  # Versões falsas dos agentes, usadas no desenvolvimento e nos testes
-│   ├── graph.py                # Grafo LangGraph
-│   ├── state.py                # Contratos do estado (Pydantic)
-│   ├── protecao.py             # Timeout por nó e conversão de falhas em avisos
-│   ├── medicao.py              # Execução medida do grafo (tempos por nó)
-│   ├── progresso.py            # Progresso da análise para a sala dos agentes
-│   └── observabilidade.py      # Traces no Arize Phoenix
+│   └── services/
+│       ├── llm.py              # Clientes do LM Studio (API compatível com OpenAI)
+│       └── observabilidade.py  # Traces no Arize Phoenix (OpenTelemetry)
 ├── tests/
 │   ├── unit/                   # Testes unitários (rodam sem modelos)
 │   ├── contract/               # Testes de contrato do estado e dos agentes
 │   ├── integration/            # Testes com os modelos reais (fora do CI)
-│   └── fixtures/               # Caso de ponta a ponta (mamão × dengue) e casos de borda
+│   ├── fixtures/               # Caso de ponta a ponta (mamão × dengue) e casos de borda
+│   └── stubs/                  # Agentes falsos dos testes de contrato
 ├── requirements.txt            # Dependências completas
 └── requirements-ci.txt         # Dependências mínimas para o CI (sem torch/chromadb)
 ```
@@ -196,7 +207,7 @@ pytest tests/integration/test_grafo_lmstudio.py -v -s
 
 ### Timeouts e avisos
 
-Cada nó tem um limite de tempo (`src/protecao.py`). Se um nó estoura o tempo ou quebra, o grafo segue sem ele, a interface mostra o aviso (por exemplo, `socratico: timeout`) e o dossiê sai assim mesmo.
+Cada nó tem um limite de tempo (`src/pipeline/protecao.py`). Se um nó estoura o tempo ou quebra, o grafo segue sem ele, a interface mostra o aviso (por exemplo, `socratico: timeout`) e o dossiê sai assim mesmo.
 
 | Nó | Padrão | Variável de ambiente |
 | --- | --- | --- |

@@ -1,14 +1,15 @@
-/* Sala dos agentes (sala.js). Cores e tipografia seguem a interface do Dossiê (app/app.py). */
+/* Sala dos agentes (sala.js). Cores e tipografia seguem a interface do Dossiê (app/app.py):
+   as variáveis vêm de app/tema/tema.css. A cena e o balão são ilustração e não mudam com o tema. */
 
 .sala {
   position: relative;
   font-family: 'Inter', system-ui, sans-serif;
-  color: #111;
-  background: #FFFFFF;
-  border: 1px solid #EAEAEA;
+  color: var(--texto);
+  background: var(--superficie);
+  border: 1px solid var(--borda);
   border-radius: 12px;
   padding: 1.25rem 1.25rem 1rem;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
+  box-shadow: 0 4px 12px var(--sombra);
   margin-bottom: 1.5rem;
 }
 
@@ -25,7 +26,7 @@
   font-size: 0.75rem;
   font-weight: 700;
   letter-spacing: 1px;
-  color: #7C2128;
+  color: var(--destaque-texto);
 }
 
 .sala-situacao {
@@ -33,7 +34,7 @@
   align-items: center;
   gap: 0.5rem;
   font-size: 0.85rem;
-  color: #555;
+  color: var(--texto-suave);
 }
 
 .sala-situacao::before {
@@ -41,11 +42,11 @@
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #7C2128;
+  background: var(--destaque-texto);
   animation: pulso 1.2s ease-in-out infinite;
 }
 
-.sala[data-situacao='pronta'] .sala-situacao::before { background: #3F7D4E; animation: none; }
+.sala[data-situacao='pronta'] .sala-situacao::before { background: var(--verde); animation: none; }
 .sala[data-situacao='interrompida'] .sala-situacao::before { animation: none; }
 
 .sala-cena {
@@ -80,9 +81,9 @@
   gap: 0.15rem;
   min-width: 0;
   padding: 0.6rem 0.7rem;
-  border: 1px solid #EAEAEA;
+  border: 1px solid var(--borda);
   border-radius: 8px;
-  background: #FAFAFA;
+  background: var(--superficie-2);
   transition: border-color 0.3s ease, background-color 0.3s ease;
 }
 
@@ -103,27 +104,27 @@
 
 .agente-papel {
   font-size: 0.75rem;
-  color: #666;
+  color: var(--texto-fraco);
 }
 
 .agente-estado {
   font-size: 0.78rem;
   font-weight: 500;
-  color: #666;
+  color: var(--texto-fraco);
   font-variant-numeric: tabular-nums;
 }
 
 .agente[data-fase='trabalhando'],
 .agente[data-fase='entregando'] {
-  border-color: #7C2128;
-  background: #FFFFFF;
+  border-color: var(--destaque-texto);
+  background: var(--superficie);
 }
 
 .agente[data-fase='trabalhando'] .agente-estado,
 .agente[data-fase='entregando'] .agente-estado,
-.agente[data-fase='interrompido'] .agente-estado { color: #7C2128; }
-.agente[data-fase='concluido'] .agente-estado { color: #3F7D4E; }
-.agente.com-aviso[data-fase='concluido'] .agente-estado { color: #8A5D0E; }
+.agente[data-fase='interrompido'] .agente-estado { color: var(--destaque-texto); }
+.agente[data-fase='concluido'] .agente-estado { color: var(--verde); }
+.agente.com-aviso[data-fase='concluido'] .agente-estado { color: var(--ambar); }
 
 .sala-anuncio {
   position: absolute;

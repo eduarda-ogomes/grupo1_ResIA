@@ -1,5 +1,8 @@
 import json
+import re
 from pathlib import Path
+
+import pytest
 
 from streamlit.testing.v1 import AppTest
 
@@ -164,10 +167,13 @@ def test_dica_de_exemplo_some_ao_gerar_o_dossie():
 
 # --- sala dos agentes (app/sala/) ---
 
+def _componentes(at, nome):
+    return [c for c in at.get("bidi_component") if c.proto.component_name == nome]
+
+
 def _sala(at):
-    salas = at.get("bidi_component")
+    salas = _componentes(at, "sala_agentes")
     assert len(salas) == 1, "a sala aparece uma vez só"
-    assert salas[0].proto.component_name == "sala_agentes"
     return json.loads(salas[0].proto.json)
 
 
@@ -213,7 +219,7 @@ def test_sala_nao_aparece_antes_de_analisar():
     at = pagina_analisar()
     at.run()
 
-    assert not at.get("bidi_component")
+    assert not _componentes(at, "sala_agentes")
 
 
 def test_sala_mostra_o_tempo_e_os_avisos_de_cada_ramo(monkeypatch):
@@ -247,3 +253,55 @@ def test_sala_mostra_o_tempo_e_os_avisos_de_cada_ramo(monkeypatch):
     assert {a: agentes[a]["segundos"] for a in agentes} == {
         "ingestor": 1, "agente_evidencias": 1, "agente_texto": 13, "agente_socratico": 7, "sintetizador": 0.5}
     assert agentes["agente_texto"]["avisos"] == ["texto: timeout"]
+
+
+# --- tema claro/escuro (app/tema/) ---
+
+COR_HEX = re.compile(r"#[0-9A-Fa-f]{3}(?:[0-9A-Fa-f]{3})?\b")
+
+
+def _pagina(pagina):
+    at = AppTest.from_file(APP, default_timeout=120)
+    at.query_params["page"] = pagina
+    at.run()
+    return at
+
+
+@pytest.mark.parametrize("pagina", ["home", "analisar"])
+def test_botao_de_tema_aparece_na_navbar(pagina):
+    at = _pagina(pagina)
+
+    assert not at.exception
+    assert any('class="botao-tema"' in m.value for m in at.markdown)
+    assert len(_componentes(at, "alternador_tema")) == 1
+
+
+@pytest.mark.parametrize("pagina", ["home", "analisar"])
+def test_pagina_traz_as_cores_do_tema_escuro(pagina):
+    at = _pagina(pagina)
+
+    assert any('[data-tema="escuro"]' in m.value for m in at.markdown)
+
+
+def test_app_nao_tem_cor_fixa_fora_do_tema():
+    # Cor fixa no app.py não muda com o tema: toda cor vem das variáveis de app/tema/tema.css
+    codigo = Path(APP).read_text(encoding="utf-8")
+
+    assert COR_HEX.findall(codigo) == []
+
+
+def test_moldura_da_sala_segue_o_tema():
+    # Só a ilustração (parede da cena e balão do Sintetizador, com o texto vinho) mantém cores próprias
+    css = (Path(APP).parent / "sala" / "sala.css").read_text(encoding="utf-8")
+
+    assert set(COR_HEX.findall(css)) <= {"#F3ECE2", "#FFFDF8", "#2B2024", "#7C2128"}
+
+
+@pytest.mark.parametrize("pagina", ["home", "analisar"])
+def test_logo_tem_versao_para_o_tema_escuro(pagina):
+    # O logo original tem letras pretas, que somem no fundo escuro
+    at = _pagina(pagina)
+
+    navbar = next(m.value for m in at.markdown if 'class="header-nav"' in m.value)
+    assert 'class="logo logo-claro"' in navbar
+    assert 'class="logo logo-escuro"' in navbar

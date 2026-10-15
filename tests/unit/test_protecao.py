@@ -194,3 +194,13 @@ def test_span_da_thread_abandonada_continua_no_trace(spans):
 
     por_nome = _por_nome(spans)
     assert por_nome["tarde"].parent.span_id == por_nome["no.socratico"].context.span_id
+
+
+def test_sys_exit_no_agente_vira_aviso_e_nao_derruba_a_analise():
+    # O spaCy chama sys.exit quando o pip falha; o SystemExit não é Exception
+    def sai(state):
+        raise SystemExit(1)
+
+    no = protecao.proteger("ingestor", sai, 1, protecao.FALHA_INGESTOR)
+
+    assert no(object())["warnings"] == ["ingestor: SystemExit: 1"]

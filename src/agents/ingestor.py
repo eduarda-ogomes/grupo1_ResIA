@@ -1,16 +1,19 @@
 import json
+import logging
 import re
+import threading
 import unicodedata
 import urllib.parse
 
 import requests
 import spacy
-import spacy.cli
 import trafilatura
 from bs4 import BeautifulSoup
 
 from src.observabilidade import span
 from src.state import PipelineState, Segment
+
+logger = logging.getLogger(__name__)
 
 MAX_WORDS = 5000
 FETCH_TIMEOUT = 15
@@ -21,6 +24,9 @@ WARN_PAYWALL = "ingestor: conteúdo não extraído (paywall ou página vazia)"
 WARN_TIMEOUT = "ingestor: tempo esgotado ao baixar a página"
 WARN_JAVASCRIPT = "ingestor: página sem conteúdo legível (possivelmente renderizada por JavaScript)"
 WARN_TRUNCATED = "ingestor: texto truncado no limite de tokens"
+WARN_MODELO_AUSENTE = "ingestor: modelo pt_core_news_sm ausente, frases separadas só pela pontuação"
+
+MODELO_SPACY = "pt_core_news_sm"
 
 # Linhas de página que não são conteúdo da matéria (avisos, chamadas, rodapé).
 # Casadas em minúsculas e sem acento; a linha inteira sai se algum padrão bater.
@@ -34,18 +40,27 @@ PADROES_BOILERPLATE = tuple(re.compile(p) for p in (
     r"^publicidade$",
 ))
 
-# Inicializa o modelo de NLP para português de forma lazy (segura)
+# Modelo de NLP carregado na primeira análise. Sem o pt_core_news_sm instalado, o
+# sentencizer do spaCy separa as frases pela pontuação. O Ingestor nunca instala o
+# modelo durante a análise: o spacy.cli.download roda o pip e, se ele falhar (um venv
+# sem pip, como o do Streamlit Cloud), chama sys.exit e derruba a análise inteira.
+# O modelo vem do requirements.txt.
 nlp = None
+modelo_ausente = False
+_nlp_lock = threading.Lock()  # duas sessões do Streamlit chegam juntas na primeira análise
 
 
 def get_nlp():
-    global nlp
-    if nlp is None:
-        try:
-            nlp = spacy.load("pt_core_news_sm")
-        except OSError:
-            spacy.cli.download("pt_core_news_sm")
-            nlp = spacy.load("pt_core_news_sm")
+    global nlp, modelo_ausente
+    with _nlp_lock:
+        if nlp is None:
+            try:
+                nlp = spacy.load(MODELO_SPACY)
+            except OSError:
+                logger.warning("%s não instalado; usando o sentencizer do spaCy", MODELO_SPACY)
+                fallback = spacy.blank("pt")
+                fallback.add_pipe("sentencizer")
+                nlp, modelo_ausente = fallback, True
     return nlp
 
 
@@ -180,6 +195,8 @@ def ingestor_node(state: PipelineState) -> dict:
     with span("ingestor.segmentar", truncado=truncated) as s:
         segments = segment_text(clean_text)
         s.set_attribute("pipeline.frases", len(segments))
+    if modelo_ausente:
+        warnings.append(WARN_MODELO_AUSENTE)
 
     return {
         "clean_text": clean_text,

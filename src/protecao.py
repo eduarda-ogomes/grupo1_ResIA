@@ -84,7 +84,7 @@ def proteger(
         except FuturesTimeout:
             logger.warning("%s: estourou o limite de %s s", nome, timeout_s)
             motivo, resultado = "timeout", "timeout"
-        except Exception as exc:
+        except (Exception, SystemExit) as exc:  # SystemExit: biblioteca que chama sys.exit (o spaCy, quando o pip falha)
             logger.exception("%s falhou", nome)
             motivo, resultado = f"{type(exc).__name__}: {exc}", "erro"
         finally:

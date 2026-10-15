@@ -1,10 +1,10 @@
 import json
 from src.state import PipelineState, initial_state
-from src.stubs.ingestor_stub import ingestor_node
-from src.stubs.evidence_stub import evidence_node
-from src.stubs.text_stub import text_node
-from src.stubs.socratic_stub import socratic_node
-from src.stubs.synthesizer_stub import synthesizer_node
+from tests.stubs.ingestor_stub import ingestor_node
+from tests.stubs.evidence_stub import evidence_node
+from tests.stubs.text_stub import text_node
+from tests.stubs.socratic_stub import socratic_node
+from tests.stubs.synthesizer_stub import synthesizer_node
 
 def load_fixture(name):
     with open(f"tests/fixtures/caso_mamao_dengue/{name}", "r", encoding="utf-8") as f:

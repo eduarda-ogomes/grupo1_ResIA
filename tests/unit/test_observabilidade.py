@@ -4,7 +4,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from src import observabilidade
+from src.services import observabilidade
 
 
 @pytest.fixture(autouse=True)

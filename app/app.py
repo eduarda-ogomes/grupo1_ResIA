@@ -10,11 +10,11 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import streamlit as st
 import streamlit.components.v1 as components
-from src import medicao
-from src.agents.dossie import tabela_frases
-from src.graph import ORDEM_NOS, sistema_multiagente
-from src.observabilidade import configurar_tracing
-from src.progresso import Progresso
+from src.pipeline import medicao
+from src.agents.synthesizer.dossie import tabela_frases
+from src.pipeline.graph import ORDEM_NOS, sistema_multiagente
+from src.services.observabilidade import configurar_tracing
+from src.pipeline.progresso import Progresso
 from src.state import PipelineState, initial_state
 
 @st.cache_resource

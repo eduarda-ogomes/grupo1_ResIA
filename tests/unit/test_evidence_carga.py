@@ -1,6 +1,6 @@
 """Os modelos do Agente de Evidências carregam uma vez só, mesmo com duas análises ao mesmo tempo.
 
-Com o timeout por nó (src/protecao.py), uma análise abandonada pode continuar carregando o
+Com o timeout por nó (src/pipeline/protecao.py), uma análise abandonada pode continuar carregando o
 BGE-M3 ou o mDeBERTa em segundo plano enquanto a seguinte começa: sem trava, cada uma
 carregaria a sua cópia e a memória dobraria.
 """

@@ -10,7 +10,7 @@ import spacy
 import trafilatura
 from bs4 import BeautifulSoup
 
-from src.observabilidade import span
+from src.services.observabilidade import span
 from src.state import PipelineState, Segment
 
 logger = logging.getLogger(__name__)

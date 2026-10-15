@@ -39,7 +39,7 @@ from src.retrieval.etapa2 import (content_overlap, display_verdict, key_terms_pr
                                   normalize_text, stance_from_verdict)
 from src.retrieval.indice import Hit, get_checagem_texts, get_lead_text, search
 from src.retrieval.nli import classify
-from src.observabilidade import span
+from src.services.observabilidade import span
 from src.state import Evidence, Segment
 
 logger = logging.getLogger(__name__)

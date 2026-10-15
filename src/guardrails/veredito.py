@@ -3,7 +3,7 @@
 Ignora maiúsculas e acentos e respeita a fronteira de palavra ("falsificação" passa).
 Aplica-se só ao texto do LLM; o selo da agência ("Agência Lupa: Falso") fica fora.
 Nomes de falácia que contêm um termo da lista ("Falsa dicotomia", rótulo de
-src/agents/dossie.py) não são veredito e não reprovam o texto.
+src/agents/synthesizer/dossie.py) não são veredito e não reprovam o texto.
 Limitação conhecida: paráfrases ("não procede", "é enganoso") passam.
 """
 import re

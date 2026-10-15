@@ -12,7 +12,7 @@ from pathlib import Path
 import pytest
 import requests
 
-from src.graph import sistema_multiagente
+from src.pipeline.graph import sistema_multiagente
 from src.state import initial_state
 
 ENTRADA = Path(__file__).resolve().parents[1] / "fixtures" / "caso_mamao_dengue" / "00_entrada.json"

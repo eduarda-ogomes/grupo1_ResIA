@@ -3,8 +3,9 @@ import threading
 
 import pytest
 
-from src import graph, protecao
-from src.agents import dossie, evidence, ingestor, socratic, synthesizer, text_analysis
+from src.pipeline import graph, protecao
+from src.agents import evidence, ingestor, socratic, text_analysis
+from src.agents.synthesizer import dossie, agent as synthesizer
 from src.state import PipelineState, initial_state
 from tests import modelos_falsos as falsos
 from tests.evidence_fakes import mamao_fakes, patch_agent

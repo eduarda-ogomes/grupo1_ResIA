@@ -1,7 +1,8 @@
 """O tests/conftest.py desliga todos os modelos: nenhum teste unitário fala com o LM Studio ou com o índice."""
 import pytest
 
-from src.agents import evidence, socratic, synthesizer, text_analysis
+from src.agents import evidence, socratic, text_analysis
+from src.agents.synthesizer import agent as synthesizer
 
 
 def test_agente_de_texto_nao_alcanca_o_modelo():

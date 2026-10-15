@@ -33,6 +33,7 @@ PROMPTS_DIR = Path(__file__).resolve().parents[1] / "prompts"
 WARN_MODELO_INDISPONIVEL = "sintetizador: falha ao chamar o modelo (o LM Studio está rodando?)"
 WARN_GUARDRAILS = "sintetizador: efeito do argumento reprovado nos guardrails após 1 retry"
 WARN_SAIDA_INVALIDA = "sintetizador: saída inválida após 1 retry"
+WARN_ERRO_INESPERADO = "sintetizador: erro inesperado no efeito dos marcadores; seção sem efeito"
 
 # Última linha da mensagem de retry quando a resposta não pôde ser lida
 PROBLEMA_ILEGIVEL = "Sua resposta não era um JSON no formato pedido."
@@ -221,3 +222,13 @@ def argumento_node(state: PipelineState) -> dict:
     efeitos, avisos = efeitos_do_modelo(state)
     linhas = dossie.linhas_argumento(state, efeitos)
     return {"argument": linhas, "warnings": avisos} if avisos else {"argument": linhas}
+
+
+def argumento_sem_derrubar_o_texto(state: PipelineState) -> dict:
+    """`argumento_node` que nunca levanta: um erro inesperado (ex.: um bug nos guardrails) vira o fallback
+    em código com aviso, para não levar junto a classificação do Agente de Texto, que roda no mesmo nó."""
+    try:
+        return argumento_node(state)
+    except Exception:
+        logger.exception("Argumento: erro inesperado; seção em fallback")
+        return {"argument": dossie.linhas_argumento(state, {}), "warnings": [WARN_ERRO_INESPERADO]}

@@ -47,6 +47,7 @@ Do passo do argumento (no Agente de Texto; o prefixo `sintetizador:` ficou de qu
 - `sintetizador: falha ao chamar o modelo (o LM Studio está rodando?)`
 - `sintetizador: efeito do argumento reprovado nos guardrails após 1 retry`
 - `sintetizador: saída inválida após 1 retry` (a saída estruturada do modelo não bateu com o schema)
+- `sintetizador: erro inesperado no efeito dos marcadores; seção sem efeito` (um bug no passo do argumento; a classificação do Texto é mantida)
 
 Do `sintetizador` (montagem):
 

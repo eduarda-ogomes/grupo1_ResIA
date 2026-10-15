@@ -252,7 +252,7 @@ def texto_node(state: PipelineState) -> dict:
     saida = classificar_frases(state)
     if saida["text_report"] is None:
         return saida
-    passo = argumento.argumento_node(state.model_copy(update={"text_report": saida["text_report"]}))
+    passo = argumento.argumento_sem_derrubar_o_texto(state.model_copy(update={"text_report": saida["text_report"]}))
     avisos = saida.get("warnings", []) + passo.get("warnings", [])
     resultado = {"text_report": saida["text_report"], "argument": passo["argument"]}
     if avisos:

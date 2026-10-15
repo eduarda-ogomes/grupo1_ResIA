@@ -3,7 +3,7 @@
 Design: docs/superpowers/specs/2026-10-01-agente-sintetizador-design.md ("Como funciona" e
 "Casos degradados"); Manual §4.5.1. Aqui também ficam as linhas de "Como o texto argumenta":
 o código escreve o rótulo, o trecho literal e o juízo de valor; o LLM entra só com o efeito de cada
-marcador (src/agents/synthesizer/agent.py; design em docs/superpowers/specs/2026-10-09-desempenho-agentes-design.md).
+marcador (src/agents/argumento.py, passo final do Agente de Texto; design em docs/superpowers/specs/2026-10-09-desempenho-agentes-design.md).
 """
 from __future__ import annotations
 

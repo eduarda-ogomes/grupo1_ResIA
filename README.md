@@ -222,7 +222,7 @@ Um nó que estoura o tempo não é interrompido: ele segue rodando em segundo pl
 | Variável | Padrão | Para quê |
 | --- | --- | --- |
 | `LLM_MODEL` | `qwen2.5-7b` | Identificador do modelo no LM Studio |
-| `TEXTO_PARALELISMO` | `2` | Lotes que o Agente de Texto manda ao LM Studio ao mesmo tempo. Só ganha se o modelo estiver carregado com "Max Concurrent Predictions" ≥ o valor |
+| `TEXTO_PARALELISMO` | `2` | Lotes que o Agente de Texto manda ao LM Studio ao mesmo tempo. O Socrático roda ao mesmo tempo, então só ganha se o modelo estiver carregado com "Max Concurrent Predictions" ≥ o valor + 1 |
 | `PHOENIX_TRACING` | desligado | `1` liga os traces no Phoenix |
 | `PHOENIX_COLLECTOR_ENDPOINT` | `http://localhost:6006` | Endereço do Phoenix |
 | `EVIDENCE_CHROMA_PATH` | `chroma_data/` | Pasta do índice |
@@ -247,7 +247,7 @@ PHOENIX_TRACING=1 LLM_MODEL=<id> streamlit run app/app.py
 No projeto `grupo1-resia` do Phoenix, cada análise aparece como um trace com:
 
 - `analise` (raiz): tipo de entrada, número de frases, avisos e tempo total;
-- um span por nó (`no.ingestor`, `no.evidencias`, `no.texto`, `no.argumento`, `no.socratico`, `no.sintetizador`) com o resultado (`ok`, `timeout` ou `erro`) e os avisos;
+- um span por nó (`no.ingestor`, `no.evidencias`, `no.texto`, `no.socratico`, `no.sintetizador`; as chamadas de LLM do efeito dos marcadores ficam dentro de `no.texto`) com o resultado (`ok`, `timeout` ou `erro`) e os avisos;
 - as chamadas ao LLM (`ChatOpenAI`) com prompt, resposta, tokens e tempo;
 - as etapas do Ingestor (`ingestor.baixar`, `ingestor.segmentar`) e do Evidências (`evidencias.busca`, `evidencias.termos_chave`, `evidencias.nli`) com as contagens.
 

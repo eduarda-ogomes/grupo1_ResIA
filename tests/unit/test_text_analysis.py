@@ -532,3 +532,22 @@ def test_sem_classificacao_nao_ha_argumento(monkeypatch):
     assert saida["text_report"] is None
     assert "argument" not in saida
     assert argumento_falso.prompts == []
+
+
+def test_erro_inesperado_no_argumento_mantem_a_classificacao(monkeypatch):
+    # Um bug no passo do argumento (ex.: nos guardrails) não pode levar a classificação junto
+    from src.agents import argumento
+    from tests import modelos_falsos as falsos
+    monkeypatch.setattr(text_analysis, "chamar_modelo", falsos.texto_falso(falsos.RELATORIO_TEXTO_LIVRE))
+    falsos.SintetizadorFalso().instalar(monkeypatch)
+
+    def quebra(*args, **kwargs):
+        raise IndexError("bug no guardrail")
+
+    monkeypatch.setattr(argumento, "avaliar_efeitos", quebra)
+
+    saida = texto_node(_estado_texto_livre())
+
+    assert saida["text_report"] == TextReport.model_validate(falsos.RELATORIO_TEXTO_LIVRE)
+    assert saida["argument"][0] == '- Adjetivação extrema: "cura a dengue"'   # fallback em código, sem efeito
+    assert saida["warnings"] == [argumento.WARN_ERRO_INESPERADO]

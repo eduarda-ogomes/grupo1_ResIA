@@ -11,6 +11,8 @@ torchvision
 sentence-transformers
 langchain-openai
 spacy>=3.8.0
+# Modelo do Ingestor: instalado com as dependências, nunca baixado durante a análise
+https://github.com/explosion/spacy-models/releases/download/pt_core_news_sm-3.8.0/pt_core_news_sm-3.8.0-py3-none-any.whl
 beautifulsoup4
 requests
 arize-phoenix

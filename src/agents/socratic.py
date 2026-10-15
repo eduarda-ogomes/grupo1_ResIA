@@ -1,6 +1,6 @@
 """Agente Socrático (R4): gera de 2 a 3 perguntas reflexivas sobre o argumento da notícia.
 
-Entrada: state.clean_text. Saída: {"socratic_questions": list[str] | None, "warnings"?: [...]}.
+Entrada: um resumo da notícia (título e primeiras frases), validado contra state.clean_text. Roda em paralelo com o Agente de Texto, logo depois do Ingestor. Saída: {"socratic_questions": list[str] | None, "warnings"?: [...]}.
 Manual: §4.4 (especificação), §4.7 (rejeição de indutivas, degradação graciosa).
 """
 import json
@@ -11,9 +11,10 @@ from typing import List
 
 from pydantic import BaseModel, Field, ValidationError
 
+from src.agents.ingestor import TITULO_TEXTO_COLADO
 from src.guardrails.ancoragem import termos_fora_do_contexto
 from src.services.llm import llm_socratico
-from src.state import PipelineState
+from src.state import PipelineState, Segment
 
 logger = logging.getLogger(__name__)
 
@@ -21,6 +22,8 @@ PROMPTS_DIR = Path(__file__).resolve().parents[1] / "prompts"
 
 WARN_SAIDA_INVALIDA = "socrático: saída inválida após 1 retry"
 WARN_MODELO_INDISPONIVEL = "socrático: falha ao chamar o modelo (o servidor de LLM está rodando?)"
+
+LIMITE_PALAVRAS_SOCRATICO = 400
 
 # Padrões compilados para validação rápida e limpa
 RE_INDUTIVO = re.compile(
@@ -103,6 +106,34 @@ def validar_perguntas(perguntas: list[str], clean_text: str) -> list[str]:
     return mantidas
 
 
+def resumo_para_socratico(state: PipelineState) -> str:
+    """Resume a notícia para o modelo: título e as frases em ordem, em até 400 palavras.
+
+    O título entra numa linha própria, exceto o título padrão de texto colado. Depois vêm as frases, na
+    ordem do texto, unidas por espaço. O corte é em fim de frase e o título conta no limite. O Socrático
+    roda em paralelo com o Agente de Texto, então não usa a classificação das frases.
+    """
+    escolhidas = state.segments or ([Segment(id="s01", text=state.clean_text.strip())] if state.clean_text.strip() else [])
+
+    titulo = (state.title or "").strip()
+    if titulo == TITULO_TEXTO_COLADO:
+        titulo = ""
+
+    usadas = len(titulo.split())
+    textos: list[str] = []
+    for frase in escolhidas:
+        palavras = frase.text.split()
+        if usadas + len(palavras) > LIMITE_PALAVRAS_SOCRATICO:
+            if not textos:  # frase única maior que o limite: corta por palavras
+                textos.append(" ".join(palavras[: max(LIMITE_PALAVRAS_SOCRATICO - usadas, 0)]))
+            break
+        textos.append(frase.text)
+        usadas += len(palavras)
+
+    corpo = " ".join(t for t in textos if t)
+    return f"{titulo}\n{corpo}" if titulo and corpo else (titulo or corpo)
+
+
 def montar_mensagens(clean_text: str, erro_anterior: str | None = None) -> list[tuple[str, str]]:
     mensagens = [("system", carregar_prompt_sistema())]
     for ex in carregar_exemplos():
@@ -154,16 +185,19 @@ def extrair_e_validar(bruto: str, clean_text: str) -> list[str]:
     return validar_perguntas(relatorio.socratic_questions, clean_text)
 
 
-def analisar_texto(clean_text: str) -> list[str]:
+def analisar_texto(entrada: str, contexto: str) -> list[str]:
+    """Pede as perguntas ao modelo (1 tentativa + 1 retry).
+
+    `entrada` é o que o modelo lê (o resumo); `contexto` é a notícia inteira, contra a qual o G4 valida."""
     erro = None
     for _ in range(2):  # 1 tentativa inicial + 1 retry
         try:
-            bruto = chamar_modelo(montar_mensagens(clean_text, erro))
+            bruto = chamar_modelo(montar_mensagens(entrada, erro))
         except Exception as e:
             raise ModeloIndisponivel(str(e)) from e
 
         try:
-            return extrair_e_validar(bruto, clean_text)
+            return extrair_e_validar(bruto, contexto)
         except (ValidationError, PerguntaInvalida, json.JSONDecodeError) as e:
             erro = str(e)[:500]
             logger.warning("Agente Socrático: resposta rejeitada: %s", erro)
@@ -176,7 +210,10 @@ def socratic_node(state: PipelineState) -> dict:
         return {"socratic_questions": []}
 
     try:
-        perguntas = analisar_texto(state.clean_text)
+        titulo = (state.title or "").strip()
+        # O modelo lê o título no resumo, então o G4 também o aceita como contexto.
+        contexto = state.clean_text if not titulo or titulo == TITULO_TEXTO_COLADO else f"{titulo}\n{state.clean_text}"
+        perguntas = analisar_texto(resumo_para_socratico(state), contexto)
         return {"socratic_questions": perguntas}
     except SaidaInvalida:
         return {"socratic_questions": None, "warnings": [WARN_SAIDA_INVALIDA]}

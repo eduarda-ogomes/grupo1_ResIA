@@ -1,0 +1,135 @@
+/* Tema claro/escuro do Dossiê. Toda cor da interface (app/app.py, app/sala/sala.css) vem daqui.
+   O tema.js põe data-tema="claro" ou "escuro" no <html>; sem ele, vale o claro. */
+
+:root {
+  color-scheme: light;
+  --fundo: #FAFAFA;
+  --superficie: #FFFFFF;
+  --superficie-2: #FAFAFA;
+  --texto: #111111;
+  --texto-forte: #333333;
+  --texto-corpo: #444444;
+  --texto-suave: #555555;
+  --texto-fraco: #666666;
+  --borda: #EAEAEA;
+  --borda-forte: #CCCCCC;
+  --borda-hover: #999999;
+  --divisor: #F0F0F0;
+  --destaque: #7C2128;          /* fundo de botões, com texto branco */
+  --destaque-hover: #5A161C;
+  --destaque-texto: #7C2128;    /* texto, bordas e ícones no vinho */
+  --sobre-destaque: #FFFFFF;
+  --verde: #3F7D4E;
+  --ambar: #8A5D0E;
+  --sombra: rgba(0, 0, 0, 0.02);
+}
+
+html[data-tema="escuro"] {
+  color-scheme: dark;
+  --fundo: #121113;
+  --superficie: #1B1A1C;
+  --superficie-2: #232124;
+  --texto: #ECE8E4;
+  --texto-forte: #DDD8D3;
+  --texto-corpo: #CDC8C3;
+  --texto-suave: #B5AFAA;
+  --texto-fraco: #9E9893;
+  --borda: #2F2C2F;
+  --borda-forte: #4A4549;
+  --borda-hover: #6E686C;
+  --divisor: #2A272A;
+  --destaque: #8E2730;
+  --destaque-hover: #A8323C;
+  --destaque-texto: #E58A92;
+  --sobre-destaque: #FFFFFF;
+  --verde: #82C292;
+  --ambar: #DDAE55;
+  --sombra: rgba(0, 0, 0, 0.35);
+}
+
+/* ------------------------------------------------ elementos do Streamlit */
+
+html, body,
+[data-testid="stApp"],
+[data-testid="stAppViewContainer"],
+[data-testid="stMain"] {
+  background-color: var(--fundo) !important;
+  color: var(--texto);
+}
+
+[data-testid="stMarkdownContainer"],
+[data-testid="stMarkdownContainer"] p,
+[data-testid="stMarkdownContainer"] li,
+[data-testid="stCaptionContainer"],
+[data-testid="stText"] {
+  color: inherit;
+}
+
+[data-testid="stMarkdownContainer"] a { color: var(--destaque-texto); }
+
+.stTextArea textarea,
+[data-testid="stTextAreaRootElement"],
+[data-baseweb="textarea"],
+[data-baseweb="base-input"] {
+  background-color: var(--superficie) !important;
+  color: var(--texto) !important;
+  border-color: var(--borda) !important;
+}
+.stTextArea textarea::placeholder { color: var(--texto-fraco) !important; }
+
+[data-testid="stExpander"] details,
+[data-testid="stVerticalBlockBorderWrapper"],
+[data-testid="stTable"] table,
+[data-testid="stTable"] th,
+[data-testid="stTable"] td {
+  background-color: var(--superficie);
+  border-color: var(--borda) !important;
+  color: var(--texto);
+}
+
+[data-testid="stExpander"] summary,
+[data-testid="stExpander"] summary:hover,
+[data-testid="stExpander"] summary * {
+  color: var(--texto) !important;
+}
+
+/* ------------------------------------------------ botão da navbar */
+
+.botao-tema {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  margin-left: 5px;
+  padding: 0;
+  font-size: 1.05rem;
+  line-height: 1;
+  color: var(--texto);
+  background: transparent;
+  border: 1px solid var(--borda-forte);
+  border-radius: 50%;
+  cursor: pointer;
+  transition: border-color 0.2s ease, background-color 0.2s ease;
+}
+.botao-tema:hover { border-color: var(--borda-hover); background: var(--superficie-2); }
+.botao-tema:focus-visible { outline: 2px solid var(--destaque-texto); outline-offset: 2px; }
+
+/* mostra o tema para o qual o botão leva */
+.botao-tema .icone-claro { display: none; }
+html[data-tema="escuro"] .botao-tema .icone-claro { display: inline; }
+html[data-tema="escuro"] .botao-tema .icone-escuro { display: none; }
+
+/* o componente que liga o botão não ocupa espaço na página */
+.st-key-alternador-tema { display: none !important; }
+
+/* logo: o app.py desenha as duas versões, só a do tema atual aparece */
+.logo-escuro { display: none; }
+html[data-tema="escuro"] .logo-claro { display: none; }
+html[data-tema="escuro"] .logo-escuro { display: inline; }
+
+/* avisos: o fundo colorido do Streamlit indica o tipo; o texto segue o tema para ficar legível */
+[data-testid="stAlertContainer"] [data-testid="stMarkdownContainer"],
+[data-testid="stAlertContainer"] p {
+  color: var(--texto) !important;
+}

@@ -11,7 +11,7 @@ import pytest
 
 from src.agents import evidence as agent
 from src.state import Evidence, PipelineState, initial_state
-from src.stubs import evidence_stub
+from tests.stubs import evidence_stub
 from tests.evidence_fakes import EVIDENCE_FIELDS, fachin_fakes, mamao_fakes, patch_agent
 
 

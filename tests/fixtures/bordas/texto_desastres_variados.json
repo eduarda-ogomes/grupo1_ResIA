@@ -1,0 +1,49 @@
+{
+  "_sobre": "Frases de cobertura de desastres e acidentes com intensidade de contexto (s01-s09, sem marcador) e uma que julga autoridades (s10, adjetivação extrema). Nenhuma expressão repete as citadas no prompt: mede generalização. Com o prompt de 09/10, 8 das 9 frases de contexto viravam adjetivação extrema. Teste: tests/integration/test_texto_lmstudio.py.",
+  "clean_text": "O temporal assustador derrubou centenas de árvores e deixou a cidade sem energia. Bombeiros enfrentaram um cenário de guerra no bairro atingido pela explosão. A barragem se rompeu e uma avalanche de lama destruiu completamente o distrito. O incêndio gigantesco consumiu quase todo o parque em poucas horas. Foi uma noite de terror para as famílias que perderam tudo na enchente. A seca devastadora é a pior dos últimos 90 anos, segundo o Cemaden. O terremoto brutal deixou um rastro de destruição sem precedentes. A enchente histórica atingiu todas as cidades do vale. O desabamento trágico matou 12 operários. As autoridades incompetentes não fizeram nada para evitar a catástrofe.",
+  "title": null,
+  "published_at": null,
+  "truncated": false,
+  "segments": [
+    {
+      "id": "s01",
+      "text": "O temporal assustador derrubou centenas de árvores e deixou a cidade sem energia."
+    },
+    {
+      "id": "s02",
+      "text": "Bombeiros enfrentaram um cenário de guerra no bairro atingido pela explosão."
+    },
+    {
+      "id": "s03",
+      "text": "A barragem se rompeu e uma avalanche de lama destruiu completamente o distrito."
+    },
+    {
+      "id": "s04",
+      "text": "O incêndio gigantesco consumiu quase todo o parque em poucas horas."
+    },
+    {
+      "id": "s05",
+      "text": "Foi uma noite de terror para as famílias que perderam tudo na enchente."
+    },
+    {
+      "id": "s06",
+      "text": "A seca devastadora é a pior dos últimos 90 anos, segundo o Cemaden."
+    },
+    {
+      "id": "s07",
+      "text": "O terremoto brutal deixou um rastro de destruição sem precedentes."
+    },
+    {
+      "id": "s08",
+      "text": "A enchente histórica atingiu todas as cidades do vale."
+    },
+    {
+      "id": "s09",
+      "text": "O desabamento trágico matou 12 operários."
+    },
+    {
+      "id": "s10",
+      "text": "As autoridades incompetentes não fizeram nada para evitar a catástrofe."
+    }
+  ]
+}

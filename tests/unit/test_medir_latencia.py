@@ -4,7 +4,8 @@ from pathlib import Path
 
 import pytest
 
-from src.medicao import Execucao
+from src.pipeline.medicao import Execucao
+from src.state import PipelineState, initial_state
 
 _SCRIPT = Path(__file__).resolve().parents[2] / "eval" / "medir_latencia.py"
 _spec = importlib.util.spec_from_file_location("medir_latencia", _SCRIPT)
@@ -27,8 +28,9 @@ def test_percentil_sem_valores():
 
 
 def test_resumir_por_no_e_total():
-    e1 = Execucao(None, {}, {"ingestor": 1.0, "sintetizador": 3.0}, 10.0, None)
-    e2 = Execucao(None, {}, {"ingestor": 2.0, "sintetizador": 5.0}, 20.0, None)
+    estado = PipelineState.model_validate(initial_state("Texto qualquer."))
+    e1 = Execucao(estado, {}, {"ingestor": 1.0, "sintetizador": 3.0}, 10.0, None)
+    e2 = Execucao(estado, {}, {"ingestor": 2.0, "sintetizador": 5.0}, 20.0, None)
 
     r = ml.resumir([e1, e2])
 
@@ -58,9 +60,32 @@ def test_aquecimento_nao_entra_na_medicao():
     assert all(isinstance(e, Execucao) for _, e in medidas)
 
 
-def test_entradas_padrao_tem_o_mamao_e_o_carrefour():
+def execucao(avisos):
+    estado = PipelineState.model_validate(initial_state("Texto qualquer.", warnings=list(avisos)))
+    return Execucao(estado, {}, {"ingestor": 1.0}, 10.0, None)
+
+
+def test_resumir_conta_avisos_por_prefixo():
+    execs = [execucao(avisos=["texto: saída inválida após 1 retry", "sintetizador: síntese livre reprovada"]),
+             execucao(avisos=[]), execucao(avisos=["texto: timeout"])]
+    assert ml.resumir(execs)["avisos"] == {"execucoes_com_aviso": 2, "por_prefixo": {"texto": 2, "sintetizador": 1}}
+
+
+def test_entradas_padrao_tem_o_mamao_o_carrefour_e_a_noticia_longa():
     import json
 
     entradas = json.loads((_SCRIPT.parent / "entradas_latencia.json").read_text(encoding="utf-8"))
-    assert [e["nome"] for e in entradas] == ["mamao_dengue", "carrefour_osasco"]
+    assert [e["nome"] for e in entradas] == ["mamao_dengue", "carrefour_osasco", "noticia_longa"]
     assert all(e["texto"].strip() for e in entradas)
+
+
+def test_noticia_longa_repete_tres_vezes_o_bloco_do_spec():
+    import json
+
+    raiz = _SCRIPT.parents[1]
+    entradas = {e["nome"]: e["texto"] for e in
+                json.loads((_SCRIPT.parent / "entradas_latencia.json").read_text(encoding="utf-8"))}
+    desastre = json.loads((raiz / "tests/fixtures/bordas/texto_noticia_desastre.json").read_text(encoding="utf-8"))
+    bloco = " ".join([entradas["mamao_dengue"], entradas["carrefour_osasco"],
+                      *(s["text"] for s in desastre["segments"])])
+    assert entradas["noticia_longa"] == " ".join([bloco] * 3)

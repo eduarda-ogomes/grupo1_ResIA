@@ -277,3 +277,23 @@ def test_span_de_download_marca_paywall(spans, monkeypatch):
     baixar = next(s for s in spans.get_finished_spans() if s.name == "ingestor.baixar")
     assert baixar.attributes["pipeline.ok"] is False
     assert baixar.attributes["pipeline.url"] == "https://exemplo-jornal.com.br/materia-fechada"
+
+
+# --- modelo do spaCy ausente (deploy na nuvem) ---
+
+def test_sem_o_modelo_segmenta_com_o_sentencizer_e_nao_chama_o_pip(monkeypatch):
+    def sem_modelo(nome):
+        raise OSError("[E050] Can't find model 'pt_core_news_sm'")
+
+    def pip_proibido(*a, **k):
+        raise AssertionError("o Ingestor não pode instalar pacotes durante a análise")
+
+    monkeypatch.setattr(ingestor, "nlp", None)
+    monkeypatch.setattr(ingestor, "modelo_ausente", False)
+    monkeypatch.setattr(ingestor.spacy, "load", sem_modelo)
+    monkeypatch.setattr(ingestor.spacy.cli, "download", pip_proibido)
+
+    result = run_node("Primeira frase. Segunda frase! Terceira frase?")
+
+    assert [s.text for s in result["segments"]] == ["Primeira frase.", "Segunda frase!", "Terceira frase?"]
+    assert result["warnings"] == [ingestor.WARN_MODELO_AUSENTE]

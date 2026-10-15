@@ -9,6 +9,7 @@ def test_initial_state_valida_no_schema_estrito():
     assert state.warnings == []
     assert state.evidence is None
     assert state.dossier is None
+    assert state.argument is None
 
 
 def test_initial_state_aceita_sobrescritas():

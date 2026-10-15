@@ -4,22 +4,34 @@
 
 ## O que faz
 
-Junta os três ramos (Evidências, Texto, Socrático) num dossiê em Markdown, sem veredito. A decisão final é do usuário.
+Junta os ramos (Evidências, Texto, Socrático) num dossiê em Markdown, sem veredito. A decisão final é do usuário.
+
+O nó **`sintetizador`** (`sintetizador_node`, em `src/agents/synthesizer/agent.py`) só monta o dossiê, sem LLM. Espera Evidências, Texto e Socrático (fan-in: roda uma vez só).
+
+As linhas de "Como o texto argumenta" chegam prontas em `state.argument`. Desde 15/10 ([spec](../superpowers/specs/2026-10-15-agentes-em-paralelo-design.md)), quem as escreve é o passo final do Agente de Texto (`argumento_node`, em `src/agents/argumento.py`), com o `qwen2.5-7b`; antes era um nó próprio, o `agente_argumento`.
+
+```
+ingestor ─┬─→ agente_evidencias ─┐
+          ├─→ agente_texto ──────┼─→ sintetizador → END
+          └─→ agente_socratico ──┘
+```
 
 Seis seções, nesta ordem (pirâmide invertida: o tamanho do problema primeiro, as referências por último). Texto exato, regras de singular/plural e casos degradados: [`docs/superpowers/specs/2026-10-08-dossie-final-design.md`](../superpowers/specs/2026-10-08-dossie-final-design.md).
 
 | # | Seção | Quem escreve | Arquivo |
 | --- | --- | --- | --- |
-| 1 | `## Resumo` | Código, só contagens | `src/agents/dossie.py` |
-| 2 | `## O que as checagens dizem` | Código, com legenda e referências numeradas | `src/agents/dossie.py` |
-| 3 | `## Como o texto argumenta` | `qwen2.5-7b`, com fallback em código (só o `$` é escapado, depois dos guardrails) | `src/agents/synthesizer.py` |
-| 4 | `## Perguntas para pensar antes de decidir` | Código (copia o Socrático, com Markdown escapado) | `src/agents/dossie.py` |
-| 5 | `## Limites desta análise` | Código, sempre presente | `src/agents/dossie.py` |
-| 6 | `## Fontes` | Código; só aparece quando há evidência | `src/agents/dossie.py` |
+| 1 | `## Resumo` | Código, só contagens | `src/agents/synthesizer/dossie.py` |
+| 2 | `## O que as checagens dizem` | Código, com legenda e referências numeradas | `src/agents/synthesizer/dossie.py` |
+| 3 | `## Como o texto argumenta` | Agente de Texto, passo do argumento (`qwen2.5-7b`), com fallback em código (o efeito passa por `escapar_markdown` e o trecho por `texto_seguro`, depois dos guardrails); o `sintetizador` põe o título e as linhas de `state.argument` | `src/agents/argumento.py` |
+| 4 | `## Perguntas para pensar antes de decidir` | Código (copia o Socrático, com Markdown escapado) | `src/agents/synthesizer/dossie.py` |
+| 5 | `## Limites desta análise` | Código, sempre presente | `src/agents/synthesizer/dossie.py` |
+| 6 | `## Fontes` | Código; só aparece quando há evidência | `src/agents/synthesizer/dossie.py` |
 
 ## Contrato
 
-`sintetizador_node(state) -> {"dossier": str}`, mais `"warnings"` só quando o problema é do próprio Sintetizador. Nunca devolve `dossier = None`.
+- `argumento_node(state) -> {"argument": list[str]}` (`src/agents/argumento.py`, chamado pelo `texto_node`), mais `"warnings"` só quando o problema é dele (modelo fora do ar ou reprovado nos guardrails). Sem marcadores e sem opinião, não chama o modelo.
+- `argumento_fallback(state) -> {"argument": list[str]}`: as linhas do fallback em código, sem LLM. O Sintetizador o usa quando `state.argument` não chegou.
+- `sintetizador_node(state) -> {"dossier": str}`: nunca chama o LLM e nunca devolve `dossier = None`. Usa `state.argument` ou, se for `None`, `argumento_fallback`. Só acrescenta `"warnings"` se a rede de segurança das citações remover uma linha.
 
 ## Guardrails (`src/guardrails/`)
 
@@ -30,8 +42,15 @@ Reprovou: 1 retry, nomeando o problema. Reprovou de novo, ou o LM Studio está f
 
 ## Avisos próprios
 
+Do passo do argumento (no Agente de Texto; o prefixo `sintetizador:` ficou de quando era deste agente):
+
 - `sintetizador: falha ao chamar o modelo (o LM Studio está rodando?)`
-- `sintetizador: síntese livre reprovada nos guardrails após 1 retry`
+- `sintetizador: efeito do argumento reprovado nos guardrails após 1 retry`
+- `sintetizador: saída inválida após 1 retry` (a saída estruturada do modelo não bateu com o schema)
+- `sintetizador: erro inesperado no efeito dos marcadores; seção sem efeito` (um bug no passo do argumento; a classificação do Texto é mantida)
+
+Do `sintetizador` (montagem):
+
 - `sintetizador: citação removida (URL fora das evidências)`
 
 Ramo anterior que falhou não gera aviso do Sintetizador: o dossiê declara a ausência ("Não foi possível consultar o banco de checagens nesta análise.").
@@ -45,5 +64,5 @@ Ramo anterior que falhou não gera aviso do Sintetizador: o dossiê declara a au
 
 - O filtro por lista não pega paráfrases de veredito.
 - Links que vêm da notícia (frases e trechos de marcador e de checagem) aparecem como `[link]`: nunca viram citação no dossiê nem chegam ao LLM.
-- Se o grafo corta o Sintetizador por tempo, `dossie_sem_modelo` entrega o dossiê com a seção do argumento em fallback (aviso `sintetizador: timeout`).
+- O tempo do Agente de Texto inclui o efeito dos marcadores. Se o grafo corta o Texto por tempo (aviso `texto: timeout`), `text_report` e `argument` ficam `None` e a seção diz "Não foi possível analisar a estrutura do texto.".
 - As perguntas socráticas não são reordenadas.

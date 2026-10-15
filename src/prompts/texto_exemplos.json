@@ -52,5 +52,24 @@
       ],
       "markers": []
     }
+  },
+  {
+    "entrada": [
+      {"id": "s01", "text": "O temporal violento derrubou pontes e deixou 30 mil pessoas desalojadas, segundo a Defesa Civil."},
+      {"id": "s02", "text": "Moradores relataram estragos impressionantes em toda a região central."},
+      {"id": "s03", "text": "É a maior cheia já registrada no rio, segundo a Defesa Civil."},
+      {"id": "s04", "text": "O prefeito irresponsável abandonou a população à própria sorte."}
+    ],
+    "saida": {
+      "statements": [
+        {"segment_id": "s01", "kind": "factual"},
+        {"segment_id": "s02", "kind": "factual"},
+        {"segment_id": "s03", "kind": "factual"},
+        {"segment_id": "s04", "kind": "valor"}
+      ],
+      "markers": [
+        {"type": "adjetivacao_extrema", "segment_id": "s04", "excerpt": "prefeito irresponsável", "explanation": "Adjetivo que julga uma autoridade, não descreve o fato."}
+      ]
+    }
   }
 ]

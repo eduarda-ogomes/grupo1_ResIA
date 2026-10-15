@@ -25,7 +25,7 @@ Os arquivos seguem o schema do State (Manual §3.3), em ordem de execução:
 
 ## Como usar
 
-- **Stubs (`src/stubs/`):** cada stub pode simplesmente carregar o `0X_..._saida.json` do próprio agente e devolvê-lo.
+- **Stubs (`tests/stubs/`):** cada stub pode simplesmente carregar o `0X_..._saida.json` do próprio agente e devolvê-lo.
 - **Testes de contrato (`tests/contract/`):** alimente o agente com a entrada do arquivo anterior e valide a saída contra o schema Pydantic. O conteúdo exato não precisa bater para agentes com LLM; o formato, sim.
 
 ## Casos de borda: `bordas/`

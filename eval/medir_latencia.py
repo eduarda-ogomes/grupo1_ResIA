@@ -21,7 +21,7 @@ from pathlib import Path
 RAIZ = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(RAIZ))
 
-from src.medicao import Execucao, executar  # noqa: E402
+from src.pipeline.medicao import Execucao, executar  # noqa: E402
 from src.state import initial_state  # noqa: E402
 
 META_P50_S = 180  # Manual §7.1: p50 ponta a ponta abaixo de 3 min
@@ -45,9 +45,16 @@ def resumir(execucoes: list[Execucao]) -> dict:
     for e in execucoes:
         for no, segundos in e.duracao_por_no.items():
             por_no.setdefault(no, []).append(segundos)
+    por_prefixo: dict[str, int] = {}
+    for e in execucoes:
+        for aviso in e.estado.warnings:
+            prefixo = aviso.split(":", 1)[0]
+            por_prefixo[prefixo] = por_prefixo.get(prefixo, 0) + 1
     return {
         "total": _estatisticas([e.total for e in execucoes]),
         "por_no": {no: _estatisticas(valores) for no, valores in por_no.items()},
+        "avisos": {"execucoes_com_aviso": sum(1 for e in execucoes if e.estado.warnings),
+                   "por_prefixo": por_prefixo},
     }
 
 
@@ -68,8 +75,8 @@ def main() -> None:
                         default=RAIZ / "eval" / "resultados" / f"latencia_{date.today().isoformat()}.json")
     args = parser.parse_args()
 
-    from src.graph import sistema_multiagente
-    from src.observabilidade import configurar_tracing
+    from src.pipeline.graph import sistema_multiagente
+    from src.services.observabilidade import configurar_tracing
     from src.services.llm import LOCAL_MODEL
 
     configurar_tracing()

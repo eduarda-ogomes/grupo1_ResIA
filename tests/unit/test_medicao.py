@@ -10,9 +10,8 @@ EVENTOS = [
     {"ingestor": {"clean_text": "Uma frase.", "segments": [{"id": "s01", "text": "Uma frase."}],
                   "warnings": ["ingestor: x"]}},
     {"agente_evidencias": {"evidence": []}},
-    {"agente_texto": {"text_report": None, "warnings": ["texto: z"]}},
     {"agente_socratico": {"socratic_questions": None, "warnings": ["socrático: y"]}},
-    {"agente_argumento": {"argument": ["- x"]}},
+    {"agente_texto": {"text_report": None, "argument": None, "warnings": ["texto: z"]}},
     {"sintetizador": {"dossier": "## Limites desta análise"}},
 ]
 
@@ -31,13 +30,13 @@ def relogio(*tempos):
 
 
 def executar_falso(**kwargs):
-    return medicao.executar(GrafoFalso(EVENTOS), initial_state("Uma frase."), relogio=relogio(0, 1, 3, 9, 12, 14, 15), **kwargs)
+    return medicao.executar(GrafoFalso(EVENTOS), initial_state("Uma frase."), relogio=relogio(0, 1, 3, 9, 14, 15), **kwargs)
 
 
 def test_junta_o_estado_e_soma_os_avisos():
     e = executar_falso()
 
-    assert e.estado.warnings == ["ingestor: x", "texto: z", "socrático: y"]
+    assert e.estado.warnings == ["ingestor: x", "socrático: y", "texto: z"]
     assert e.estado.dossier == "## Limites desta análise"
     assert e.estado.segments[0].text == "Uma frase."
 
@@ -45,24 +44,23 @@ def test_junta_o_estado_e_soma_os_avisos():
 def test_duracoes_respeitam_o_paralelismo():
     e = executar_falso()
 
-    assert e.duracao_por_no == {"ingestor": 1, "agente_evidencias": 2, "agente_texto": 8,
-                                "agente_socratico": 3, "agente_argumento": 5, "sintetizador": 1}
-    assert e.fim_por_no["agente_texto"] == 9
+    assert e.duracao_por_no == {"ingestor": 1, "agente_evidencias": 2, "agente_socratico": 8,
+                                "agente_texto": 13, "sintetizador": 1}
+    assert e.fim_por_no["agente_texto"] == 14
     assert e.total == 15
 
 
 def test_duracoes_seguem_os_predecessores():
-    fim = {"ingestor": 1.0, "agente_evidencias": 2.0, "agente_texto": 10.0,
-           "agente_argumento": 15.0, "agente_socratico": 14.0, "sintetizador": 15.1}
+    fim = {"ingestor": 1.0, "agente_evidencias": 2.0, "agente_texto": 15.0,
+           "agente_socratico": 8.0, "sintetizador": 15.1}
 
-    assert medicao.duracoes(fim) == pytest.approx({"ingestor": 1.0, "agente_evidencias": 1.0, "agente_texto": 9.0,
-                                                   "agente_argumento": 5.0, "agente_socratico": 4.0,
-                                                   "sintetizador": 0.1})
+    assert medicao.duracoes(fim) == pytest.approx({"ingestor": 1.0, "agente_evidencias": 1.0, "agente_texto": 14.0,
+                                                   "agente_socratico": 7.0, "sintetizador": 0.1})
 
 
 def test_duracoes_ignoram_predecessor_ausente():
-    # texto não reportou: sem predecessor presente, o argumento conta a partir de 0
-    assert medicao.duracoes({"ingestor": 1.0, "agente_argumento": 4.0}) == {"ingestor": 1.0, "agente_argumento": 4.0}
+    # o ingestor não reportou: sem predecessor presente, o texto conta a partir de 0
+    assert medicao.duracoes({"agente_texto": 4.0}) == {"agente_texto": 4.0}
 
 
 def test_avisa_cada_no_que_termina():
@@ -70,8 +68,8 @@ def test_avisa_cada_no_que_termina():
 
     executar_falso(ao_terminar_no=lambda no, segundos, avisos: vistos.append((no, segundos, avisos)))
 
-    assert vistos == [("ingestor", 1, ["ingestor: x"]), ("agente_evidencias", 3, []), ("agente_texto", 9, ["texto: z"]),
-                      ("agente_socratico", 12, ["socrático: y"]), ("agente_argumento", 14, []), ("sintetizador", 15, [])]
+    assert vistos == [("ingestor", 1, ["ingestor: x"]), ("agente_evidencias", 3, []),
+                      ("agente_socratico", 9, ["socrático: y"]), ("agente_texto", 14, ["texto: z"]), ("sintetizador", 15, [])]
 
 
 def test_span_raiz_analise_com_atributos(spans, monkeypatch):
@@ -86,7 +84,7 @@ def test_span_raiz_analise_com_atributos(spans, monkeypatch):
     assert raiz.attributes["pipeline.frases"] == 2
     assert e.trace_id == format(raiz.context.trace_id, "032x")
     nos = [s for s in finalizados if s.name.startswith("no.")]
-    assert len(nos) == 6
+    assert len(nos) == len(graph.ORDEM_NOS) == 5
     assert all(s.context.trace_id == raiz.context.trace_id for s in nos)
 
 

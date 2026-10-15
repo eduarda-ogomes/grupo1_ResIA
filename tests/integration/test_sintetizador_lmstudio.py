@@ -1,4 +1,4 @@
-"""Roda o agente_argumento e o Sintetizador contra o qwen2.5-7b de verdade, no caso do mamão.
+"""Roda o passo do argumento (Agente de Texto) e o Sintetizador contra o qwen2.5-7b de verdade, no caso do mamão.
 
 Não roda no CI. Rode da raiz, com o LM Studio ligado:
     pytest tests/integration/test_sintetizador_lmstudio.py -v -s
@@ -12,7 +12,8 @@ import pytest
 import requests
 
 from src.agents.synthesizer import dossie
-from src.agents.synthesizer.agent import argumento_node, sintetizador_node
+from src.agents.argumento import argumento_node
+from src.agents.synthesizer.agent import sintetizador_node
 from src.guardrails.citacoes import extrair_urls
 from src.guardrails.veredito import termos_de_veredito
 from src.state import PipelineState

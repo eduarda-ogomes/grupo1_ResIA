@@ -1,0 +1,13 @@
+{
+  "_sobre": "Notícia de desastre com intensidade de contexto (não é marcador) e um adjetivo que julga uma instituição (é adjetivação extrema). Teste: tests/integration/test_texto_lmstudio.py.",
+  "clean_text": "A chuva histórica que atingiu o litoral norte neste domingo provocou deslizamentos e deixou 48 mortos, segundo a Defesa Civil. Moradores descreveram um cenário devastador, com bairros inteiros cobertos de lama. A tragédia é a maior já registrada na cidade. A prefeitura criminosa ignorou todos os alertas de risco.",
+  "title": null,
+  "published_at": null,
+  "truncated": false,
+  "segments": [
+    {"id": "s01", "text": "A chuva histórica que atingiu o litoral norte neste domingo provocou deslizamentos e deixou 48 mortos, segundo a Defesa Civil."},
+    {"id": "s02", "text": "Moradores descreveram um cenário devastador, com bairros inteiros cobertos de lama."},
+    {"id": "s03", "text": "A tragédia é a maior já registrada na cidade."},
+    {"id": "s04", "text": "A prefeitura criminosa ignorou todos os alertas de risco."}
+  ]
+}

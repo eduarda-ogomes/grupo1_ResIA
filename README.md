@@ -28,22 +28,21 @@ A especificação completa está no [Manual do Sistema Multiagente](docs/Manual%
 
 ## 🧠 Arquitetura
 
-O grafo é orquestrado com **LangGraph** (`src/pipeline/graph.py`) e tem seis nós. O Ingestor abre dois ramos (Evidências e Texto); quando o Texto termina, o `agente_argumento` e o Socrático rodam em paralelo; o Sintetizador espera os três ramos e monta o dossiê.
+O grafo é orquestrado com **LangGraph** (`src/pipeline/graph.py`) e tem cinco nós, um por agente. O Ingestor abre três ramos que rodam em paralelo (Evidências, Texto e Socrático); o Sintetizador espera os três e monta o dossiê.
 
 ```text
 Entrada (texto ou URL)
-  └─ ingestor ─┬─→ agente_evidencias ──────────────────────────┐
-               └─→ agente_texto ─┬─→ agente_argumento ─────────┼─→ sintetizador → dossiê
-                                 └─→ agente_socratico ─────────┘
+  └─ ingestor ─┬─→ agente_evidencias ─┐
+               ├─→ agente_texto ──────┼─→ sintetizador → dossiê
+               └─→ agente_socratico ──┘
 ```
 
 | Nó | O que faz | Técnica / modelo | Código |
 | --- | --- | --- | --- |
 | 📥 **Ingestor** | Baixa a página (Trafilatura), remove ruído (avisos, rodapé, "publicidade"), trunca em 5.000 palavras e divide o texto em frases numeradas (`s01`, `s02`…). | spaCy `pt_core_news_sm`, sem LLM | `src/agents/ingestor.py` |
 | 🔍 **Evidências** | Para cada frase, procura checagens já publicadas sobre a **mesma alegação** e devolve o que a agência concluiu (*apoia*, *contradiz* ou *insuficiente*), com título e link. | RAG: BGE-M3 + ChromaDB → termos-chave → NLI (mDeBERTa-v3), sem LLM | `src/agents/evidence.py`, `src/retrieval/` |
-| 📝 **Texto** | Classifica cada frase como `factual` ou `valor` e aponta marcadores de retórica: adjetivação extrema, urgência artificial, apelo à autoridade, falsa dicotomia e generalização. | `qwen2.5-7b` com *few-shot* contrastivo e JSON Schema, lotes de 15 frases em paralelo | `src/agents/text_analysis.py` |
-| 💬 **Argumento** | Escreve o efeito de cada marcador na seção "Como o texto argumenta"; o rótulo e o trecho literal vêm do código. Tem *fallback* em código se o LLM falhar. | `qwen2.5-7b` + guardrails | `src/agents/synthesizer/agent.py` |
-| 🤔 **Socrático** | Formula de 2 a 3 perguntas reflexivas e não indutivas (maiêutica) a partir de um resumo da notícia. | `qwen2.5-7b` + validação de ancoragem | `src/agents/socratic.py` |
+| 📝 **Texto** | Classifica cada frase como `factual` ou `valor` e aponta marcadores de retórica: adjetivação extrema, urgência artificial, apelo à autoridade, falsa dicotomia e generalização. Em notícias de desastre, a intensidade que descreve o evento não é marcador. Por fim, escreve o efeito de cada marcador para "Como o texto argumenta" (o rótulo e o trecho literal vêm do código). | `qwen2.5-7b` com *few-shot* contrastivo e JSON Schema, lotes de 15 frases em paralelo; efeito com guardrails | `src/agents/text_analysis.py`, `src/agents/argumento.py` |
+| 🤔 **Socrático** | Formula de 2 a 3 perguntas reflexivas e não indutivas (maiêutica) a partir do título e das primeiras frases da notícia. | `qwen2.5-7b` + validação de ancoragem | `src/agents/socratic.py` |
 | 📊 **Sintetizador** | Junta tudo num dossiê em Markdown, sem veredito. Não chama LLM e nunca devolve dossiê vazio. | Só código | `src/agents/synthesizer/agent.py`, `src/agents/synthesizer/dossie.py` |
 
 O estado compartilhado (`src/state.py`) é estrito: a entrada é sempre criada com `initial_state("texto ou URL")`. O `segment_id` de cada frase é o contrato que permite ao Sintetizador cruzar "esta frase é factual" (Texto) com "esta frase tem checagem que a contradiz" (Evidências).
@@ -102,9 +101,10 @@ grupo1_ResIA/
 │   │   ├── ingestor.py
 │   │   ├── evidence.py
 │   │   ├── text_analysis.py
+│   │   ├── argumento.py        # Efeito dos marcadores (passo final do Texto)
 │   │   ├── socratic.py
 │   │   └── synthesizer/
-│   │       ├── agent.py        # Nós agente_argumento e sintetizador
+│   │       ├── agent.py        # Nó sintetizador (só código)
 │   │       └── dossie.py       # Seções do dossiê escritas pelo código
 │   ├── retrieval/              # Índice ChromaDB, embeddings, NLI e etapa "mesma alegação" (compartilhado)
 │   ├── guardrails/             # Veredito, citações e ancoragem
@@ -213,16 +213,16 @@ Cada nó tem um limite de tempo (`src/pipeline/protecao.py`). Se um nó estoura 
 | --- | --- | --- |
 | Ingestor | 60 s | `GRAFO_TIMEOUT_INGESTOR` |
 | Evidências, Texto, Socrático (cada um) | 240 s | `GRAFO_TIMEOUT_RAMO` |
-| Sintetizador e `agente_argumento` (cada um) | 180 s | `GRAFO_TIMEOUT_SINTETIZADOR` |
+| Sintetizador | 180 s | `GRAFO_TIMEOUT_SINTETIZADOR` |
 
-Um nó que estoura o tempo não é interrompido: ele segue rodando em segundo plano até terminar, o que pode deixar a análise seguinte mais lenta. Se o `agente_argumento` estourar o tempo, "Como o texto argumenta" vem do *fallback* em código (rótulo e trecho literal, sem o efeito).
+Um nó que estoura o tempo não é interrompido: ele segue rodando em segundo plano até terminar, o que pode deixar a análise seguinte mais lenta. O tempo do Texto inclui o efeito dos marcadores; se ele estourar, o dossiê sai sem "Como o texto argumenta" ("Não foi possível analisar a estrutura do texto.").
 
 ### Variáveis de ambiente
 
 | Variável | Padrão | Para quê |
 | --- | --- | --- |
 | `LLM_MODEL` | `qwen2.5-7b` | Identificador do modelo no LM Studio |
-| `TEXTO_PARALELISMO` | `2` | Lotes que o Agente de Texto manda ao LM Studio ao mesmo tempo. Só ganha se o modelo estiver carregado com "Max Concurrent Predictions" ≥ o valor |
+| `TEXTO_PARALELISMO` | `2` | Lotes que o Agente de Texto manda ao LM Studio ao mesmo tempo. O Socrático roda ao mesmo tempo, então só ganha se o modelo estiver carregado com "Max Concurrent Predictions" ≥ o valor + 1 |
 | `PHOENIX_TRACING` | desligado | `1` liga os traces no Phoenix |
 | `PHOENIX_COLLECTOR_ENDPOINT` | `http://localhost:6006` | Endereço do Phoenix |
 | `EVIDENCE_CHROMA_PATH` | `chroma_data/` | Pasta do índice |
@@ -247,7 +247,7 @@ PHOENIX_TRACING=1 LLM_MODEL=<id> streamlit run app/app.py
 No projeto `grupo1-resia` do Phoenix, cada análise aparece como um trace com:
 
 - `analise` (raiz): tipo de entrada, número de frases, avisos e tempo total;
-- um span por nó (`no.ingestor`, `no.evidencias`, `no.texto`, `no.argumento`, `no.socratico`, `no.sintetizador`) com o resultado (`ok`, `timeout` ou `erro`) e os avisos;
+- um span por nó (`no.ingestor`, `no.evidencias`, `no.texto`, `no.socratico`, `no.sintetizador`; as chamadas de LLM do efeito dos marcadores ficam dentro de `no.texto`) com o resultado (`ok`, `timeout` ou `erro`) e os avisos;
 - as chamadas ao LLM (`ChatOpenAI`) com prompt, resposta, tokens e tempo;
 - as etapas do Ingestor (`ingestor.baixar`, `ingestor.segmentar`) e do Evidências (`evidencias.busca`, `evidencias.termos_chave`, `evidencias.nli`) com as contagens.
 

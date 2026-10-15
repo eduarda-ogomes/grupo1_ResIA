@@ -1,6 +1,6 @@
 """Agente Socrático (R4): gera de 2 a 3 perguntas reflexivas sobre o argumento da notícia.
 
-Entrada: um resumo da notícia (título, abertura e frases factuais), validado contra state.clean_text. Saída: {"socratic_questions": list[str] | None, "warnings"?: [...]}.
+Entrada: um resumo da notícia (título e primeiras frases), validado contra state.clean_text. Roda em paralelo com o Agente de Texto, logo depois do Ingestor. Saída: {"socratic_questions": list[str] | None, "warnings"?: [...]}.
 Manual: §4.4 (especificação), §4.7 (rejeição de indutivas, degradação graciosa).
 """
 import json
@@ -24,7 +24,6 @@ WARN_SAIDA_INVALIDA = "socrático: saída inválida após 1 retry"
 WARN_MODELO_INDISPONIVEL = "socrático: falha ao chamar o modelo (o servidor de LLM está rodando?)"
 
 LIMITE_PALAVRAS_SOCRATICO = 400
-FRASES_INICIAIS_SOCRATICO = 3
 
 # Padrões compilados para validação rápida e limpa
 RE_INDUTIVO = re.compile(
@@ -108,20 +107,13 @@ def validar_perguntas(perguntas: list[str], clean_text: str) -> list[str]:
 
 
 def resumo_para_socratico(state: PipelineState) -> str:
-    """Resume a notícia para o modelo: título, abertura e frases factuais, em até 400 palavras.
+    """Resume a notícia para o modelo: título e as frases em ordem, em até 400 palavras.
 
-    O título entra numa linha própria, exceto o título padrão de texto colado. Depois vêm, na ordem do
-    texto e sem repetir, as 3 primeiras frases e as classificadas como factuais, unidas por espaço. O corte
-    é em fim de frase e o título conta no limite. Sem `text_report`, entram as frases em ordem até o limite.
+    O título entra numa linha própria, exceto o título padrão de texto colado. Depois vêm as frases, na
+    ordem do texto, unidas por espaço. O corte é em fim de frase e o título conta no limite. O Socrático
+    roda em paralelo com o Agente de Texto, então não usa a classificação das frases.
     """
-    frases = state.segments or ([Segment(id="s01", text=state.clean_text.strip())] if state.clean_text.strip() else [])
-
-    if state.text_report is None:
-        escolhidas = frases
-    else:
-        ids = {s.segment_id for s in state.text_report.statements if s.kind == "factual"}
-        ids |= {f.id for f in frases[:FRASES_INICIAIS_SOCRATICO]}
-        escolhidas = [f for f in frases if f.id in ids]
+    escolhidas = state.segments or ([Segment(id="s01", text=state.clean_text.strip())] if state.clean_text.strip() else [])
 
     titulo = (state.title or "").strip()
     if titulo == TITULO_TEXTO_COLADO:

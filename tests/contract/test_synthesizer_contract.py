@@ -1,5 +1,6 @@
 """Contrato do Sintetizador (Manual §9.4, regra 3): a saída mesclada valida no PipelineState."""
-from src.agents.synthesizer.agent import WARN_MODELO_INDISPONIVEL, argumento_node, sintetizador_node
+from src.agents.argumento import WARN_MODELO_INDISPONIVEL, argumento_node
+from src.agents.synthesizer.agent import sintetizador_node
 from src.state import PipelineState
 from tests import modelos_falsos as falsos
 

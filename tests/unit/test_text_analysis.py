@@ -13,6 +13,7 @@ from src.agents.text_analysis import (
     dividir_em_lotes,
     montar_mensagens,
     paralelismo,
+    classificar_frases,
     texto_node,
 )
 from src.state import PipelineState, Segment, TextReport, initial_state
@@ -134,7 +135,7 @@ def test_caminho_feliz_devolve_text_report(monkeypatch):
     modelo = ModeloFalso(json.dumps(RELATORIO_MAMAO))
     monkeypatch.setattr(text_analysis, "chamar_modelo", modelo)
 
-    resultado = texto_node(estado_mamao())
+    resultado = classificar_frases(estado_mamao())
 
     relatorio = resultado["text_report"]
     assert len(relatorio.statements) == 6
@@ -147,7 +148,7 @@ def test_resultado_encaixa_no_estado_estrito(monkeypatch):
     monkeypatch.setattr(text_analysis, "chamar_modelo", ModeloFalso(json.dumps(RELATORIO_MAMAO)))
     state = estado_mamao()
 
-    resultado = texto_node(state)
+    resultado = classificar_frases(state)
 
     dump = state.model_dump()
     dump.update(resultado)
@@ -158,7 +159,7 @@ def test_sem_segments_nao_chama_o_modelo(monkeypatch):
     modelo = ModeloFalso()
     monkeypatch.setattr(text_analysis, "chamar_modelo", modelo)
 
-    resultado = texto_node(estado([]))
+    resultado = classificar_frases(estado([]))
 
     assert resultado == {"text_report": None}
     assert modelo.chamadas == []
@@ -184,7 +185,7 @@ def test_texto_longo_faz_uma_chamada_por_lote_e_ignora_o_contexto(monkeypatch):
     modelo = ModeloFalsoLongo()
     monkeypatch.setattr(text_analysis, "chamar_modelo", modelo)
 
-    resultado = texto_node(estado(segmentos(20)))
+    resultado = classificar_frases(estado(segmentos(20)))
 
     # Use len(modelo.chamadas) as it will be exactly 2 for 2 batches
     assert len(modelo.chamadas) == 2
@@ -206,7 +207,7 @@ def test_marcador_com_trecho_inventado_ou_frase_inexistente_e_descartado(monkeyp
     ]
     monkeypatch.setattr(text_analysis, "chamar_modelo", ModeloFalso(json.dumps(relatorio)))
 
-    resultado = texto_node(estado_mamao())
+    resultado = classificar_frases(estado_mamao())
 
     assert len(resultado["text_report"].markers) == 6
 
@@ -217,7 +218,7 @@ def test_frase_sem_classificacao_nao_dispara_retry_pois_preenche(monkeypatch):
     modelo = ModeloFalso(json.dumps(incompleto), json.dumps(RELATORIO_MAMAO))
     monkeypatch.setattr(text_analysis, "chamar_modelo", modelo)
 
-    resultado = texto_node(estado_mamao())
+    resultado = classificar_frases(estado_mamao())
 
     # Com a nova otimização, o modelo não é penalizado por omitir uma frase.
     # A frase omitida é automaticamente assumida como 'factual'.
@@ -234,7 +235,7 @@ def test_kind_fora_do_schema_dispara_retry(monkeypatch):
     modelo = ModeloFalso(json.dumps(errado), json.dumps(RELATORIO_MAMAO))
     monkeypatch.setattr(text_analysis, "chamar_modelo", modelo)
 
-    resultado = texto_node(estado_mamao())
+    resultado = classificar_frases(estado_mamao())
 
     assert len(modelo.chamadas) == 2
     assert resultado["text_report"] is not None
@@ -246,7 +247,7 @@ def test_json_invalido_e_corrigido_no_retry(monkeypatch):
     modelo = ModeloFalso("isto não é JSON", json.dumps(RELATORIO_MAMAO))
     monkeypatch.setattr(text_analysis, "chamar_modelo", modelo)
 
-    resultado = texto_node(estado_mamao())
+    resultado = classificar_frases(estado_mamao())
 
     assert len(modelo.chamadas) == 2
     assert "rejeitada" in ultima_mensagem_usuario(modelo.chamadas[1])
@@ -258,7 +259,7 @@ def test_falha_apos_retry_segue_a_fixture_de_borda(monkeypatch):
     modelo = ModeloFalso("lixo", "{ainda lixo")
     monkeypatch.setattr(text_analysis, "chamar_modelo", modelo)
 
-    resultado = texto_node(estado_mamao())
+    resultado = classificar_frases(estado_mamao())
 
     assert resultado == {"text_report": None, "warnings": borda["warnings"]}
     assert borda["warnings"] == [WARN_SAIDA_INVALIDA]
@@ -269,7 +270,7 @@ def test_modelo_indisponivel_devolve_none_e_aviso_sem_retry(monkeypatch):
     modelo = ModeloFalso(ConnectionError("recusado"))
     monkeypatch.setattr(text_analysis, "chamar_modelo", modelo)
 
-    resultado = texto_node(estado_mamao())
+    resultado = classificar_frases(estado_mamao())
 
     assert resultado == {"text_report": None, "warnings": [WARN_MODELO_INDISPONIVEL]}
     assert len(modelo.chamadas) == 1
@@ -282,7 +283,7 @@ def test_resposta_dentro_de_bloco_markdown_e_aceita(monkeypatch):
     modelo = ModeloFalso(cercado)
     monkeypatch.setattr(text_analysis, "chamar_modelo", modelo)
 
-    resultado = texto_node(estado_mamao())
+    resultado = classificar_frases(estado_mamao())
 
     assert len(modelo.chamadas) == 1
     assert len(resultado["text_report"].statements) == 6
@@ -294,7 +295,7 @@ def test_marcador_com_trecho_vazio_e_descartado(monkeypatch):
     relatorio["markers"] = [{"type": "generalizacao", "segment_id": "s01", "excerpt": " ", "explanation": "x"}]
     monkeypatch.setattr(text_analysis, "chamar_modelo", ModeloFalso(json.dumps(relatorio)))
 
-    resultado = texto_node(estado_mamao())
+    resultado = classificar_frases(estado_mamao())
 
     assert resultado["text_report"].markers == []
 
@@ -302,7 +303,7 @@ def test_marcador_com_trecho_vazio_e_descartado(monkeypatch):
 def test_timeout_do_modelo_vira_aviso(monkeypatch):
     monkeypatch.setattr(text_analysis, "chamar_modelo", ModeloFalso(TimeoutError("120s")))
 
-    resultado = texto_node(estado_mamao())
+    resultado = classificar_frases(estado_mamao())
 
     assert resultado == {"text_report": None, "warnings": [WARN_MODELO_INDISPONIVEL]}
 
@@ -313,7 +314,7 @@ def test_frase_classificada_duas_vezes_fica_sem_classificacao(monkeypatch):
     duplicado = dict(RELATORIO_MAMAO, statements=[{"segment_id": "s01", "kind": "valor"}] + RELATORIO_MAMAO["statements"])
     monkeypatch.setattr(text_analysis, "chamar_modelo", ModeloFalso(json.dumps(duplicado), json.dumps(duplicado)))
 
-    resultado = texto_node(estado_mamao())
+    resultado = classificar_frases(estado_mamao())
 
     assert [st.segment_id for st in resultado["text_report"].statements] == ["s02", "s03", "s04", "s05", "s06"]
     assert resultado["warnings"] == [
@@ -345,7 +346,7 @@ def test_um_lote_ruim_nao_descarta_os_outros(monkeypatch):
     modelo = ModeloFalsoInteligente()
     monkeypatch.setattr(text_analysis, "chamar_modelo", modelo)
 
-    resultado = texto_node(estado(segmentos(20)))
+    resultado = classificar_frases(estado(segmentos(20)))
 
     assert [st.segment_id for st in resultado["text_report"].statements] == ids[:15]
     assert resultado["warnings"] == [
@@ -376,7 +377,7 @@ def test_modelo_cai_no_meio_mantem_os_lotes_prontos_e_para(monkeypatch):
     modelo = ModeloFalsoParalelo()
     monkeypatch.setattr(text_analysis, "chamar_modelo", modelo)
 
-    resultado = texto_node(estado(segmentos(35)))
+    resultado = classificar_frases(estado(segmentos(35)))
 
     # Since it runs in parallel, it might call the model 3 times instead of 2.
     # The important thing is that it handles the error gracefully.
@@ -393,7 +394,7 @@ def test_aviso_corta_frase_longa_para_caber_na_tela(monkeypatch):
     relatorio = relatorio_todos_factuais(["s01", "s02", "s02"])  # s02 duplicado
     monkeypatch.setattr(text_analysis, "chamar_modelo", ModeloFalso(relatorio, relatorio))
 
-    resultado = texto_node(estado(segs))
+    resultado = classificar_frases(estado(segs))
 
     aviso = resultado["warnings"][0]
     assert aviso.startswith('texto: 1 frase sem classificação (as demais foram analisadas): s02 "Palavra Palavra')
@@ -405,6 +406,14 @@ def test_prompt_tem_as_regras_de_desastre_e_fala_citada():
     prompt = carregar_prompt_sistema()
     assert "não são adjetivação extrema" in prompt
     assert "falas, notas ou declarações citadas" in prompt
+
+
+def test_ha_exemplo_de_desastre_com_contexto_sem_marcador_e_julgamento_marcado():
+    exemplos = [e for e in carregar_exemplos() if any("maior cheia" in s["text"] for s in e["entrada"])]
+    assert len(exemplos) == 1
+    entrada, markers = exemplos[0]["entrada"], exemplos[0]["saida"]["markers"]
+    julgamento = [s["id"] for s in entrada if "irresponsável" in s["text"]]
+    assert [(m["segment_id"], m["type"]) for m in markers] == [(julgamento[0], "adjetivacao_extrema")]
 
 
 def test_ha_exemplo_de_desastre_sem_marcadores():
@@ -433,7 +442,7 @@ def test_lotes_rodam_em_paralelo_e_mantem_a_ordem(monkeypatch):
 
     monkeypatch.setattr(text_analysis, "chamar_modelo", modelo_falso)
 
-    out = texto_node(estado(segmentos(45)))  # 45 frases → 3 lotes
+    out = classificar_frases(estado(segmentos(45)))  # 45 frases → 3 lotes
 
     assert estatisticas["pico"] == 2
     assert [st.segment_id for st in out["text_report"].statements] == [f"s{i:02d}" for i in range(1, 46)]
@@ -469,6 +478,76 @@ def test_texto_node_propaga_contextvars_para_os_workers(monkeypatch):
 
     monkeypatch.setattr(text_analysis, "chamar_modelo", modelo)
     var.set("rastro-ok")
-    texto_node(estado_mamao())
+    classificar_frases(estado_mamao())
 
     assert vistos and all(v == "rastro-ok" for v in vistos)
+
+
+# --- o argumento faz parte do Agente de Texto -------------------------------------------
+
+def _estado_texto_livre():
+    segmentos = [Segment(id="s01", text="O suco de mamão cura a dengue."), Segment(id="s02", text="Isso não tem comprovação.")]
+    return PipelineState(**initial_state("x", clean_text=" ".join(s.text for s in segmentos), segments=segmentos))
+
+
+def test_texto_node_classifica_e_escreve_o_argumento(monkeypatch):
+    from src.agents import argumento
+    from tests import modelos_falsos as falsos
+    monkeypatch.setattr(text_analysis, "chamar_modelo", falsos.texto_falso(falsos.RELATORIO_TEXTO_LIVRE))
+    falsos.SintetizadorFalso().instalar(monkeypatch)
+    state = _estado_texto_livre()
+
+    saida = texto_node(state)
+
+    assert saida["text_report"] == TextReport.model_validate(falsos.RELATORIO_TEXTO_LIVRE)
+    esperado = argumento.argumento_node(state.model_copy(update={"text_report": saida["text_report"]}))
+    assert saida["argument"] == esperado["argument"]
+    assert saida["argument"][0] == falsos.LINHA_SINTETIZADOR
+    assert "warnings" not in saida
+
+
+def test_avisos_do_argumento_vem_depois_dos_da_classificacao(monkeypatch):
+    from src.agents import argumento
+    from tests import modelos_falsos as falsos
+    s01_duas_vezes = [falsos.RELATORIO_TEXTO_LIVRE["statements"][0]] * 2 + falsos.RELATORIO_TEXTO_LIVRE["statements"][1:]
+    relatorio = dict(falsos.RELATORIO_TEXTO_LIVRE, statements=s01_duas_vezes)
+    monkeypatch.setattr(text_analysis, "chamar_modelo", falsos.texto_falso(relatorio))
+    # o modelo do argumento continua desligado pelo tests/conftest.py
+
+    saida = texto_node(_estado_texto_livre())
+
+    assert len(saida["warnings"]) == 2
+    assert saida["warnings"][0].startswith("texto: 1 frase sem classificação")
+    assert saida["warnings"][1] == argumento.WARN_MODELO_INDISPONIVEL
+    assert saida["argument"][0] == '- Adjetivação extrema: "cura a dengue"'
+
+
+def test_sem_classificacao_nao_ha_argumento(monkeypatch):
+    from tests import modelos_falsos as falsos
+    argumento_falso = falsos.SintetizadorFalso().instalar(monkeypatch)
+    # o modelo do Texto continua desligado pelo tests/conftest.py
+
+    saida = texto_node(_estado_texto_livre())
+
+    assert saida["text_report"] is None
+    assert "argument" not in saida
+    assert argumento_falso.prompts == []
+
+
+def test_erro_inesperado_no_argumento_mantem_a_classificacao(monkeypatch):
+    # Um bug no passo do argumento (ex.: nos guardrails) não pode levar a classificação junto
+    from src.agents import argumento
+    from tests import modelos_falsos as falsos
+    monkeypatch.setattr(text_analysis, "chamar_modelo", falsos.texto_falso(falsos.RELATORIO_TEXTO_LIVRE))
+    falsos.SintetizadorFalso().instalar(monkeypatch)
+
+    def quebra(*args, **kwargs):
+        raise IndexError("bug no guardrail")
+
+    monkeypatch.setattr(argumento, "avaliar_efeitos", quebra)
+
+    saida = texto_node(_estado_texto_livre())
+
+    assert saida["text_report"] == TextReport.model_validate(falsos.RELATORIO_TEXTO_LIVRE)
+    assert saida["argument"][0] == '- Adjetivação extrema: "cura a dengue"'   # fallback em código, sem efeito
+    assert saida["warnings"] == [argumento.WARN_ERRO_INESPERADO]

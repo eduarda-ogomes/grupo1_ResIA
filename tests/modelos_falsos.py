@@ -2,8 +2,7 @@
 import json
 from pathlib import Path
 
-from src.agents import evidence, socratic, text_analysis
-from src.agents.synthesizer import agent as synthesizer
+from src.agents import argumento, evidence, socratic, text_analysis
 
 FIXTURES_MAMAO = Path(__file__).resolve().parent / "fixtures" / "caso_mamao_dengue"
 
@@ -20,7 +19,7 @@ def carregar_mamao(nome: str) -> dict:
 
 
 class SintetizadorFalso:
-    """Substitui synthesizer.chamar_modelo: devolve as respostas na ordem (a última se repete)
+    """Substitui argumento.chamar_modelo: devolve as respostas na ordem (a última se repete)
     e guarda a mensagem do usuário de cada chamada. Uma resposta Exception é levantada."""
 
     def __init__(self, *respostas):
@@ -35,7 +34,7 @@ class SintetizadorFalso:
         return resposta
 
     def instalar(self, monkeypatch) -> "SintetizadorFalso":
-        monkeypatch.setattr(synthesizer, "chamar_modelo", self)
+        monkeypatch.setattr(argumento, "chamar_modelo", self)
         return self
 
 

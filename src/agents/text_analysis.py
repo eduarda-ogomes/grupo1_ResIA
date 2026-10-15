@@ -1,6 +1,9 @@
 """Agente de Texto (R3): mostra como o texto argumenta, sem julgar se é verdadeiro.
 
-Entrada: state.segments. Saída: {"text_report": TextReport | None, "warnings"?: [...]}.
+Entrada: state.segments. Saída: {"text_report": TextReport | None, "argument"?: list[str], "warnings"?: [...]}.
+
+Dois passos: `classificar_frases` (fato ou valor e marcadores, em lotes) e, quando alguma frase foi
+classificada, o efeito de cada marcador para "Como o texto argumenta" (src/agents/argumento.py).
 Manual: §4.3 (especificação), §4.7 (falha por lote após 1 retry), §3.5 (notícia é dado, não instrução).
 
 Falha por lote, não do texto inteiro: o que o modelo classificou fica, e as frases que
@@ -15,6 +18,7 @@ from pathlib import Path
 
 from pydantic import ValidationError
 
+from src.agents import argumento
 from src.services.llm import llm_texto
 from src.state import PipelineState, Segment, TextReport, Statement
 
@@ -194,7 +198,7 @@ def analisar_lote(contexto: list[Segment], alvo: list[Segment]) -> tuple[TextRep
     return melhor
 
 
-def texto_node(state: PipelineState) -> dict:
+def classificar_frases(state: PipelineState) -> dict:
     if not state.segments:
         return {"text_report": None}
 
@@ -234,6 +238,23 @@ def texto_node(state: PipelineState) -> dict:
     if sem_classificacao:
         avisos.append(aviso_frases_sem_classificacao(sem_classificacao))
     resultado = {"text_report": TextReport(statements=statements, markers=markers)}
+    if avisos:
+        resultado["warnings"] = avisos
+    return resultado
+
+
+def texto_node(state: PipelineState) -> dict:
+    """Nó `agente_texto`: classifica as frases e, se alguma foi classificada, escreve o argumento.
+
+    Os avisos da classificação vêm antes dos do argumento. Sem classificação, `argument` não é
+    preenchido e o Sintetizador usa o fallback em código.
+    """
+    saida = classificar_frases(state)
+    if saida["text_report"] is None:
+        return saida
+    passo = argumento.argumento_sem_derrubar_o_texto(state.model_copy(update={"text_report": saida["text_report"]}))
+    avisos = saida.get("warnings", []) + passo.get("warnings", [])
+    resultado = {"text_report": saida["text_report"], "argument": passo["argument"]}
     if avisos:
         resultado["warnings"] = avisos
     return resultado

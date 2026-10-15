@@ -15,10 +15,9 @@ Analise CADA frase dentro de <frases_para_analisar>.
    - "falsa_dicotomia": apresenta só duas opções quando há outras ("ou você faz X, ou Y").
    - "generalizacao": atribui algo a um grupo inteiro sem base ("os médicos escondem", "todo mundo sabe").
 
-**IMPORTANTE PARA ECONOMIZAR TOKENS:** 
-- NÃO inclua na lista `statements` as frases que forem puramente "factual".
-- Retorne em `statements` APENAS as frases que forem do tipo "valor".
-- As frases omitidas em `statements` serão automaticamente consideradas "factual" pelo sistema.
+Classifique TODAS as frases de <frases_para_analisar> em `statements`, cada uma exatamente uma vez, com "factual" ou "valor".
+
+Uma frase que afirma algo checável é "factual" mesmo quando é falsa, exagerada ou tem marcadores: `kind` e `markers` são independentes. Só é "valor" a frase que não dá para checar. Para decidir, pergunte: uma agência de checagem poderia verificar esta frase? Se sim, é "factual". Afirmações sobre saúde, curas, números, leis, o que alguém disse ou fez são "factual", mesmo num texto alarmista.
 
 ## Regras
 

@@ -42,7 +42,7 @@ run(state) -> {
 | `src/prompts/socratico_sistema.md` | System prompt de maiêutica versionado em arquivo (Manual §5.5). |
 | `src/prompts/socratico_exemplos.json` | Exemplos few-shot para guiar a estrutura e tom do modelo. |
 | `src/agents/socratic.py` | Implementação do agente, validação determinística de perguntas, detecção de perguntas indutivas e retentativa. |
-| `src/stubs/socratic_stub.py` | Stub determinístico para testes e integração com o orquestrador. |
+| `tests/stubs/socratic_stub.py` | Stub determinístico para testes e integração com o orquestrador. |
 | `tests/unit/test_socratic.py` | Testes unitários de prompt, validação, casos de borda e retry. |
 | `tests/contract/test_socratic_contract.py` | Testes de contrato do agente real e stub com o `PipelineState`. |
 

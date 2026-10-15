@@ -4,11 +4,11 @@
 // da paleta do personagem e "." é transparente. A técnica vem do AiOperationsRoom
 // (github.com/mewsdev/AiOperationsRoom, licença MIT); personagens e cenário são deste projeto.
 //
-// O Python (src/progresso.py) manda o estado de cada agente a cada nó que termina. Aqui a
+// O Python (src/pipeline/progresso.py) manda o estado de cada agente a cada nó que termina. Aqui a
 // sala anima as passagens: o Ingestor distribui a matéria para Evidências e Texto, o Texto
 // passa a sua leitura ao Socrático, cada ramo leva a sua parte até a mesa do Sintetizador e o
 // dossiê se fecha no fim. O nó `agente_argumento` não tem personagem: o Sintetizador trabalha
-// nele assim que recebe a parte do Texto (ver src/progresso.py). Cada fase dura um mínimo na tela,
+// nele assim que recebe a parte do Texto (ver src/pipeline/progresso.py). Cada fase dura um mínimo na tela,
 // senão os agentes rápidos (Ingestor, Evidências) passariam sem ninguém ver.
 
 const SVG = 'http://www.w3.org/2000/svg';

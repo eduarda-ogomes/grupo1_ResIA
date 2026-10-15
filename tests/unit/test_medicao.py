@@ -2,7 +2,7 @@
 import pytest
 from opentelemetry import trace
 
-from src import graph, medicao
+from src.pipeline import graph, medicao
 from src.state import initial_state
 from tests import modelos_falsos as falsos
 

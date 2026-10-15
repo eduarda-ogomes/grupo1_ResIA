@@ -1,6 +1,6 @@
 """Orquestrador: o grafo do Manual §3.1 com os cinco agentes reais.
 
-Cada nó passa por `proteger` (src/protecao.py): estourar o tempo ou levantar exceção
+Cada nó passa por `proteger` (src/pipeline/protecao.py): estourar o tempo ou levantar exceção
 vira aviso em `warnings` e a saída de falha do nó, e o grafo sempre chega ao
 Sintetizador (Manual §3.4).
 
@@ -14,16 +14,16 @@ Passar só {"raw_input": ...} levanta ValidationError. Ver o aviso no topo de sr
 """
 from langgraph.graph import END, START, StateGraph
 
-from src import protecao
+from src.pipeline import protecao
 from src.agents.evidence import run as evidencias_node
 from src.agents.ingestor import ingestor_node
 from src.agents.socratic import socratic_node as socratico_node
-from src.agents.synthesizer import argumento_fallback, argumento_node, sintetizador_node
+from src.agents.synthesizer.agent import argumento_fallback, argumento_node, sintetizador_node
 from src.agents.text_analysis import texto_node
 from src.state import PipelineState
 
 # Ordem de exibição dos nós (tabela de tempos do app) e quem precisa terminar antes de cada um
-# (src/medicao.py mede a duração de um nó a partir do fim dos predecessores)
+# (src/pipeline/medicao.py mede a duração de um nó a partir do fim dos predecessores)
 ORDEM_NOS = ("ingestor", "agente_evidencias", "agente_texto", "agente_argumento", "agente_socratico", "sintetizador")
 PREDECESSORES: dict[str, tuple[str, ...]] = {
     "ingestor": (),

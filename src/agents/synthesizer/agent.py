@@ -1,7 +1,7 @@
 """Agente Sintetizador (R5): junta os ramos num dossiê neutro e citável, sem veredito.
 
 Abordagem híbrida (Manual §4.5.1; design em docs/superpowers/specs/2026-10-01-agente-sintetizador-design.md):
-o código escreve tudo o que é fato (src/agents/dossie.py). Na seção "Como o texto argumenta" o código
+o código escreve tudo o que é fato (src/agents/synthesizer/dossie.py). Na seção "Como o texto argumenta" o código
 escreve o rótulo, o trecho literal e o juízo de valor; o qwen2.5-7b escreve só o efeito de cada marcador,
 em JSON, com guardrails (src/guardrails/), 1 retry e linha sem efeito quando o efeito não passa.
 Ordem das seções: Resumo, Checagens, Argumento, Perguntas, Limites, Fontes
@@ -20,7 +20,7 @@ from pathlib import Path
 
 from pydantic import BaseModel, ValidationError
 
-from src.agents import dossie
+from src.agents.synthesizer import dossie
 from src.guardrails.ancoragem import citacoes_nao_literais, termos_fora_do_contexto
 from src.guardrails.citacoes import extrair_urls, neutralizar_urls
 from src.guardrails.veredito import termos_de_veredito
@@ -29,7 +29,7 @@ from src.state import PipelineState, TextMarker
 
 logger = logging.getLogger(__name__)
 
-PROMPTS_DIR = Path(__file__).resolve().parents[1] / "prompts"
+PROMPTS_DIR = Path(__file__).resolve().parents[2] / "prompts"
 
 WARN_MODELO_INDISPONIVEL = "sintetizador: falha ao chamar o modelo (o LM Studio está rodando?)"
 WARN_GUARDRAILS = "sintetizador: efeito do argumento reprovado nos guardrails após 1 retry"
@@ -228,7 +228,7 @@ def argumento_node(state: PipelineState) -> dict:
 def argumento_fallback(state: PipelineState) -> dict:
     """As linhas do argumento sem chamar o LLM.
 
-    O grafo usa quando o `agente_argumento` estoura o tempo (src/graph.py) e o Sintetizador
+    O grafo usa quando o `agente_argumento` estoura o tempo (src/pipeline/graph.py) e o Sintetizador
     quando `argument` não chegou: o usuário recebe a seção em fallback, não um dossiê vazio.
     """
     return {"argument": dossie.linhas_argumento(state, {})}

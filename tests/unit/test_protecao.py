@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from src import protecao
+from src.pipeline import protecao
 
 FIXTURE_TIMEOUT = Path(__file__).resolve().parents[1] / "fixtures" / "bordas" / "sistema_timeout_ramo.json"
 

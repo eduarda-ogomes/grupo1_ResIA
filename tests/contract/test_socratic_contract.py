@@ -6,7 +6,7 @@ import json
 import pytest
 
 from src.agents import socratic as agent
-from src.stubs import socratic_stub as stub
+from tests.stubs import socratic_stub as stub
 from src.state import PipelineState, initial_state
 
 

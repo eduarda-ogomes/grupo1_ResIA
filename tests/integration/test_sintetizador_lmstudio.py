@@ -11,8 +11,8 @@ from pathlib import Path
 import pytest
 import requests
 
-from src.agents import dossie
-from src.agents.synthesizer import argumento_node, sintetizador_node
+from src.agents.synthesizer import dossie
+from src.agents.synthesizer.agent import argumento_node, sintetizador_node
 from src.guardrails.citacoes import extrair_urls
 from src.guardrails.veredito import termos_de_veredito
 from src.state import PipelineState

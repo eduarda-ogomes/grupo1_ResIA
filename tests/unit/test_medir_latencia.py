@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from src.medicao import Execucao
+from src.pipeline.medicao import Execucao
 from src.state import PipelineState, initial_state
 
 _SCRIPT = Path(__file__).resolve().parents[2] / "eval" / "medir_latencia.py"

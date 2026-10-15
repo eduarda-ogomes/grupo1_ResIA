@@ -1,7 +1,7 @@
 """Progresso de uma análise, no formato que a sala dos agentes (app/sala/) desenha.
 
 O `grafo.stream` só avisa quando um nó termina. Quem começa sai da forma do grafo
-(src/graph.py, `PREDECESSORES`): o Ingestor abre a análise; Evidências e Texto começam
+(src/pipeline/graph.py, `PREDECESSORES`): o Ingestor abre a análise; Evidências e Texto começam
 quando ele termina; o `agente_argumento` e o Socrático começam quando o Texto termina;
 o `sintetizador` espera Evidências, argumento e Socrático.
 
@@ -11,8 +11,8 @@ nó `sintetizador`. O tempo e os avisos do personagem somam os dos dois nós.
 """
 from __future__ import annotations
 
-from src.graph import ORDEM_NOS, PREDECESSORES
-from src.medicao import duracoes
+from src.pipeline.graph import ORDEM_NOS, PREDECESSORES
+from src.pipeline.medicao import duracoes
 
 AGENTES = ("ingestor", "agente_evidencias", "agente_texto", "agente_socratico", "sintetizador")
 
@@ -29,7 +29,7 @@ class Progresso:
         self.interrompida = False
 
     def terminou(self, no: str, segundos: float, avisos: list[str]) -> None:
-        """`segundos` desde o início da análise, como o `ao_terminar_no` de src/medicao.py."""
+        """`segundos` desde o início da análise, como o `ao_terminar_no` de src/pipeline/medicao.py."""
         self.fim_por_no[no] = segundos
         self.avisos[no] = list(avisos)
 

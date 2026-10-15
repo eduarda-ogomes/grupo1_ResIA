@@ -141,7 +141,7 @@ Cada ramo paralelo escreve em um campo próprio, então não há conflito de esc
 
 - **Fan-out estático:** duas arestas saem do Ingestor (Evidências e Texto, em paralelo) e duas saem do Texto (`agente_argumento` e Socrático, em paralelo). O Sintetizador espera Evidências, Argumento e Socrático e roda uma vez só. Medições e motivos em `docs/agents/desempenho.md`.
 - **Limite de entrada:** o Ingestor trunca textos acima de um limite fixo de tokens e marca `truncated = True`, que o dossiê informa ao usuário.
-- **Timeout por nó:** um ramo que estoura o tempo grava um aviso em `warnings` e devolve `None`; os outros seguem. Implementado em `src/protecao.py`: 60 s no Ingestor, 240 s em cada ramo e 180 s no Sintetizador, ajustáveis por `GRAFO_TIMEOUT_INGESTOR`, `GRAFO_TIMEOUT_RAMO` e `GRAFO_TIMEOUT_SINTETIZADOR`. A mesma camada transforma uma exceção não tratada de qualquer nó em aviso, e o Sintetizador protegido nunca devolve `dossier = None`.
+- **Timeout por nó:** um ramo que estoura o tempo grava um aviso em `warnings` e devolve `None`; os outros seguem. Implementado em `src/pipeline/protecao.py`: 60 s no Ingestor, 240 s em cada ramo e 180 s no Sintetizador, ajustáveis por `GRAFO_TIMEOUT_INGESTOR`, `GRAFO_TIMEOUT_RAMO` e `GRAFO_TIMEOUT_SINTETIZADOR`. A mesma camada transforma uma exceção não tratada de qualquer nó em aviso, e o Sintetizador protegido nunca devolve `dossier = None`.
 - **Degradação graciosa:** o Sintetizador trata `None` como ausência declarada ("não foi possível analisar a estrutura do texto"), nunca como silêncio.
 
 ### 3.5 Guardrails
@@ -405,7 +405,7 @@ URGENTE: os médicos estão escondendo a cura natural da dengue! O chá da folha
 }
 ```
 
->  Esta é a saída do stub do Agente de Evidências (`src/stubs/evidence_stub.py`, que lê a fixture `02_evidencias_saida.json`). Ela fica como está porque os testes do Sintetizador usam essa fixture. O agente real tem duas diferenças: o `excerpt` é o **título** da checagem (a conclusão escrita pela agência), e não uma frase do corpo do texto; e as duas checagens deste caso, de 2024, não estão no corpus atual, então o agente real não reproduziria esta saída. Um exemplo com a saída real está no card do agente (`docs/agents/evidencias.md`, seção "Exemplo completo").
+>  Esta é a saída do stub do Agente de Evidências (`tests/stubs/evidence_stub.py`, que lê a fixture `02_evidencias_saida.json`). Ela fica como está porque os testes do Sintetizador usam essa fixture. O agente real tem duas diferenças: o `excerpt` é o **título** da checagem (a conclusão escrita pela agência), e não uma frase do corpo do texto; e as duas checagens deste caso, de 2024, não estão no corpus atual, então o agente real não reproduziria esta saída. Um exemplo com a saída real está no card do agente (`docs/agents/evidencias.md`, seção "Exemplo completo").
 
 **3. Agente de Texto.** Entrada: `segments`. Saída (resumida; o arquivo completo tem 6 marcadores):
 
@@ -555,7 +555,7 @@ Os nomes da tabela são candidatos, não decisões, exceto os marcados como esco
 | Segmentação | Segmentador de sentenças para português (ex.: spaCy) | Frases numeradas compartilhadas entre os ramos |
 | Repositório | GitHub, uma branch por agente, `main` protegida | Merge só por Pull Request aprovado |
 | Integração contínua | GitHub Actions rodando pytest e testes de contrato | Garante que cada agente encaixa no grafo antes do merge |
-| Observabilidade | Arize Phoenix (local) ou LangSmith (cota gratuita) | Trace por nó: entrada, saída, latência, tokens. *Implementado com Phoenix local:* `src/observabilidade.py` (liga com `PHOENIX_TRACING=1`), um span por nó em `src/protecao.py` e latência p50/p95 em `eval/medir_latencia.py` |
+| Observabilidade | Arize Phoenix (local) ou LangSmith (cota gratuita) | Trace por nó: entrada, saída, latência, tokens. *Implementado com Phoenix local:* `src/services/observabilidade.py` (liga com `PHOENIX_TRACING=1`), um span por nó em `src/pipeline/protecao.py` e latência p50/p95 em `eval/medir_latencia.py` |
 | Interface | Streamlit | Protótipo rápido com streaming de progresso |
 
 ### 5.5 Estrutura do repositório
@@ -566,18 +566,18 @@ projeto/
 │   └── workflows/ci.yml      # pytest + testes de contrato em todo PR
 ├── src/
 │   ├── state.py              # schemas Pydantic (contrato do grupo)
-│   ├── graph.py              # montagem do grafo LangGraph (orquestrador)
+│   ├── pipeline/             # grafo LangGraph, timeout por nó, medição e progresso
 │   ├── agents/               # cada agente expõe run(state) -> dict
 │   │   ├── ingestor.py
 │   │   ├── evidence.py
 │   │   ├── text_analysis.py
 │   │   ├── socratic.py
-│   │   └── synthesizer.py
-│   ├── stubs/                # saídas fixas e válidas de cada agente
+│   │   └── synthesizer/      # nós de argumento e sintetizador, e as seções do dossiê
 │   ├── guardrails/           # filtro de veredito e checagem de citações
 │   ├── retrieval/            # índice ChromaDB e busca vetorial
 │   ├── services/
-│   │   └── llm.py            # único ponto de acesso ao Ollama e à API
+│   │   ├── llm.py            # único ponto de acesso ao Ollama e à API
+│   │   └── observabilidade.py  # tracing no Phoenix
 │   └── prompts/              # prompts versionados em arquivo, nunca inline
 ├── data/
 │   ├── corpus/               # checagens coletadas (não versionar dados brutos grandes)
@@ -586,7 +586,8 @@ projeto/
 ├── app/                      # interface Streamlit
 ├── tests/
 │   ├── contract/             # um teste de contrato por agente
-│   └── unit/
+│   ├── unit/
+│   └── stubs/                # saídas fixas e válidas de cada agente
 ├── docs/agents/              # card de cada agente
 └── .env.example              # modelo, endpoint e chave de API
 ```

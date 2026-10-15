@@ -32,25 +32,40 @@ O projeto utiliza **LangGraph** para orquestrar 5 agentes em um grafo de estados
 ```text
 grupo1_ResIA/
 ├── app/
-│   ├── app.py                  # Interface gráfica web (Streamlit)
+│   ├── app.py                  # Interface web (Streamlit): ponto de entrada
 │   └── sala/                   # Sala dos agentes: animação pixel art da análise (st.components.v2)
 ├── data/
-│   ├── corpus/
-│   │   └── seed_db.py          # Script de inserção no banco de dados vetorial
+│   ├── corpus/                 # Coleta de checagens e construção do índice (raw/ fica fora do git)
 │   └── gold/                   # Dataset de avaliação (gold set)
-├── docs/
-│   └── Manual...md             # Documentação oficial e princípios de design
+├── docs/                       # Manual, documentação por agente, relatórios, specs e planos
+├── eval/                       # Avaliação das Evidências, latência e uso de recursos
+├── scripts/
+│   └── rodar_exemplos.py       # Roda o grafo em notícias de exemplo (fora do pytest)
 ├── src/
-│   ├── agents/                 # Lógica individual de cada agente
-│   │   ├── evidence.py
+│   ├── state.py                # Contrato compartilhado (PipelineState, Pydantic)
+│   ├── pipeline/               # Orquestração
+│   │   ├── graph.py            # Grafo LangGraph: nós, arestas e timeouts
+│   │   ├── protecao.py         # Timeout por nó; falha vira aviso
+│   │   ├── medicao.py          # Execução medida (tempo por nó, trace)
+│   │   └── progresso.py        # Estado de cada agente para a sala
+│   ├── agents/                 # Um módulo por agente
 │   │   ├── ingestor.py
+│   │   ├── evidence.py
+│   │   ├── text_analysis.py
 │   │   ├── socratic.py
-│   │   ├── synthesizer.py
-│   │   └── text_analysis.py
-│   ├── retrieval/              # Configuração do ChromaDB e mDeBERTa
-│   ├── services/               # Clientes LLM (Conexão com LMStudio via OpenAI API)
-│   ├── graph.py                # Orquestração do grafo LangGraph
-│   └── state.py                # Contratos de tipagem (Pydantic schemas)
+│   │   └── synthesizer/
+│   │       ├── agent.py        # Nós agente_argumento e sintetizador
+│   │       └── dossie.py       # Seções do dossiê escritas por código
+│   ├── retrieval/              # Índice ChromaDB, embeddings, NLI e etapa 2 (compartilhado)
+│   ├── guardrails/             # Veredito, citações e ancoragem (G3, G4)
+│   ├── prompts/                # Prompts de sistema e exemplos few-shot
+│   └── services/
+│       ├── llm.py              # Clientes do LLM (LM Studio, API OpenAI)
+│       └── observabilidade.py  # Tracing com Phoenix (OpenTelemetry)
+├── tests/
+│   ├── contract/  unit/  integration/
+│   ├── fixtures/               # Caso do mamão e casos de borda
+│   └── stubs/                  # Agentes falsos dos testes de contrato
 └── README.md
 ```
 
@@ -91,7 +106,7 @@ pytest
 
 ### 5. Orquestração: timeouts e avisos
 
-O grafo (`src/graph.py`) roda o Ingestor, depois Evidências e Texto em paralelo; depois do Texto, o `agente_argumento` e o Socrático em paralelo; e por fim o Sintetizador (só código), que espera Evidências, Argumento e Socrático. Cada nó tem um limite de tempo (`src/protecao.py`). Se um nó estoura o tempo ou quebra, o grafo segue sem ele, a interface mostra o aviso (por exemplo, `socratico: timeout`) e o dossiê sai assim mesmo.
+O grafo (`src/pipeline/graph.py`) roda o Ingestor, depois Evidências e Texto em paralelo; depois do Texto, o `agente_argumento` e o Socrático em paralelo; e por fim o Sintetizador (só código), que espera Evidências, Argumento e Socrático. Cada nó tem um limite de tempo (`src/pipeline/protecao.py`). Se um nó estoura o tempo ou quebra, o grafo segue sem ele, a interface mostra o aviso (por exemplo, `socratico: timeout`) e o dossiê sai assim mesmo.
 
 | Nó | Padrão | Variável de ambiente |
 | --- | --- | --- |

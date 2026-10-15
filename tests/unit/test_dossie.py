@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from src.agents import dossie
+from src.agents.synthesizer import dossie
 from src.guardrails.veredito import termos_de_veredito
 from src.state import PipelineState, Segment, TextMarker
 

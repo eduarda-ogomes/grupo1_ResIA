@@ -407,6 +407,14 @@ def test_prompt_tem_as_regras_de_desastre_e_fala_citada():
     assert "falas, notas ou declarações citadas" in prompt
 
 
+def test_ha_exemplo_de_desastre_com_contexto_sem_marcador_e_julgamento_marcado():
+    exemplos = [e for e in carregar_exemplos() if any("maior cheia" in s["text"] for s in e["entrada"])]
+    assert len(exemplos) == 1
+    entrada, markers = exemplos[0]["entrada"], exemplos[0]["saida"]["markers"]
+    julgamento = [s["id"] for s in entrada if "irresponsável" in s["text"]]
+    assert [(m["segment_id"], m["type"]) for m in markers] == [(julgamento[0], "adjetivacao_extrema")]
+
+
 def test_ha_exemplo_de_desastre_sem_marcadores():
     exemplos = [e for e in carregar_exemplos() if any("carbonizados" in s["text"] for s in e["entrada"])]
     assert len(exemplos) == 1 and exemplos[0]["saida"]["markers"] == []

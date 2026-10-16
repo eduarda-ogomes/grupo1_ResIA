@@ -4,9 +4,10 @@
 // da paleta do personagem e "." é transparente. A técnica vem do AiOperationsRoom
 // (github.com/mewsdev/AiOperationsRoom, licença MIT); personagens e cenário são deste projeto.
 //
-// O Python (src/progresso.py) manda o estado de cada agente a cada nó que termina. Aqui a
-// sala anima as passagens: o Ingestor distribui a matéria, cada ramo leva a sua parte até
-// a mesa do Sintetizador e o dossiê se fecha no fim. Cada fase dura um mínimo na tela,
+// O Python (src/pipeline/progresso.py) manda o estado de cada agente a cada nó que termina. Aqui a
+// sala anima as passagens: o Ingestor distribui a matéria para Evidências, Texto e Socrático,
+// cada ramo leva a sua parte até a mesa do Sintetizador, que monta o dossiê quando as três
+// chegam, e o dossiê se fecha no fim (ver src/pipeline/progresso.py). Cada fase dura um mínimo na tela,
 // senão os agentes rápidos (Ingestor, Evidências) passariam sem ninguém ver.
 
 const SVG = 'http://www.w3.org/2000/svg';
@@ -34,6 +35,26 @@ export default function (componente) {
   for (const outra of pai.querySelectorAll(':scope > .sala')) if (outra !== sala.raiz) outra.remove();
   if (sala.raiz.parentNode !== pai) pai.appendChild(sala.raiz);
   sala.atualizar(dados);
+  segurarAltura(sala, pai);
+}
+
+// Cada redesenho do Streamlit troca o elemento do componente, e por um quadro a sala some:
+// a página encolhe e o navegador puxa a rolagem para cima. O contêiner em volta
+// (st.container(key="sala-dos-agentes") no app.py) sobrevive à troca; guardar nele a altura
+// da sala impede a página de encolher.
+const BLOCO_DA_SALA = '.st-key-sala-dos-agentes';
+
+function segurarAltura(sala, pai) {
+  const raizDoPai = pai.getRootNode(); // com isolate_styles, a sala fica dentro de um shadow root
+  sala.bloco = (raizDoPai.host || pai).closest(BLOCO_DA_SALA);
+  if (sala.observador) return;
+  sala.observador = new ResizeObserver(() => {
+    const altura = sala.raiz.offsetHeight; // 0 enquanto a sala está fora da página
+    if (!altura || !sala.bloco) return;
+    const margem = parseFloat(getComputedStyle(sala.raiz).marginBottom) || 0;
+    sala.bloco.style.minHeight = `${altura + margem}px`;
+  });
+  sala.observador.observe(sala.raiz);
 }
 
 // ---------------------------------------------------------------- desenho
@@ -520,6 +541,7 @@ class Sala {
       }
     }
 
+    // O Sintetizador começa quando as três partes estão na mesa
     if (sin.fase === 'aguardando' && sin.alvo !== 'aguardando' && ramos.every((r) => r.entregou)) {
       this.mudar(sin, 'trabalhando', agora);
     }
@@ -543,7 +565,7 @@ class Sala {
     this.anuncio.textContent = `${ag.def.nome}: ${rotulo.toLowerCase()}.`;
   }
 
-  // O Ingestor manda uma cópia da matéria para cada ramo.
+  // O Ingestor manda uma cópia da matéria para os três ramos.
   distribuir(agora) {
     const ing = this.agentes.ingestor;
     const de = { x: CENA.ingestor.mesa.x + 10, y: CENA.ingestor.mesa.y - 6 };

@@ -3,8 +3,9 @@ import threading
 
 import pytest
 
-from src import graph, protecao
-from src.agents import dossie, evidence, ingestor, socratic, synthesizer, text_analysis
+from src.pipeline import graph, protecao
+from src.agents import argumento, evidence, ingestor, socratic, text_analysis
+from src.agents.synthesizer import dossie
 from src.state import PipelineState, initial_state
 from tests import modelos_falsos as falsos
 from tests.evidence_fakes import mamao_fakes, patch_agent
@@ -27,8 +28,58 @@ def test_topologia_do_manual():
     }
 
 
+def test_os_tres_ramos_rodam_em_paralelo_depois_do_ingestor():
+    arestas = {(a.source, a.target) for a in graph.sistema_multiagente.get_graph().edges}
+    ramos = {"agente_evidencias", "agente_texto", "agente_socratico"}
+
+    assert {("ingestor", r) for r in ramos} <= arestas
+    assert not [(a, b) for a, b in arestas if a in ramos and b in ramos]   # nenhum ramo espera outro
+    assert "agente_argumento" not in graph.ORDEM_NOS
+
+
+def test_socratico_nao_espera_a_classificacao_do_texto(monkeypatch):
+    falsos.ligar_falsos(monkeypatch)
+    vistos = []
+    original = graph.socratico_node
+    monkeypatch.setattr(graph, "socratico_node", lambda state: (vistos.append(state.text_report), original(state))[1])
+
+    out = graph.construir_grafo().invoke(initial_state(falsos.TEXTO_LIVRE))
+
+    assert vistos == [None]   # recebe o estado do Ingestor, sem a classificação
+    assert out["text_report"] is not None and out["socratic_questions"] == falsos.PERGUNTAS_TEXTO_LIVRE
+
+
+def test_ordem_dos_nos_e_predecessores_descrevem_o_mesmo_grafo():
+    arestas = {(a.source, a.target) for a in graph.sistema_multiagente.get_graph().edges}
+    por_predecessores = {(p, no) for no, preds in graph.PREDECESSORES.items() for p in preds}
+
+    assert graph.ORDEM_NOS == ("ingestor", "agente_evidencias", "agente_texto", "agente_socratico", "sintetizador")
+    assert set(graph.PREDECESSORES) == set(graph.ORDEM_NOS)
+    assert por_predecessores == {(a, b) for a, b in arestas if a != "__start__" and b != "__end__"}
+
+
+def test_sintetizador_roda_uma_vez_com_tudo_pronto(monkeypatch):
+    falsos.ligar_falsos(monkeypatch)
+    chamadas = []
+    original = graph.sintetizador_node
+
+    def contando(state):
+        chamadas.append(state)
+        return original(state)
+
+    monkeypatch.setattr(graph, "sintetizador_node", contando)
+
+    out = graph.construir_grafo().invoke(initial_state(falsos.TEXTO_LIVRE))
+
+    assert len(chamadas) == 1
+    # na única chamada, os três predecessores já tinham escrito no estado
+    assert chamadas[0].evidence == [] and chamadas[0].socratic_questions == falsos.PERGUNTAS_TEXTO_LIVRE
+    assert falsos.LINHA_SINTETIZADOR in chamadas[0].argument
+    assert out["dossier"].startswith(dossie.TITULO_RESUMO) and out["argument"]
+
+
 def test_grafo_usa_os_agentes_reais_e_termina_com_todos_os_modelos_desligados():
-    # o tests/conftest.py desliga os quatro modelos; sem text_report, o Sintetizador nem chama o dele
+    # o tests/conftest.py desliga os quatro modelos; sem text_report, o Texto nem pede o argumento
     out = graph.sistema_multiagente.invoke(initial_state(falsos.TEXTO_LIVRE))
 
     assert out["segments"]
@@ -49,7 +100,7 @@ def test_grafo_com_modelos_falsos_termina_sem_avisos(monkeypatch):
     assert out["evidence"] == []
     assert out["text_report"].statements[0].kind == "factual"
     assert out["socratic_questions"] == falsos.PERGUNTAS_TEXTO_LIVRE
-    assert falsos.RESPOSTA_SINTETIZADOR in out["dossier"]
+    assert falsos.LINHA_SINTETIZADOR in out["dossier"]
     assert dossie.SEM_CHECAGEM in out["dossier"]
 
 
@@ -78,7 +129,7 @@ def test_caso_do_mamao_de_ponta_a_ponta(monkeypatch):
         assert ev["source_url"] in out["dossier"]
     for pergunta in perguntas:
         assert pergunta in out["dossier"]
-    assert falsos.RESPOSTA_SINTETIZADOR in out["dossier"]
+    assert f'- Urgência: "URGENTE" {falsos.EFEITO_SINTETIZADOR}' in out["dossier"]
     assert len(sintetizador.prompts) == 1
 
 
@@ -144,23 +195,37 @@ def test_excecao_nao_prevista_num_agente_vira_aviso(monkeypatch):
     assert dossie.SEM_ESTRUTURA in out["dossier"]
 
 
-def test_sintetizador_travado_ainda_entrega_um_dossie(monkeypatch):
-    falsos.ligar_falsos(monkeypatch)   # s02 é "valor": o Sintetizador chama o modelo
+def test_argumento_travado_estoura_o_tempo_do_texto_e_o_dossie_sai(monkeypatch):
+    # O argumento é o passo final do Agente de Texto: travado, o nó inteiro estoura o tempo do ramo
+    # (trade-off do spec 2026-10-15-agentes-em-paralelo) e o dossiê sai com o fallback
+    falsos.ligar_falsos(monkeypatch)
     liberar = threading.Event()
 
     def travado(mensagens):
         liberar.wait(5)
         return falsos.RESPOSTA_SINTETIZADOR
 
-    monkeypatch.setattr(synthesizer, "chamar_modelo", travado)
-    grafo = graph.construir_grafo(timeout_sintetizador=TIMEOUT_CURTO)
+    monkeypatch.setattr(argumento, "chamar_modelo", travado)
+    grafo = graph.construir_grafo(timeout_ramo=TIMEOUT_CURTO)
     try:
         out = grafo.invoke(initial_state(falsos.TEXTO_LIVRE))
     finally:
         liberar.set()
 
-    # spec: timeout do modelo -> fallback determinístico no argumento, não um dossiê vazio
-    assert out["warnings"] == ["sintetizador: timeout"]
-    assert out["dossier"] != protecao.DOSSIE_INDISPONIVEL
+    assert out["warnings"] == ["texto: timeout"]
+    assert out["text_report"] is None and out["argument"] is None
+    assert out["socratic_questions"] == falsos.PERGUNTAS_TEXTO_LIVRE
     assert out["dossier"].startswith(dossie.TITULO_RESUMO)
-    assert '- Juízo de valor: "Isso não tem comprovação." é uma opinião e não foi checada.' in out["dossier"]
+    assert dossie.SEM_ESTRUTURA in out["dossier"]
+
+
+def test_texto_que_falha_deixa_o_argumento_para_o_fallback_do_sintetizador(monkeypatch):
+    # sem text_report, o Texto não escreve o argumento; o Sintetizador usa o fallback e declara a ausência
+    falsos.ligar_falsos(monkeypatch)
+    monkeypatch.setattr(text_analysis, "chamar_modelo", lambda mensagens: (_ for _ in ()).throw(RuntimeError("x")))
+
+    out = graph.sistema_multiagente.invoke(initial_state(falsos.TEXTO_LIVRE))
+
+    assert out["text_report"] is None
+    assert out["argument"] is None
+    assert dossie.SEM_ESTRUTURA in out["dossier"]

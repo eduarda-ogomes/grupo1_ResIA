@@ -228,3 +228,54 @@ def test_vocabulario_versionado_existe_e_tem_os_nomes_principais():
     voc = set(etapa2.NAME_VOCABULARY_PATH.read_text(encoding="utf-8").split())
     assert {"lula", "bolsonaro", "moraes", "stf"} <= voc
     assert not {"avioes", "arrependida", "vacina", "governo"} & voc
+
+
+# --- Carga do vocabulário com threads em paralelo (Socrático e argumento chamam o G4 juntos) ---------
+
+
+@pytest.fixture
+def leitura_lenta_do_vocabulario(monkeypatch):
+    """Cache zerado e leitura do arquivo de nomes lenta, para as threads se sobreporem de verdade."""
+    import time
+    from pathlib import Path
+
+    monkeypatch.setattr(etapa2, "_name_vocabulary", None)
+    monkeypatch.setattr(etapa2, "_name_vocabulary_loaded", False)
+    leitura_original = Path.read_text
+
+    def leitura_lenta(self, *args, **kwargs):
+        if self == etapa2.NAME_VOCABULARY_PATH:
+            time.sleep(0.1)
+        return leitura_original(self, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "read_text", leitura_lenta)
+
+
+def _rodar_em_threads(funcao, n=4):
+    """Roda `funcao` em n threads que largam juntas (barreira); devolve os resultados."""
+    import threading
+
+    barreira = threading.Barrier(n)
+    resultados = [None] * n
+
+    def alvo(i):
+        barreira.wait()
+        resultados[i] = funcao()
+
+    threads = [threading.Thread(target=alvo, args=(i,)) for i in range(n)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join(timeout=10)
+    return resultados
+
+
+def test_vocabulario_carrega_inteiro_para_todas_as_threads_na_primeira_carga(leitura_lenta_do_vocabulario):
+    resultados = _rodar_em_threads(etapa2.load_name_vocabulary)
+    assert all(r is not None and r for r in resultados)
+    assert all(r == resultados[0] for r in resultados)
+
+
+def test_name_groups_nao_trata_primeira_palavra_como_nome_na_primeira_carga_concorrente(leitura_lenta_do_vocabulario):
+    resultados = _rodar_em_threads(lambda: etapa2.name_groups("Quais estudos sustentam isso?"))
+    assert resultados == [[]] * len(resultados)

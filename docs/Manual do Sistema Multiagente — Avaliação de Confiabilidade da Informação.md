@@ -59,7 +59,7 @@ Os riscos residuais estão registrados na Seção 12 e são o foco da análise d
 
 ## 3. Arquitetura do sistema
 
-O sistema é um **grafo de estados em LangGraph** com topologia fixa: uma etapa de entrada, três ramos paralelos no mesmo *superstep* e uma etapa de síntese que só começa quando os três terminam.
+O sistema é um **grafo de estados em LangGraph** com topologia fixa: uma etapa de entrada, três agentes em paralelo (Evidências, Texto e Socrático) e uma etapa de síntese (só código) que espera os três.
 
 ### 3.1 Grafo de execução
 
@@ -67,7 +67,7 @@ O sistema é um **grafo de estados em LangGraph** com topologia fixa: uma etapa 
 flowchart LR
     IN[Entrada: texto ou URL] --> ING[Ingestor<br/>limpeza + segmentação]
     ING --> EV[Agente de Evidências<br/>RAG + NLI]
-    ING --> TX[Agente de Texto<br/>viés, falácias, fato/valor]
+    ING --> TX[Agente de Texto<br/>viés, falácias, fato/valor<br/>+ como o texto argumenta]
     ING --> SO[Agente Socrático<br/>perguntas reflexivas]
     EV --> SY[Sintetizador<br/>dossiê + guardrails]
     TX --> SY
@@ -83,7 +83,7 @@ flowchart LR
 | Agente de Evidências | RAG com modelos encoder (embeddings + NLI) | Não | Sim |
 | Agente de Texto | LLM local com few-shot e saída estruturada | Sim | Sim |
 | Agente Socrático | LLM local com system prompt restrito | Sim | Sim |
-| Sintetizador | LLM de alta capacidade + guardrails determinísticos | Sim | Não |
+| Sintetizador | Só código: monta o dossiê e aplica os guardrails (o efeito de cada marcador é o passo final do Agente de Texto, com saída estruturada) | Não | Não |
 
 O Agente de Evidências não usa LLM gerador: busca vetorial e classificação NLI rodam com modelos encoder pequenos, mais rápidos e mais previsíveis.
 
@@ -129,6 +129,7 @@ class PipelineState(BaseModel):
     evidence: list[Evidence] | None
     text_report: TextReport | None
     socratic_questions: list[str] | None
+    argument: list[str] | None     # linhas de "Como o texto argumenta", sem o título (Agente de Texto)
     dossier: str | None
     warnings: Annotated[list[str], operator.add]
 ```
@@ -137,9 +138,9 @@ Cada ramo paralelo escreve em um campo próprio, então não há conflito de esc
 
 ### 3.4 Fluxo de controle e tratamento de falhas
 
-- **Fan-out estático:** três arestas saem do Ingestor. O LangGraph executa os três ramos no mesmo superstep e só chama o Sintetizador quando todos terminam.
+- **Fan-out estático:** três arestas saem do Ingestor (Evidências, Texto e Socrático, em paralelo, no mesmo superstep). O Sintetizador espera os três e roda uma vez só. Medições e motivos em `docs/agents/desempenho.md`.
 - **Limite de entrada:** o Ingestor trunca textos acima de um limite fixo de tokens e marca `truncated = True`, que o dossiê informa ao usuário.
-- **Timeout por nó:** um ramo que estoura o tempo grava um aviso em `warnings` e devolve `None`; os outros seguem. Implementado em `src/protecao.py`: 60 s no Ingestor, 240 s em cada ramo e 180 s no Sintetizador, ajustáveis por `GRAFO_TIMEOUT_INGESTOR`, `GRAFO_TIMEOUT_RAMO` e `GRAFO_TIMEOUT_SINTETIZADOR`. A mesma camada transforma uma exceção não tratada de qualquer nó em aviso, e o Sintetizador protegido nunca devolve `dossier = None`.
+- **Timeout por nó:** um ramo que estoura o tempo grava um aviso em `warnings` e devolve `None`; os outros seguem. Implementado em `src/pipeline/protecao.py`: 60 s no Ingestor, 240 s em cada ramo e 180 s no Sintetizador, ajustáveis por `GRAFO_TIMEOUT_INGESTOR`, `GRAFO_TIMEOUT_RAMO` e `GRAFO_TIMEOUT_SINTETIZADOR`. A mesma camada transforma uma exceção não tratada de qualquer nó em aviso, e o Sintetizador protegido nunca devolve `dossier = None`.
 - **Degradação graciosa:** o Sintetizador trata `None` como ausência declarada ("não foi possível analisar a estrutura do texto"), nunca como silêncio.
 
 ### 3.5 Guardrails
@@ -324,7 +325,8 @@ Na seção de checagens, cada frase com evidência vira uma linha com o resumo p
 | Sem marcadores e sem frases de valor | Não | "Nenhum padrão de viés ou falácia foi apontado neste texto." | — |
 | `socratic_questions is None` | Sim | "As perguntas não puderam ser geradas nesta análise." | — |
 | LM Studio fora do ar ou timeout | Sim, sem retry | Fallback | `"sintetizador: falha ao chamar o modelo (o LM Studio está rodando?)"` |
-| Guardrails reprovam duas vezes | Sim, 1 retry | Fallback | `"sintetizador: síntese livre reprovada nos guardrails após 1 retry"` |
+| Efeito reprovado nos guardrails duas vezes | Sim, 1 retry | Marcador sem efeito | `"sintetizador: efeito do argumento reprovado nos guardrails após 1 retry"` |
+| Saída do modelo inválida duas vezes | Sim, 1 retry | Marcador sem efeito | `"sintetizador: saída inválida após 1 retry"` |
 | URL fora das evidências no dossiê final | — | Linha removida | `"sintetizador: citação removida (URL fora das evidências)"` |
 
 O **fallback** lista um bullet por marcador com rótulo e trecho literal (`- Urgência: "URGENTE"`) e uma linha "Juízo de valor: … é uma opinião e não foi checada" por frase de valor. Não copia o `explanation` do Agente de Texto, que também é texto de LLM e furaria o filtro de veredito.
@@ -402,7 +404,7 @@ URGENTE: os médicos estão escondendo a cura natural da dengue! O chá da folha
 }
 ```
 
->  Esta é a saída do stub do Agente de Evidências (`src/stubs/evidence_stub.py`, que lê a fixture `02_evidencias_saida.json`). Ela fica como está porque os testes do Sintetizador usam essa fixture. O agente real tem duas diferenças: o `excerpt` é o **título** da checagem (a conclusão escrita pela agência), e não uma frase do corpo do texto; e as duas checagens deste caso, de 2024, não estão no corpus atual, então o agente real não reproduziria esta saída. Um exemplo com a saída real está no card do agente (`docs/agents/evidencias.md`, seção "Exemplo completo").
+>  Esta é a saída do stub do Agente de Evidências (`tests/stubs/evidence_stub.py`, que lê a fixture `02_evidencias_saida.json`). Ela fica como está porque os testes do Sintetizador usam essa fixture. O agente real tem duas diferenças: o `excerpt` é o **título** da checagem (a conclusão escrita pela agência), e não uma frase do corpo do texto; e as duas checagens deste caso, de 2024, não estão no corpus atual, então o agente real não reproduziria esta saída. Um exemplo com a saída real está no card do agente (`docs/agents/evidencias.md`, seção "Exemplo completo").
 
 **3. Agente de Texto.** Entrada: `segments`. Saída (resumida; o arquivo completo tem 6 marcadores):
 
@@ -509,7 +511,7 @@ Por padrão, a GPU enxerga cerca de 16–18GB dos 24GB; o planejamento seguro é
 
 Fonte das medições: [pickuma, 2026](https://dev.to/pickuma/running-local-llms-on-m4-mac-with-24gb-ram-what-actually-fits-7jf). Um prompt de 4.000 tokens num 14B leva \~12 s só para ser processado, então contexto longo custa caro: o RAG deve enviar só os trechos reranqueados, nunca documentos inteiros.
 
-**Estimativa de latência do pipeline:** 3 chamadas de LLM por entrada. Texto e Socrático continuam paralelos no grafo, mas numa máquina só disputam a mesma banda de memória, então o ganho real de paralelismo é pequeno. A investigação deve levar de 1 a 2 minutos com o Sintetizador via API. A meta do MVP continua abaixo de 3 minutos.
+**Estimativa de latência do pipeline:** 3 chamadas de LLM por entrada (classificação e efeito no Texto, perguntas no Socrático). Texto e Socrático rodam em paralelo no grafo, mas numa máquina só disputam a mesma banda de memória, então o ganho real de paralelismo é pequeno. A investigação deve levar de 1 a 2 minutos com o Sintetizador via API. A meta do MVP continua abaixo de 3 minutos.
 
 ### 5.2 Execução em máquina única
 
@@ -552,7 +554,7 @@ Os nomes da tabela são candidatos, não decisões, exceto os marcados como esco
 | Segmentação | Segmentador de sentenças para português (ex.: spaCy) | Frases numeradas compartilhadas entre os ramos |
 | Repositório | GitHub, uma branch por agente, `main` protegida | Merge só por Pull Request aprovado |
 | Integração contínua | GitHub Actions rodando pytest e testes de contrato | Garante que cada agente encaixa no grafo antes do merge |
-| Observabilidade | Arize Phoenix (local) ou LangSmith (cota gratuita) | Trace por nó: entrada, saída, latência, tokens. *Implementado com Phoenix local:* `src/observabilidade.py` (liga com `PHOENIX_TRACING=1`), um span por nó em `src/protecao.py` e latência p50/p95 em `eval/medir_latencia.py` |
+| Observabilidade | Arize Phoenix (local) ou LangSmith (cota gratuita) | Trace por nó: entrada, saída, latência, tokens. *Implementado com Phoenix local:* `src/services/observabilidade.py` (liga com `PHOENIX_TRACING=1`), um span por nó em `src/pipeline/protecao.py` e latência p50/p95 em `eval/medir_latencia.py` |
 | Interface | Streamlit | Protótipo rápido com streaming de progresso |
 
 ### 5.5 Estrutura do repositório
@@ -563,18 +565,18 @@ projeto/
 │   └── workflows/ci.yml      # pytest + testes de contrato em todo PR
 ├── src/
 │   ├── state.py              # schemas Pydantic (contrato do grupo)
-│   ├── graph.py              # montagem do grafo LangGraph (orquestrador)
+│   ├── pipeline/             # grafo LangGraph, timeout por nó, medição e progresso
 │   ├── agents/               # cada agente expõe run(state) -> dict
 │   │   ├── ingestor.py
 │   │   ├── evidence.py
 │   │   ├── text_analysis.py
 │   │   ├── socratic.py
-│   │   └── synthesizer.py
-│   ├── stubs/                # saídas fixas e válidas de cada agente
+│   │   └── synthesizer/      # nós de argumento e sintetizador, e as seções do dossiê
 │   ├── guardrails/           # filtro de veredito e checagem de citações
 │   ├── retrieval/            # índice ChromaDB e busca vetorial
 │   ├── services/
-│   │   └── llm.py            # único ponto de acesso ao Ollama e à API
+│   │   ├── llm.py            # único ponto de acesso ao Ollama e à API
+│   │   └── observabilidade.py  # tracing no Phoenix
 │   └── prompts/              # prompts versionados em arquivo, nunca inline
 ├── data/
 │   ├── corpus/               # checagens coletadas (não versionar dados brutos grandes)
@@ -583,7 +585,8 @@ projeto/
 ├── app/                      # interface Streamlit
 ├── tests/
 │   ├── contract/             # um teste de contrato por agente
-│   └── unit/
+│   ├── unit/
+│   └── stubs/                # saídas fixas e válidas de cada agente
 ├── docs/agents/              # card de cada agente
 └── .env.example              # modelo, endpoint e chave de API
 ```

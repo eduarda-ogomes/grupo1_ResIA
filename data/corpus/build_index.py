@@ -12,7 +12,9 @@ recusa o download) entram no índice, e o agente usa o título como excerpt.
 
 Metadados de cada trecho: source_url, source_name, agency_verdict,
 review_date, claim_reviewed, review_title, chunk_index, chunk_kind.
-IDs determinísticos: rodar de novo atualiza em vez de duplicar.
+IDs determinísticos: rodar de novo atualiza em vez de duplicar. Variantes de URL da mesma
+página (UOL: .htm, .ghtm, .amp.htm) viram uma checagem só, e os trechos das que saem são
+apagados do índice, como os dos domínios excluídos (config.DOMINIOS_EXCLUIDOS).
 
 Também grava data/corpus/nomes_proprios.txt: as palavras que o corpus usa como
 nome próprio (com maiúscula no meio de uma alegação ou título). O agente usa a
@@ -27,7 +29,8 @@ Uso, a partir da raiz do repositório:
 
 Fontes: factcheck_api.jsonl + articles.jsonl (Fact Check Tools API) e, se existirem,
 factckbr_claims.jsonl + factckbr_articles.jsonl (FACTCK.BR, gerados pelo
-import_factckbr.py). O metadado "corpus" diz de qual fonte veio cada trecho.
+import_factckbr.py) e lupa_claims.jsonl + lupa_articles.jsonl (Agência Lupa, gerados
+pelo import_lupa.py). O metadado "corpus" diz de qual fonte veio cada trecho.
 """
 
 from __future__ import annotations
@@ -156,6 +159,63 @@ def separar_excluidas(claims: list[dict], articles: list[dict]) -> tuple[list[di
     return claims, articles, list(dict.fromkeys(excluidas))
 
 
+# O UOL publica a mesma checagem em até três endereços (".htm", ".ghtm" e ".amp.htm"). Cada um
+# virava uma checagem e ocupava uma vaga do top 5. Fica uma por página, nesta ordem de preferência.
+_VARIANTE = re.compile(r"(\.amp)?\.g?htm$")
+_PREFERENCIA = (".amp.htm", ".ghtm")   # sufixos menos preferidos; ".htm" simples vence
+
+
+def url_canonica(url: str) -> str:
+    """Endereço sem query, barra final e sufixo de variante (".htm", ".ghtm", ".amp.htm")."""
+    return _VARIANTE.sub("", url.split("?")[0].strip().rstrip("/"))
+
+
+def _ordem_variante(url: str) -> int:
+    u = url.split("?")[0].rstrip("/")
+    return next((i + 1 for i, s in enumerate(reversed(_PREFERENCIA)) if u.endswith(s)), 0)
+
+
+def unificar_variantes(claims: list[dict], articles: list[dict]) -> tuple[list[dict], list[dict], list[str]]:
+    """Uma checagem por página: junta as variantes de URL e devolve as URLs que saem.
+
+    Fica a variante preferida (.htm > .ghtm > .amp.htm); campos vazios dela são completados com
+    os das outras variantes, e o texto baixado por outra variante passa para ela. A mesma URL vinda
+    de duas fontes (API e FACTCK.BR) fica como antes: vale o primeiro registro, sem mistura.
+    """
+    grupos: dict[str, list[dict]] = {}
+    for c in claims:
+        grupos.setdefault(url_canonica(c["source_url"]), []).append(c)
+    texto_por_url = {a["source_url"]: a for a in articles}
+
+    claims_ok, removidas, nova_url = [], [], {}
+    for grupo in grupos.values():
+        grupo = sorted(grupo, key=lambda c: _ordem_variante(c["source_url"]))
+        fica = dict(grupo[0])
+        for outra in grupo[1:]:
+            if outra["source_url"] == fica["source_url"]:
+                continue   # mesma URL em duas fontes: vale a primeira (build_records fazia o mesmo)
+            for campo, valor in outra.items():
+                if campo in ("corpus", "url_original"):
+                    continue   # dizem de onde veio o registro; não passam para outro
+                if valor and not fica.get(campo):
+                    fica[campo] = valor
+            removidas.append(outra["source_url"])
+            nova_url[outra["source_url"]] = fica["source_url"]
+        claims_ok.append(fica)
+
+    # Textos da mesma URL passam como estão (build_records usa o último, como antes); só o texto
+    # de uma variante que sai muda de URL, e só se a que fica não tiver texto próprio.
+    articles_ok, movidos = [], set()
+    for a in articles:
+        url = nova_url.get(a["source_url"], a["source_url"])
+        if url != a["source_url"]:
+            if url in texto_por_url or url in movidos:
+                continue
+            movidos.add(url)
+        articles_ok.append({**a, "source_url": url})
+    return claims_ok, articles_ok, list(dict.fromkeys(removidas))
+
+
 def remove_urls(urls: list[str], batch_size: int = 200) -> None:
     """Apaga do índice os trechos dessas URLs (os que já tinham sido indexados)."""
     from src.retrieval.indice import get_collection
@@ -165,7 +225,7 @@ def remove_urls(urls: list[str], batch_size: int = 200) -> None:
     for start in range(0, len(urls), batch_size):
         collection.delete(where={"source_url": {"$in": urls[start : start + batch_size]}})
     if antes - collection.count():
-        print(f"  {antes - collection.count()} trechos de domínios excluídos apagados do índice.")
+        print(f"  {antes - collection.count()} trechos de domínios excluídos e de variantes de URL apagados do índice.")
 
 
 def only_new(records: list[dict], existing_ids: set[str]) -> list[dict]:
@@ -202,6 +262,9 @@ def main() -> None:
     parser.add_argument("--factckbr-claims", type=Path, default=config.RAW_DIR / "factckbr_claims.jsonl")
     parser.add_argument("--factckbr-articles", type=Path, default=config.RAW_DIR / "factckbr_articles.jsonl")
     parser.add_argument("--sem-factckbr", action="store_true", help="não inclui o FACTCK.BR, mesmo que exista")
+    parser.add_argument("--lupa-claims", type=Path, default=config.RAW_DIR / "lupa_claims.jsonl")
+    parser.add_argument("--lupa-articles", type=Path, default=config.RAW_DIR / "lupa_articles.jsonl")
+    parser.add_argument("--sem-lupa", action="store_true", help="não inclui a Lupa (import_lupa.py), mesmo que exista")
     parser.add_argument("--apenas-novos", action="store_true",
                         help="só calcula embeddings dos trechos que ainda não estão no índice")
     parser.add_argument("--so-nomes", action="store_true",
@@ -215,11 +278,20 @@ def main() -> None:
         if fk_claims:
             print(f"FACTCK.BR: {len(fk_claims)} checagens ({len(fk_articles)} com texto).")
         claims, articles = claims + fk_claims, articles + fk_articles
+    if not args.sem_lupa:
+        lp_claims, lp_articles = load_jsonl(args.lupa_claims), load_jsonl(args.lupa_articles)
+        if lp_claims:
+            print(f"Lupa: {len(lp_claims)} checagens ({len(lp_articles)} com texto).")
+        claims, articles = claims + lp_claims, articles + lp_articles
     if not claims and not articles:
         sys.exit(f"Nada em {args.claims} nem em {args.articles}. Rode antes collect_factcheck_api.py.")
     claims, articles, excluidas = separar_excluidas(claims, articles)
     if excluidas:
         print(f"{len(excluidas)} checagens de domínios excluídos ({', '.join(config.DOMINIOS_EXCLUIDOS)}) ficam fora.")
+    claims, articles, variantes = unificar_variantes(claims, articles)
+    if variantes:
+        print(f"{len(variantes)} variantes de URL da mesma página (.ghtm, .amp.htm) unificadas.")
+    excluidas += variantes
 
     n_nomes = write_name_vocabulary(claims)
     print(f"Vocabulário de nomes próprios: {n_nomes} palavras em data/corpus/nomes_proprios.txt")
